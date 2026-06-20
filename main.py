@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v1.9"
+BOT_FILE          = "XRPRadar_v2.0"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -889,8 +889,8 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 /* ACCOUNT / MARKET OVERVIEW */
 .acct{background:var(--s1);border:1px solid rgba(117,188,255,.25);
   border-radius:10px;padding:12px;margin-bottom:10px}
-.sec-title{font-size:15px;text-transform:uppercase;letter-spacing:2px;
-  font-family:var(--mn);color:var(--tx);margin-bottom:10px}
+.sec-title{font-size:16px;text-transform:uppercase;letter-spacing:2px;
+  font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:800}
 .agrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .abox{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:10px;text-align:center}
 .abox.hi{border-color:rgba(117,188,255,.4);background:var(--bld)}
@@ -903,8 +903,8 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .aval.g{color:var(--gr)}.aval.r{color:var(--rd)}.aval.y{color:var(--yl)}.aval.b{color:var(--bl)}
 .asub{font-size:11px;font-family:var(--mn);color:var(--tx);margin-top:4px}
 /* SLOTS — Regional Intelligence Cards */
-.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
-.slot{background:var(--s1);border:1px solid var(--b);border-radius:8px;padding:8px;transition:border-color .3s}
+.slots{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
+.slot{background:var(--s1);border:1px solid var(--b);border-radius:8px;padding:12px;transition:border-color .3s}
 .slot.active{border-color:rgba(117,188,255,.35)}
 .slot.bull{border-color:rgba(72,255,130,.35)}
 .slot.bear{border-color:rgba(255,64,96,.35)}
@@ -919,7 +919,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .tqdot.gbear{background:var(--rd);box-shadow:0 0 8px var(--rd)}
 .tqdot.gneut{background:var(--yl)}
 .tqdot.gquiet{background:#333}
-.sname{font-size:15px;font-weight:900;color:var(--br);font-family:var(--mn)}
+.sname{font-size:17px;font-weight:900;color:var(--br);font-family:var(--mn)}
 .sbadge{font-size:11px;font-family:var(--mn);font-weight:700;padding:3px 7px;
   border-radius:3px;text-transform:uppercase;margin-left:auto;white-space:nowrap}
 .sbadge.bull{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.4)}
@@ -931,7 +931,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .swbox{background:var(--s2);border:1px solid var(--b);border-radius:4px;padding:4px;text-align:center}
 .swval{font-size:16px;font-weight:900;font-family:var(--mn);line-height:1;color:var(--br)}
 .swlbl{font-size:10px;text-transform:uppercase;font-family:var(--mn);color:var(--tx);font-weight:700}
-.sact{font-family:var(--mn);font-size:12px;color:var(--br);
+.sact{font-family:system-ui;font-size:13px;color:var(--br);
   word-break:break-word;line-height:1.4;min-height:18px;margin-top:4px}
 .sfoot{display:flex;justify-content:space-between;margin-top:4px;
   padding-top:4px;border-top:1px solid rgba(255,255,255,.05);
@@ -988,32 +988,32 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .nsrc.whale{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.3)}
 .ncat{font-size:10px;color:var(--tx);background:var(--s1);padding:2px 5px;border-radius:3px;font-family:var(--mn)}
 .nbreak{font-size:10px;color:var(--yl);font-weight:700;font-family:var(--mn)}
-.ntitle{font-size:13px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:4px}
-.ntrans{font-size:11px;color:var(--tq);font-family:var(--mn);margin-bottom:4px}
-.nsum{font-size:11px;color:var(--tx);line-height:1.6;margin-bottom:5px}
+.ntitle{font-size:14px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:5px}
+.ntrans{font-size:12px;color:var(--tq);font-family:system-ui;margin-bottom:5px;font-style:italic;padding:4px 8px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:3px}
+.nsum{font-size:12px;color:var(--br);line-height:1.7;margin-bottom:6px}
 .nfoot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .nsent{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:var(--mn)}
 .nsent.bull{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.3)}
 .nsent.bear{background:var(--rdd);color:var(--rd);border:1px solid rgba(255,64,96,.2)}
 .nsent.neut{background:rgba(128,153,179,.08);color:var(--tx);border:1px solid var(--b)}
 .nage{font-size:10px;color:var(--b);margin-left:auto;font-family:var(--mn)}
-.ncount{font-size:11px;color:var(--tx);padding:4px 12px 6px;font-family:var(--mn)}
+.ncount{font-size:12px;color:var(--tx);padding:6px 12px 8px;font-family:var(--mn)}
 /* SEARCH + FILTERS */
 .nctrl{padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);display:flex;flex-direction:column;gap:6px}
 .nsearch{width:100%;background:var(--bg);border:1px solid var(--b);color:var(--br);
-  padding:7px 12px;border-radius:5px;font-size:12px;font-family:var(--mn);outline:none}
+  padding:10px 16px;border-radius:5px;font-size:14px;font-family:var(--mn);outline:none}
 .nsearch:focus{border-color:var(--bl)}
 .nbtns{display:flex;gap:5px;flex-wrap:nowrap}
-.nbtn{background:var(--s2);border:1px solid var(--b);color:var(--tx);
-  padding:5px 10px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:700;
+.nbtn{background:var(--s2);border:1px solid var(--b);color:var(--br);
+  padding:7px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;
   font-family:var(--mn);letter-spacing:.05em;text-transform:uppercase;transition:all .2s;white-space:nowrap}
 .nbtn:hover,.nbtn.on{background:var(--bld);border-color:var(--bl);color:var(--bl)}
 /* RIGHT PANEL */
 .rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
 .rcard{padding:10px 14px;border-bottom:1px solid var(--b)}
-.rtitle{font-size:10px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:var(--tx);margin-bottom:8px}
-.rrow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
-.rk{color:var(--tx);font-family:var(--mn)}.rv{color:var(--br);font-weight:700;font-family:var(--mn)}
+.rtitle{font-size:12px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:700}
+.rrow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px}
+.rk{color:#ffffff;font-family:var(--mn)}.rv{color:var(--br);font-weight:700;font-family:var(--mn);font-size:13px}
 .rv.g{color:var(--gr)}.rv.b{color:var(--bl)}.rv.r{color:var(--rd)}.rv.y{color:var(--yl)}
 /* LEADERBOARDS */
 .lbpair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
@@ -1029,7 +1029,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
   border-radius:10px;padding:14px;margin-bottom:10px}
 .lab3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .labp{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px}
-.labt{font-size:12px;font-weight:800;color:var(--tq);font-family:var(--mn);
+.labt{font-size:13px;font-weight:800;color:var(--bl);font-family:var(--mn);
   text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;
   padding-bottom:6px;border-bottom:1px solid var(--b)}
 .bstat{display:flex;justify-content:space-between;padding:4px 0;
@@ -1075,6 +1075,16 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
   font-weight:700;font-size:12px;padding:10px;border-radius:6px;cursor:pointer;
   border:1px solid var(--bl);text-align:center;transition:all .2s;text-decoration:none;font-family:var(--mn)}
 .modal-btn:hover{background:var(--bl);color:#000}
+
+/* PRECHECK MODAL */
+#pf-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,.88);z-index:9999;align-items:center;justify-content:center;padding:20px}
+#pf-box{background:var(--s1);border:1px solid var(--bl);border-radius:10px;
+  max-width:560px;width:100%;padding:0;overflow:hidden}
+#pf-hdr{padding:10px 16px;background:var(--s2);border-bottom:1px solid var(--b);
+  display:flex;justify-content:space-between;align-items:center;font-family:var(--mn)}
+#pf-body{padding:16px;font-family:var(--mn);font-size:12px;line-height:2.2}
+
 /* FOOTER */
 footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   font-family:var(--mn);font-size:11px;color:var(--tx);line-height:2.2}
@@ -1101,7 +1111,8 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
     <div class="icon">🛰️</div>
     <div>
       <div class="title">XRPRadar</div>
-      <div class="sub">230 Sources &middot; Signals Over Noise 24/7</div>
+      <div class="sub" style="font-size:13px;color:#ffffff;letter-spacing:1.5px">Signals Over Noise 24/7</div>
+      <div class="sub" style="font-size:11px;color:var(--gr);letter-spacing:1px">● 230 Sources Live</div>
     </div>
   </div>
   <div class="hright">
@@ -1148,13 +1159,13 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
 <!-- SECTION 5: US + GLOBAL INTELLIGENCE (2-column panel) -->
 <div class="two">
   <div class="panel" id="ai-briefing-us">
-    <div class="ph"><span class="pt" style="color:var(--bl)">🇺🇸 US Intelligence</span><span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="ai-us-ts">--</span></div>
+    <div class="ph"><span class="pt" style="color:var(--bl);font-size:16px;font-weight:800;letter-spacing:2px">🇺🇸 US Intelligence</span><span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="ai-us-ts">--</span></div>
     <div class="pcard"><div class="albl" style="margin-bottom:4px">US Pulse</div><div class="pv" id="ai-us-pulse" style="font-size:12px;line-height:1.7;font-family:system-ui">Fetching US intelligence...</div></div>
     <div class="pcard"><div class="albl" style="margin-bottom:4px">Regulatory</div><div class="pv" id="ai-us-reg" style="font-size:12px;line-height:1.7;font-family:system-ui">Loading...</div></div>
     <div class="pcard"><div class="albl" style="margin-bottom:4px">Institutional</div><div class="pv" id="ai-us-inst" style="font-size:12px;line-height:1.7;font-family:system-ui">Loading...</div></div>
   </div>
   <div class="panel">
-    <div class="ph"><span class="pt" style="color:var(--gr)">🌐 Global Pulse</span><span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="ai-gl-ts">--</span></div>
+    <div class="ph"><span class="pt" style="color:var(--gr);font-size:16px;font-weight:800;letter-spacing:2px">🌐 Global Pulse</span><span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="ai-gl-ts">--</span></div>
     <div class="pcard"><div class="albl" style="margin-bottom:4px">Global Summary</div><div class="pv g" id="ai-gl-pulse" style="font-size:12px;line-height:1.7;font-family:system-ui">Synthesizing global signals...</div></div>
     <div class="pcard"><div class="albl" style="margin-bottom:4px">Regional Signals</div><div id="ai-signals" class="sig-chips"><span class="empty">Loading...</span></div></div>
     <div class="pcard"><div class="albl" style="margin-bottom:4px">Cumulative Thesis</div><div style="font-size:12px;line-height:1.7;color:var(--gr);font-family:system-ui" id="ai-gl-thesis">Building analysis...</div></div>
@@ -1191,6 +1202,7 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
 <div class="nrow" id="news-panel">
   <div class="npanel">
     <div class="nctrl">
+      <div class="pt" style="color:var(--bl);font-size:16px;font-weight:800;letter-spacing:2px;margin-bottom:8px">📰 GLOBAL NEWS FEED</div>
       <input class="nsearch" id="search-box" placeholder="🔍 Search XRP news..." oninput="filterNews()">
       <div class="nbtns">
         <button class="nbtn on" onclick="setFilter(this,'all')">ALL</button>
@@ -1242,7 +1254,7 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
 
 <!-- SECTION 9: ANALYTICS LAB -->
 <div class="lab">
-  <div class="sec-title" style="color:var(--tq)">🔬 Analytics Lab</div>
+  <div class="sec-title" style="color:var(--bl)">🔬 Analytics Lab</div>
   <div class="lab3">
     <div class="labp">
       <div class="labt">📈 Signal Metrics</div>
@@ -1303,12 +1315,25 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
 <footer>
   <div>🛰️ <em style="color:var(--bl);font-weight:700">XRPRadar</em> &nbsp;|&nbsp; Version: <span id="ft-ver" style="color:var(--tq);font-weight:700">--</span> &nbsp;|&nbsp; Updated: <span id="ft-last" style="color:var(--br)">--</span> &nbsp;|&nbsp; Uptime: <span id="ft-uptime" style="color:var(--br)">--</span> &nbsp;&nbsp;<a href="/debug" target="_blank" style="color:var(--or);font-size:10px;font-weight:700;text-decoration:none;border:1px solid var(--or);padding:1px 6px;border-radius:3px">DEBUG</a></div>
   <div style="color:var(--yl)">⚠️ Not Financial Advice — XRPRadar is for informational purposes only. DYOR.</div>
-  <div>System Precheck: <span id="ft-qa" style="font-weight:700">--</span> &nbsp;|&nbsp; Maintenance: <span id="ft-maint">--</span> &nbsp;|&nbsp; Feeds: <span id="ft-feeds">--</span></div>
-  <div>Preflight: <span id="ft-qa-status" style="font-weight:700">--</span> &nbsp;|&nbsp; Last run: <span id="ft-qa-last">--</span> &nbsp;|&nbsp; <span id="footer-precheck"></span></div>
-  <div>Feed Integrity: <span id="ft-feed-detail" style="color:var(--br)">--</span> &nbsp;|&nbsp; As of: <span id="ft-feed-ts" style="color:var(--br)">--</span></div>
-  <div>Maintenance: <span id="ft-maint-detail" style="color:var(--br)">--</span></div>
+  <div>Feeds: <span id="ft-feeds" style="color:var(--br)">--</span> &nbsp;|&nbsp; Maintenance: <span id="ft-maint" style="color:var(--br)">--</span> &nbsp;|&nbsp; Preflight: <span id="ft-qa-status" style="font-weight:700">--</span> &nbsp;&nbsp;<button onclick="openPFModal()" style="color:var(--bl);font-size:10px;font-weight:700;text-decoration:none;border:1px solid var(--bl);padding:1px 8px;border-radius:3px;background:var(--bld);cursor:pointer;font-family:var(--mn)">🔍 DETAILS</button></div>
   <div style="height:16px"></div>
 </footer>
+
+<!-- PRECHECK DETAILS MODAL -->
+<div id="pf-modal" onclick="closePFModal(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div id="pf-box" style="background:var(--s1);border:1px solid var(--bl);border-radius:10px;max-width:560px;width:100%;overflow:hidden" onclick="event.stopPropagation()">
+    <div style="padding:10px 16px;background:var(--s2);border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center;font-family:var(--mn)">
+      <span style="color:var(--bl);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px">🔍 Preflight / QA Details</span>
+      <span onclick="closePFModal()" style="color:var(--bl);cursor:pointer;font-size:18px;border:1px solid var(--bl);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:4px">✕</span>
+    </div>
+    <div style="padding:16px;font-family:var(--mn);font-size:12px;line-height:2.4">
+      <div>Last run: <span id="pf-last" style="color:var(--br)">--</span></div>
+      <div>Feed Integrity: <span id="pf-feeds" style="color:var(--br)">--</span></div>
+      <div>Last Error: <span id="pf-error" style="color:var(--rd)">None</span></div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--b)" id="pf-checks"></div>
+    </div>
+  </div>
+</div>
 
 </div><!-- end .w -->
 
@@ -1464,14 +1489,14 @@ function updateRegions(d){
 async function fetchRegionStories(reg){
   try{
     const d=await fetch(`/api/news?region=${reg}`).then(r=>r.json());
-    const stories=(d.stories||[]).slice(0,3);
+    const stories=(d.stories||[]).slice(0,5);
     const el=document.getElementById(`reg-stories-${reg}`);
     const cnt=document.getElementById(`reg-count-${reg}`);
     if(cnt) cnt.textContent=`${d.total||0} stories`;
     if(!el) return;
     if(!stories.length){el.innerHTML='<div style="font-size:10px;color:var(--tx);font-family:var(--mn)">No regional stories yet</div>';return;}
     el.innerHTML=stories.map(s=>{
-      const trans=s.translated_title?`<div style="font-size:10px;color:var(--tq);font-family:var(--mn);margin-top:2px">🌐 ${s.translated_title}</div>`:"";
+      const trans=s.translated_title?`<div style="font-size:11px;color:var(--tq);font-style:italic;margin-top:3px;padding:3px 6px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:2px">🌐 EN: ${s.translated_title}</div>`:(s.lang==="non-english"?`<div style="font-size:10px;color:var(--tx);font-style:italic;margin-top:2px">🌐 Translation pending...</div>`:"");
       const sent=s.sentiment==="bullish"?"g":s.sentiment==="bearish"?"r":"";
       return `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer" onclick="openStoryModal('${s.id}')">
         <div style="font-size:11px;font-weight:700;color:var(--bl);line-height:1.3">${s.title}</div>
@@ -1565,7 +1590,9 @@ function updateBreaking(d){
 }
 
 // ── Footer ─────────────────────────────────────────────────────────────────
+let pfData = {};
 function updateFooter(d){
+  pfData = d;
   c("ft-ver",  d.version||"--");
   c("ft-last", d.last_updated||"--");
   if(d.start_time){
@@ -1573,24 +1600,32 @@ function updateFooter(d){
     const mins=Math.floor(((Date.now()-new Date(d.start_time))%3600000)/60000);
     c("ft-uptime",`${hrs}h ${mins}m`);
   }
-  const qaEl=document.getElementById("ft-qa");
-  if(qaEl){qaEl.textContent=d.qa_status||"--";qaEl.style.color=d.qa_status==="PASS"?"var(--gr)":"var(--rd)";}
+  const qsEl=document.getElementById("ft-qa-status");
+  if(qsEl){qsEl.textContent=d.qa_status==="PASS"?"✅ PASS":"❌ FAIL";qsEl.style.color=d.qa_status==="PASS"?"var(--gr)":"var(--rd)";}
   const maintEl=document.getElementById("ft-maint");
   if(maintEl){const m=d.maintenance||"OK";maintEl.textContent=m==="OK"?"✅ OK":"🔧 "+m;maintEl.style.color=m==="OK"?"var(--gr)":"var(--yl)";}
   c("ft-feeds",`${d.feeds_active||0}/${d.feeds_total||230} active`);
-  const qsEl=document.getElementById("ft-qa-status");
-  if(qsEl){qsEl.textContent=d.qa_status||"--";qsEl.style.color=d.qa_status==="PASS"?"var(--gr)":"var(--rd)";}
-  c("ft-qa-last", d.qa_last||"--");
-  if(d.qa_details&&d.qa_details.length){
-    const pre=document.getElementById("footer-precheck");
-    if(pre) pre.innerHTML=d.qa_details.map(ch=>
-      `<span style="color:${ch.ok?"var(--gr)":"var(--rd)"};margin-right:10px;font-weight:700">${ch.ok?"✓":"✗"} ${ch.name}</span>`
+}
+function openPFModal(){
+  const d=pfData;
+  c("pf-last",  d.qa_last||"--");
+  c("pf-feeds", `${d.feeds_active||0}/${d.feeds_total||230} feeds active`);
+  c("pf-error", d.last_error||"None");
+  const pfEl=document.getElementById("pf-error");
+  if(pfEl) pfEl.style.color=d.last_error?"var(--rd)":"var(--gr)";
+  const chkEl=document.getElementById("pf-checks");
+  if(chkEl&&d.qa_details&&d.qa_details.length){
+    chkEl.innerHTML=d.qa_details.map(ch=>
+      `<div style="color:${ch.ok?"var(--gr)":"var(--rd)"};font-weight:700">${ch.ok?"✓":"✗"} ${ch.name}${ch.detail?" — "+ch.detail:""}</div>`
     ).join("");
   }
-  c("ft-feed-detail",`${d.feeds_active||0}/${d.feeds_total||230} feeds active`);
-  c("ft-feed-ts", d.last_updated||"--");
-  const mdEl=document.getElementById("ft-maint-detail");
-  if(mdEl){const m=d.maintenance||"OK";mdEl.textContent=m==="OK"?"✅ All systems operational":"🔧 "+m;mdEl.style.color=m==="OK"?"var(--gr)":"var(--yl)";}
+  document.getElementById("pf-modal").style.display="flex";
+  document.body.style.overflow="hidden";
+}
+function closePFModal(e){
+  if(e&&e.target!==document.getElementById("pf-modal")) return;
+  document.getElementById("pf-modal").style.display="none";
+  document.body.style.overflow="";
 }
 
 // ── News Render ─────────────────────────────────────────────────────────────
@@ -1619,7 +1654,7 @@ function renderNews(totalAll){
     const sentLbl=s.sentiment==="bullish"?"🟢 Bullish":s.sentiment==="bearish"?"🔴 Bearish":"⚪ Neutral";
     const sum=s.summary?`<div class="nsum">${s.summary.substring(0,200)}${s.summary.length>200?"...":""}</div>`:"";
     const isForeign=s.lang==="non-english";
-    const trans=s.translated_title?`<div class="ntrans">🌐 ${s.translated_title}</div>`:(isForeign?`<div class="ntrans" style="color:var(--tx)">🌐 Translation loading...</div>`:"");
+    const trans=s.translated_title?`<div class="ntrans">🌐 EN: ${s.translated_title}</div>`:(isForeign?`<div class="ntrans" style="color:var(--tx);background:none;border:none;font-style:italic">🌐 Translation pending next AI cycle...</div>`:"");
     const brk=s.breaking?`<span class="nbreak">⚡ BREAKING</span>`:"";
     return `<div class="ncard" onclick="openStoryModal('${s.id}')">
       <div class="ncard-hdr">
