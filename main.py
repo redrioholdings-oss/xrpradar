@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v1.7"
+BOT_FILE          = "XRPRadar_v1.9"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -842,778 +842,572 @@ DASHBOARD = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>XRPRadar — Signals Over Noise 24/7</title>
 <style>
-/* ── SCORPION DNA → XRPRADAR ─────────────────────────────────────────────── */
+/* ── SCORPION CSS — verbatim, color-adapted for XRPRadar ─────────────────── */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#000;--s1:#0a0a0a;--s2:#111;--s3:#141414;
-  --b:#1a2030;--b2:#222835;
-  --tc:#75bcff;--tcd:rgba(117,188,255,.12);
-  --lime:#48ff82;--limed:rgba(72,255,130,.1);
+  --bg:#000;--s1:#0a0a0a;--s2:#111;--b:#1a2030;
+  --gr:#48ff82;--grd:rgba(72,255,130,.1);
   --rd:#ff4060;--rdd:rgba(255,64,96,.1);
   --yl:#ffcc00;--yld:rgba(255,204,0,.1);
-  --or:#ff9900;
-  --tx:#8099b3;--br:#cce0ff;
+  --bl:#75bcff;--bld:rgba(117,188,255,.12);
+  --tq:#00e5cc;--tqd:rgba(0,229,204,.15);
+  --or:#ff9900;--tx:#8099b3;--br:#cce0ff;
   --mn:'Courier New',monospace
 }
-body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased;min-height:100vh}
-a{color:var(--tc);text-decoration:none}
-a:hover{color:var(--lime)}
-
-/* ── NAV ─────────────────────────────────────────────────────────────────── */
-#nav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--b);
-  display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:58px}
-.nav-logo{display:flex;align-items:center;gap:10px}
-.nav-sat{font-size:32px;filter:drop-shadow(0 0 8px var(--tc));line-height:1}
-.nav-name{font-size:22px;font-weight:900;color:var(--tc);font-style:italic;letter-spacing:.04em;line-height:1;font-family:var(--mn)}
-.nav-tagline{font-size:11px;color:var(--br);margin-top:2px;letter-spacing:.06em;font-family:var(--mn)}
-.nav-links{display:flex;gap:5px}
-.nav-links a{background:var(--s2);border:1px solid var(--b);color:var(--tx);
-  padding:5px 12px;border-radius:5px;font-size:10px;font-weight:700;font-family:var(--mn);
-  letter-spacing:.06em;text-transform:uppercase;transition:all .2s}
-.nav-links a:hover{border-color:var(--tc);color:var(--tc)}
-.nav-live{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tx);font-family:var(--mn)}
-.live-dot{width:10px;height:10px;border-radius:50%;background:var(--lime);
-  box-shadow:0 0 10px var(--lime);animation:blink 2s infinite}
-@keyframes blink{50%{opacity:.1;box-shadow:none}}
-
-/* ── BREAKING NEWS ─────────────────────────────────────────────────────────── */
+body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-height:100vh}
+.w{max-width:1100px;margin:0 auto;padding:10px 12px}
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--bl);flex-wrap:wrap;gap:6px}
+.logo{display:flex;align-items:center;gap:10px}
+.icon{width:60px;height:60px;border-radius:10px;
+  background:linear-gradient(135deg,#001a3a,#0066cc,#75bcff);
+  display:flex;align-items:center;justify-content:center;font-size:36px;
+  box-shadow:0 0 16px rgba(117,188,255,.4)}
+.title{font-size:22px;font-weight:900;color:var(--br);font-style:italic}
+.sub{font-size:12px;font-family:var(--mn);color:var(--tx);margin-top:2px;letter-spacing:1px}
+.hright{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--gr);
+  box-shadow:0 0 10px var(--gr);display:inline-block;animation:blink 2s infinite}
+@keyframes blink{50%{opacity:.1}}
+.run-lbl{font-size:15px;font-weight:800;font-family:var(--mn);color:var(--gr);letter-spacing:1px}
+.pill{padding:5px 14px;border-radius:20px;font-size:13px;font-family:var(--mn);
+  font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.plive{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.4)}
+.pbl{background:var(--bld);color:var(--bl);border:1px solid rgba(117,188,255,.4)}
+.upd{font-family:var(--mn);font-size:12px;color:var(--tx)}
+/* STATUS ROW */
+.srow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.si{background:var(--s1);border:1px solid var(--b);border-radius:8px;
+  padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+.si-lbl{color:var(--tx);font-size:13px;font-family:var(--mn)}
+.sv{font-weight:800;font-size:15px;font-family:var(--mn)}
+.sv.g{color:var(--gr)}.sv.y{color:var(--yl)}.sv.b{color:var(--bl)}.sv.r{color:var(--rd)}
+/* ACCOUNT / MARKET OVERVIEW */
+.acct{background:var(--s1);border:1px solid rgba(117,188,255,.25);
+  border-radius:10px;padding:12px;margin-bottom:10px}
+.sec-title{font-size:15px;text-transform:uppercase;letter-spacing:2px;
+  font-family:var(--mn);color:var(--tx);margin-bottom:10px}
+.agrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.abox{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:10px;text-align:center}
+.abox.hi{border-color:rgba(117,188,255,.4);background:var(--bld)}
+.abox.pos{border-color:rgba(72,255,130,.3);background:var(--grd)}
+.abox.neg{border-color:rgba(255,64,96,.3);background:var(--rdd)}
+.abox.yl{border-color:rgba(255,204,0,.3);background:var(--yld)}
+.albl{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;
+  font-family:var(--mn);color:var(--tx);margin-bottom:5px}
+.aval{font-size:22px;font-weight:900;font-family:var(--mn);color:var(--br);line-height:1}
+.aval.g{color:var(--gr)}.aval.r{color:var(--rd)}.aval.y{color:var(--yl)}.aval.b{color:var(--bl)}
+.asub{font-size:11px;font-family:var(--mn);color:var(--tx);margin-top:4px}
+/* SLOTS — Regional Intelligence Cards */
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.slot{background:var(--s1);border:1px solid var(--b);border-radius:8px;padding:8px;transition:border-color .3s}
+.slot.active{border-color:rgba(117,188,255,.35)}
+.slot.bull{border-color:rgba(72,255,130,.35)}
+.slot.bear{border-color:rgba(255,64,96,.35)}
+.slot-top{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.tqdot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.tqdot.on{background:var(--bl);box-shadow:0 0 10px var(--bl),0 0 20px rgba(117,188,255,.4);
+  animation:tqblink 1s ease-in-out infinite}
+@keyframes tqblink{0%,100%{opacity:1;box-shadow:0 0 10px var(--bl),0 0 22px rgba(117,188,255,.5)}
+  50%{opacity:.2;box-shadow:0 0 4px var(--bl)}}
+.tqdot.off{background:#1e2a3a}
+.tqdot.gbull{background:var(--gr);box-shadow:0 0 8px var(--gr)}
+.tqdot.gbear{background:var(--rd);box-shadow:0 0 8px var(--rd)}
+.tqdot.gneut{background:var(--yl)}
+.tqdot.gquiet{background:#333}
+.sname{font-size:15px;font-weight:900;color:var(--br);font-family:var(--mn)}
+.sbadge{font-size:11px;font-family:var(--mn);font-weight:700;padding:3px 7px;
+  border-radius:3px;text-transform:uppercase;margin-left:auto;white-space:nowrap}
+.sbadge.bull{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.4)}
+.sbadge.bear{background:var(--rdd);color:var(--rd);border:1px solid rgba(255,64,96,.3)}
+.sbadge.neut{background:rgba(128,153,179,.08);color:var(--tx);border:1px solid var(--b)}
+.sbadge.quiet{background:rgba(128,153,179,.05);color:var(--tx);border:1px solid var(--b)}
+.sstrat{font-size:12px;font-family:var(--mn);font-weight:800;text-transform:uppercase;margin-bottom:4px;letter-spacing:.5px;color:var(--bl)}
+.swl{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:4px 0}
+.swbox{background:var(--s2);border:1px solid var(--b);border-radius:4px;padding:4px;text-align:center}
+.swval{font-size:16px;font-weight:900;font-family:var(--mn);line-height:1;color:var(--br)}
+.swlbl{font-size:10px;text-transform:uppercase;font-family:var(--mn);color:var(--tx);font-weight:700}
+.sact{font-family:var(--mn);font-size:12px;color:var(--br);
+  word-break:break-word;line-height:1.4;min-height:18px;margin-top:4px}
+.sfoot{display:flex;justify-content:space-between;margin-top:4px;
+  padding-top:4px;border-top:1px solid rgba(255,255,255,.05);
+  font-family:var(--mn);font-size:11px;font-weight:600;color:var(--tx)}
+/* SCOREBOARD */
+.score{background:var(--s1);border:1px solid var(--b);border-radius:10px;
+  padding:12px;margin-bottom:10px;width:100%;box-sizing:border-box}
+.sgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.sbox{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:10px;text-align:center}
+.sbox.wc{border-color:rgba(72,255,130,.3);background:var(--grd)}
+.sbox.lc{border-color:rgba(255,64,96,.3);background:var(--rdd)}
+.sbox.bc{border-color:rgba(117,188,255,.3);background:var(--bld)}
+.sbox.yc{border-color:rgba(255,204,0,.3);background:var(--yld)}
+.snum{font-size:22px;font-weight:900;font-family:var(--mn);line-height:1}
+.snum.g{color:var(--gr)}.snum.r{color:var(--rd)}.snum.b{color:var(--bl)}.snum.y{color:var(--yl)}
+.snlbl{font-size:10px;text-transform:uppercase;font-family:var(--mn);color:var(--tx);margin-top:4px}
+.snsub{font-size:9px;font-family:var(--mn);color:var(--tx);margin-top:3px}
+.sgrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.wrbar{height:6px;background:var(--rdd);border-radius:3px;overflow:hidden;margin-top:10px}
+.wrfill{height:100%;background:linear-gradient(90deg,var(--gr),#00ffcc);transition:width .8s}
+/* TWO-COLUMN */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.panel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
+.ph{padding:8px 14px;border-bottom:1px solid var(--b);
+  display:flex;justify-content:space-between;align-items:center;background:var(--s2)}
+.pt{font-size:12px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:var(--tx)}
+.pcard{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.03)}
+.prow{display:flex;justify-content:space-between;padding:3px 0;font-family:var(--mn);font-size:12px}
+.pk{color:var(--tx)}.pv{font-weight:700;color:var(--br)}
+.pv.g{color:var(--gr)}.pv.r{color:var(--rd)}.pv.b{color:var(--bl)}.pv.y{color:var(--yl)}
+.alog{max-height:300px;overflow-y:auto;padding:6px 14px;font-family:var(--mn);font-size:12px}
+.lr{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.02)}
+.lt{color:var(--tx);opacity:.5;font-size:10px;white-space:nowrap}
+.lm{flex:1;color:var(--br)}
+.lm.bull{color:var(--gr)}.lm.bear{color:var(--rd)}.lm.break{color:var(--yl)}
+/* NEWS FEED */
+.nrow{display:grid;grid-template-columns:1fr 340px;gap:10px;margin-bottom:10px}
+.npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
+.nfeed{max-height:520px;overflow-y:auto;padding:8px 12px}
+.ncard{background:var(--s2);border:1px solid var(--b);border-radius:6px;
+  padding:9px;margin-bottom:7px;cursor:pointer;transition:border-color .2s}
+.ncard:hover{border-color:var(--bl)}
+.ncard-hdr{display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
+.nsrc{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:var(--mn)}
+.nsrc.major{background:var(--bld);color:var(--bl);border:1px solid rgba(117,188,255,.3)}
+.nsrc.xrp{background:var(--bld);color:var(--bl);border:1px solid rgba(117,188,255,.4)}
+.nsrc.official{background:rgba(61,158,255,.1);color:#88aaff;border:1px solid rgba(61,158,255,.25)}
+.nsrc.community{background:rgba(255,153,0,.08);color:var(--or);border:1px solid rgba(255,153,0,.25)}
+.nsrc.international{background:rgba(170,136,255,.08);color:#bb99ff;border:1px solid rgba(170,136,255,.25)}
+.nsrc.aggregator{background:rgba(255,255,100,.06);color:#ffffaa;border:1px solid rgba(255,255,100,.2)}
+.nsrc.legal{background:rgba(255,64,96,.08);color:#ff9999;border:1px solid rgba(255,64,96,.2)}
+.nsrc.mainstream{background:rgba(61,158,255,.08);color:#99bbff;border:1px solid rgba(61,158,255,.2)}
+.nsrc.institutional{background:var(--yld);color:var(--yl);border:1px solid rgba(255,204,0,.2)}
+.nsrc.whale{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.3)}
+.ncat{font-size:10px;color:var(--tx);background:var(--s1);padding:2px 5px;border-radius:3px;font-family:var(--mn)}
+.nbreak{font-size:10px;color:var(--yl);font-weight:700;font-family:var(--mn)}
+.ntitle{font-size:13px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:4px}
+.ntrans{font-size:11px;color:var(--tq);font-family:var(--mn);margin-bottom:4px}
+.nsum{font-size:11px;color:var(--tx);line-height:1.6;margin-bottom:5px}
+.nfoot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nsent{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:var(--mn)}
+.nsent.bull{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.3)}
+.nsent.bear{background:var(--rdd);color:var(--rd);border:1px solid rgba(255,64,96,.2)}
+.nsent.neut{background:rgba(128,153,179,.08);color:var(--tx);border:1px solid var(--b)}
+.nage{font-size:10px;color:var(--b);margin-left:auto;font-family:var(--mn)}
+.ncount{font-size:11px;color:var(--tx);padding:4px 12px 6px;font-family:var(--mn)}
+/* SEARCH + FILTERS */
+.nctrl{padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);display:flex;flex-direction:column;gap:6px}
+.nsearch{width:100%;background:var(--bg);border:1px solid var(--b);color:var(--br);
+  padding:7px 12px;border-radius:5px;font-size:12px;font-family:var(--mn);outline:none}
+.nsearch:focus{border-color:var(--bl)}
+.nbtns{display:flex;gap:5px;flex-wrap:nowrap}
+.nbtn{background:var(--s2);border:1px solid var(--b);color:var(--tx);
+  padding:5px 10px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:700;
+  font-family:var(--mn);letter-spacing:.05em;text-transform:uppercase;transition:all .2s;white-space:nowrap}
+.nbtn:hover,.nbtn.on{background:var(--bld);border-color:var(--bl);color:var(--bl)}
+/* RIGHT PANEL */
+.rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
+.rcard{padding:10px 14px;border-bottom:1px solid var(--b)}
+.rtitle{font-size:10px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:var(--tx);margin-bottom:8px}
+.rrow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+.rk{color:var(--tx);font-family:var(--mn)}.rv{color:var(--br);font-weight:700;font-family:var(--mn)}
+.rv.g{color:var(--gr)}.rv.b{color:var(--bl)}.rv.r{color:var(--rd)}.rv.y{color:var(--yl)}
+/* LEADERBOARDS */
+.lbpair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.lbrow{display:grid;grid-template-columns:24px 1fr 60px 60px;
+  gap:6px;align-items:center;padding:5px 10px;
+  border-bottom:1px solid rgba(255,255,255,.03);font-family:var(--mn);font-size:11px}
+.lbrow.hdr{background:var(--s2);font-size:10px;color:var(--tx);
+  text-transform:uppercase;border-bottom:1px solid var(--b)}
+.rank{font-weight:900;text-align:center;font-size:12px}
+.r1{color:#ffd700}.r2{color:#c0c0c0}.r3{color:#cd7f32}.rn{color:var(--or)}
+/* ANALYTICS LAB */
+.lab{background:var(--s1);border:1px solid rgba(0,229,204,.2);
+  border-radius:10px;padding:14px;margin-bottom:10px}
+.lab3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.labp{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px}
+.labt{font-size:12px;font-weight:800;color:var(--tq);font-family:var(--mn);
+  text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;
+  padding-bottom:6px;border-bottom:1px solid var(--b)}
+.bstat{display:flex;justify-content:space-between;padding:4px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mn);font-size:12px}
+.bk{color:var(--tx)}.bv{font-weight:700;color:var(--br)}
+.bv.g{color:var(--gr)}.bv.r{color:var(--rd)}.bv.b{color:var(--bl)}.bv.y{color:var(--yl)}
+/* SIGNAL CHIPS */
+.sig-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.sig-chip{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--br);
+  background:var(--s2);padding:4px 8px;border-radius:4px;border:1px solid var(--b);font-family:var(--mn)}
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sdot.g{background:var(--gr)}.sdot.r{background:var(--rd)}
+.sdot.y{background:var(--yl)}.sdot.q{background:#333}
+/* BREAKING NEWS */
 #breaking{background:var(--s1);border-bottom:1px solid var(--b);
-  padding:5px 16px;display:none;align-items:center;overflow:hidden}
-.breaking-label{color:var(--br);font-weight:700;font-size:10px;font-family:var(--mn);
+  padding:5px 0;display:none;align-items:center;overflow:hidden}
+.bkinner{max-width:1100px;margin:0 auto;padding:0 12px;display:flex;align-items:center;width:100%}
+.bklbl{color:var(--br);font-weight:700;font-size:10px;font-family:var(--mn);
   flex-shrink:0;padding-right:12px;border-right:1px solid var(--b);margin-right:12px;letter-spacing:.08em}
-.breaking-scroll{flex:1;overflow:hidden;height:18px;position:relative}
-.breaking-text{color:var(--tx);font-size:11px;font-family:var(--mn);white-space:nowrap;
+.bkscroll{flex:1;overflow:hidden;height:18px;position:relative}
+.bktext{color:var(--tx);font-size:11px;font-family:var(--mn);white-space:nowrap;
   position:absolute;animation:marquee 40s linear infinite}
 @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
-
-/* ── PANEL STRUCTURE (Scorpion .panel pattern) ────────────────────────────── */
-.panel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;margin-bottom:10px}
-.ph{padding:8px 14px;border-bottom:1px solid var(--b);background:var(--s2);
-  display:flex;justify-content:space-between;align-items:center}
-.pt{font-size:10px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:var(--tx);font-weight:700}
-.pt.tc{color:var(--tc)}.pt.lime{color:var(--lime)}
-.panel-body{padding:12px 14px}
-
-/* ── CARDS (Scorpion .abox pattern) ──────────────────────────────────────── */
-.card-grid{display:grid;gap:8px}
-.g4{grid-template-columns:repeat(4,1fr)}
-.g3{grid-template-columns:repeat(3,1fr)}
-.g2{grid-template-columns:repeat(2,1fr)}
-.card{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px;
-  position:relative;overflow:hidden;text-align:center}
-.card.hi{border-color:rgba(117,188,255,.3);background:var(--tcd)}
-.card.pos{border-color:rgba(72,255,130,.3);background:var(--limed)}
-.card.neg{border-color:rgba(255,64,96,.3);background:var(--rdd)}
-.card-label{font-size:10px;color:var(--tx);font-weight:700;text-transform:uppercase;
-  letter-spacing:1.5px;margin-bottom:6px;font-family:var(--mn)}
-.card-value{font-size:26px;font-weight:900;color:var(--br);line-height:1;font-family:var(--mn)}
-.card-value.tc{color:var(--tc)}.card-value.lime{color:var(--lime)}.card-value.rd{color:var(--rd)}
-.card-sub{font-size:11px;color:var(--tx);margin-top:4px;font-family:var(--mn)}
-.card-change{font-size:14px;font-weight:700;margin-top:4px;font-family:var(--mn)}
-.price-hero .card-value{font-size:48px}
-.card-sm .card-value{font-size:20px}
-
-/* ── PAGE SECTIONS ───────────────────────────────────────────────────────── */
-.section-wrap{padding:12px 16px;background:var(--s1);border-bottom:1px solid var(--b)}
-.row-title{font-size:10px;font-weight:700;color:var(--tx);text-transform:uppercase;
-  letter-spacing:2px;margin-bottom:10px;font-family:var(--mn)}
-
-/* ── CHART ──────────────────────────────────────────────────────────────────── */
-#chart-row{background:var(--bg);padding:12px 16px;border-bottom:1px solid var(--b)}
-#tv-chart{width:100%;height:460px;border-radius:8px;overflow:hidden;border:1px solid var(--b2)}
-.tradingview-widget-container{width:100%;height:100%}
-
-/* ── AI SECTIONS ─────────────────────────────────────────────────────────────── */
-.ai-badge{display:inline-block;padding:3px 10px;border-radius:3px;
-  font-size:10px;font-weight:700;letter-spacing:.08em;margin-bottom:8px;
-  text-transform:uppercase;font-family:var(--mn)}
-.ai-badge-tc{background:var(--tcd);color:var(--tc);border:1px solid rgba(117,188,255,.3)}
-.ai-badge-lime{background:var(--limed);color:var(--lime);border:1px solid rgba(72,255,130,.25)}
-.ai-text{font-size:12px;color:var(--br);line-height:1.7}
-.ai-thesis{font-size:12px;color:var(--lime);line-height:1.7}
-.ai-meta{font-size:11px;color:var(--tx);line-height:1.9;font-family:var(--mn)}
-.signal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-top:6px}
-.signal-chip{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--br);
-  background:var(--s2);padding:4px 8px;border-radius:4px;border:1px solid var(--b);font-family:var(--mn)}
-.sig-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.sig-bull{background:var(--lime)}.sig-bear{background:var(--rd)}
-.sig-neut{background:var(--yl)}.sig-quiet{background:#333}
-
-/* ── REGIONAL BOXES (3 per row) ──────────────────────────────────────────── */
-.region-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 16px}
-.region-box{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
-.region-hdr{padding:7px 12px;background:var(--s2);border-bottom:1px solid var(--b);
-  display:flex;align-items:center;gap:8px}
-.region-flag{font-size:16px}
-.region-name{font-size:10px;font-weight:700;color:var(--tc);text-transform:uppercase;
-  letter-spacing:1.5px;font-family:var(--mn)}
-.region-sig{margin-left:auto;font-size:10px;font-family:var(--mn);font-weight:700}
-.region-body{padding:8px 12px}
-.region-pulse{font-size:11px;color:var(--tx);line-height:1.6;margin-bottom:7px;min-height:32px}
-.region-story{padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer}
-.region-story:last-child{border-bottom:none}
-.region-story:hover .region-story-title{color:var(--lime)}
-.region-story-title{font-size:11px;font-weight:600;color:var(--br);line-height:1.4;transition:color .2s}
-.region-story-translation{font-size:10px;color:var(--lime);font-family:var(--mn);margin-top:2px}
-.region-story-meta{display:flex;gap:6px;margin-top:3px;font-size:10px;font-family:var(--mn);color:var(--tx)}
-.region-sent{font-weight:700}
-.region-sent.bullish{color:var(--lime)}.region-sent.bearish{color:var(--rd)}.region-sent.neutral{color:var(--tx)}
-.region-age{margin-left:auto;color:var(--b2)}
-
-/* ── INSIGHTS HEADER ────────────────────────────────────────────────────────── */
-#insights-hdr{background:var(--s2);padding:7px 16px;border-bottom:1px solid var(--b);
-  display:flex;gap:14px;align-items:center}
-.insights-label{font-size:10px;font-weight:700;color:var(--tc);text-transform:uppercase;
-  letter-spacing:1.5px;font-family:var(--mn)}
-
-/* ── MAIN CONTENT ─────────────────────────────────────────────────────────── */
-#main-content{display:grid;grid-template-columns:1fr 320px;background:var(--bg)}
-#news-panel{background:var(--bg);border-right:1px solid var(--b);padding:10px}
-.news-controls{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
-.search-box{width:100%;background:var(--s1);border:1px solid var(--b);
-  color:var(--br);padding:7px 12px;border-radius:5px;font-size:12px;
-  font-family:var(--mn);outline:none;transition:border-color .2s}
-.search-box:focus{border-color:var(--tc)}
-.filter-btns{display:flex;gap:5px;flex-wrap:nowrap}
-.filter-btn{background:var(--s2);border:1px solid var(--b);color:var(--tx);
-  padding:4px 9px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:700;
-  font-family:var(--mn);letter-spacing:.05em;text-transform:uppercase;transition:all .2s;white-space:nowrap}
-.filter-btn:hover,.filter-btn.active{background:var(--tcd);border-color:var(--tc);color:var(--tc)}
-#news-count{font-size:10px;color:var(--tx);padding:3px 0 7px;font-family:var(--mn)}
-.story-card{background:var(--s1);border:1px solid var(--b);border-radius:7px;
-  padding:9px;margin-bottom:7px;cursor:pointer;transition:border-color .2s}
-.story-card:hover{border-color:var(--tc)}
-.story-header{display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
-.src-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:var(--mn)}
-.src-official{background:rgba(61,158,255,.1);color:#3d9eff;border:1px solid rgba(61,158,255,.3)}
-.src-major{background:var(--tcd);color:var(--tc);border:1px solid rgba(117,188,255,.3)}
-.src-xrp{background:var(--tcd);color:var(--tc);border:1px solid rgba(117,188,255,.4)}
-.src-community{background:rgba(255,153,0,.08);color:var(--or);border:1px solid rgba(255,153,0,.3)}
-.src-international{background:rgba(170,136,255,.08);color:#aa88ff;border:1px solid rgba(170,136,255,.3)}
-.src-aggregator{background:rgba(255,255,100,.06);color:#ffff88;border:1px solid rgba(255,255,100,.2)}
-.src-legal{background:rgba(255,64,96,.08);color:#ff9999;border:1px solid rgba(255,64,96,.2)}
-.src-mainstream{background:rgba(61,158,255,.08);color:#88aaff;border:1px solid rgba(61,158,255,.2)}
-.src-institutional{background:rgba(255,204,0,.06);color:var(--yl);border:1px solid rgba(255,204,0,.2)}
-.src-whale{background:var(--limed);color:var(--lime);border:1px solid rgba(72,255,130,.3)}
-.src-ecosystem{background:var(--tcd);color:var(--tc);border:1px solid rgba(117,188,255,.3)}
-.src-technical{background:rgba(170,136,255,.08);color:#bb88ff;border:1px solid rgba(170,136,255,.2)}
-.story-title{font-size:12px;font-weight:700;color:var(--tc);line-height:1.4;margin-bottom:4px}
-.story-translation{font-size:10px;color:var(--lime);font-family:var(--mn);margin-bottom:4px}
-.story-summary{font-size:11px;color:var(--tx);line-height:1.6;margin-bottom:5px}
-.story-footer{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.sentiment-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:var(--mn)}
-.sent-bullish{background:var(--limed);color:var(--lime);border:1px solid rgba(72,255,130,.3)}
-.sent-bearish{background:var(--rdd);color:var(--rd);border:1px solid rgba(255,64,96,.2)}
-.sent-neutral{background:var(--s2);color:var(--tx);border:1px solid var(--b)}
-.cat-tag{font-size:10px;color:var(--tx);background:var(--s2);padding:2px 5px;border-radius:3px;font-family:var(--mn)}
-.story-age{font-size:10px;color:var(--b2);margin-left:auto;font-family:var(--mn)}
-
-/* ── RIGHT PANEL ──────────────────────────────────────────────────────────── */
-#right-panel{background:var(--s1)}
-.right-card{padding:10px 12px;border-bottom:1px solid var(--b)}
-.right-title{font-size:10px;font-weight:700;color:var(--tx);text-transform:uppercase;
-  letter-spacing:1.5px;margin-bottom:8px;font-family:var(--mn)}
-.stat-row{display:flex;justify-content:space-between;align-items:center;
-  padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px}
-.stat-label{color:var(--tx);font-family:var(--mn)}
-.stat-val{color:var(--br);font-weight:700;font-family:var(--mn)}
-.stat-val.tc{color:var(--tc)}.stat-val.lime{color:var(--lime)}
-
-/* ── SCOREBOARD ──────────────────────────────────────────────────────────── */
-#scoreboard{background:var(--s1);padding:12px 16px;border-top:1px solid var(--b)}
-.score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.score-card{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:10px;text-align:center}
-.score-card.wc{border-color:rgba(72,255,130,.3);background:var(--limed)}
-.score-card.lc{border-color:rgba(255,64,96,.3);background:var(--rdd)}
-.score-card.bc{border-color:rgba(117,188,255,.3);background:var(--tcd)}
-.score-num{font-size:26px;font-weight:900;color:var(--br);font-family:var(--mn);line-height:1}
-.score-num.tc{color:var(--tc)}.score-num.lime{color:var(--lime)}.score-num.red{color:var(--rd)}
-.score-lbl{font-size:10px;color:var(--tx);text-transform:uppercase;letter-spacing:1px;
-  margin-top:3px;font-family:var(--mn)}
-.score-sub{font-size:10px;color:var(--tx);margin-top:3px;font-family:var(--mn)}
-
-/* ── ANALYTICS ────────────────────────────────────────────────────────────── */
-.analytics-section{padding:12px 16px;background:var(--s1);border-top:1px solid var(--b)}
-.analytics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.analytics-card{background:var(--s2);border:1px solid var(--b);border-radius:8px;
-  padding:10px;text-align:center}
-.analytics-card.hi{border-color:rgba(0,229,204,.25);background:rgba(0,229,204,.05)}
-.analytics-val{font-size:22px;font-weight:900;color:var(--br);font-family:var(--mn)}
-.analytics-lbl{font-size:10px;color:var(--tx);text-transform:uppercase;letter-spacing:1px;
-  margin-top:3px;font-family:var(--mn)}
-.analytics-sub{font-size:10px;color:var(--tx);margin-top:2px;font-family:var(--mn)}
-
-/* ── STORY POPUP ─────────────────────────────────────────────────────────── */
+/* STORY POPUP */
 #story-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;
   background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;padding:20px}
-.modal-box{background:var(--s1);border:1px solid var(--tc);border-radius:10px;
+.modal-box{background:var(--s1);border:1px solid var(--bl);border-radius:10px;
   max-width:660px;width:100%;max-height:85vh;overflow-y:auto;display:flex;flex-direction:column}
-.modal-header{padding:12px 16px;display:flex;align-items:flex-start;gap:10px;
+.modal-hdr{padding:12px 16px;display:flex;align-items:flex-start;gap:10px;
   border-bottom:1px solid var(--b);position:sticky;top:0;background:var(--s2)}
-.modal-close{color:var(--tc);font-size:18px;cursor:pointer;font-weight:900;
+.modal-x{color:var(--bl);font-size:18px;cursor:pointer;font-weight:900;
   width:26px;height:26px;display:flex;align-items:center;justify-content:center;
-  border:1px solid var(--tc);border-radius:4px;flex-shrink:0;transition:all .2s}
-.modal-close:hover{background:var(--tc);color:#000}
-.modal-title{color:var(--tc);font-size:13px;font-weight:700;flex:1;line-height:1.5}
+  border:1px solid var(--bl);border-radius:4px;flex-shrink:0;transition:all .2s}
+.modal-x:hover{background:var(--bl);color:#000}
+.modal-ttl{color:var(--bl);font-size:13px;font-weight:700;flex:1;line-height:1.5;font-family:var(--mn)}
 .modal-body{padding:14px 16px;flex:1}
-.modal-translation{color:var(--lime);font-size:12px;line-height:1.6;margin-bottom:12px;
-  padding:8px 12px;background:var(--limed);border-left:2px solid var(--lime);border-radius:3px;font-family:var(--mn)}
-.modal-translation-label{font-size:10px;color:var(--tx);margin-bottom:3px;
-  text-transform:uppercase;letter-spacing:.06em;font-family:var(--mn)}
-.modal-summary{color:var(--br);font-size:12px;line-height:1.8;margin-bottom:12px}
+.modal-trans{color:var(--tq);font-size:12px;line-height:1.6;margin-bottom:12px;
+  padding:8px 12px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:3px;font-family:var(--mn)}
+.modal-translbl{font-size:10px;color:var(--tx);margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mn)}
+.modal-sum{color:var(--br);font-size:12px;line-height:1.8;margin-bottom:12px}
 .modal-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;font-family:var(--mn)}
-.modal-read-btn{display:block;width:100%;background:var(--tcd);color:var(--tc);
+.modal-btn{display:block;width:100%;background:var(--bld);color:var(--bl);
   font-weight:700;font-size:12px;padding:10px;border-radius:6px;cursor:pointer;
-  border:1px solid var(--tc);text-align:center;transition:all .2s;text-decoration:none;font-family:var(--mn)}
-.modal-read-btn:hover{background:var(--tc);color:#000}
-
-/* ── FOOTER ──────────────────────────────────────────────────────────────── */
-#footer{background:var(--s1);border-top:1px solid var(--b);padding:14px 16px;
-  font-size:11px;color:var(--tx);font-family:var(--mn);line-height:2.2}
-
-/* ── SYS HEALTH ──────────────────────────────────────────────────────────── */
-#sys-health{background:var(--bg);border-top:1px solid var(--b);
-  display:grid;grid-template-columns:repeat(4,1fr)}
-.sys-zone{padding:9px 12px;border-right:1px solid var(--b)}
-.sys-zone:last-child{border-right:none}
-.sys-title{font-size:9px;font-weight:700;color:var(--tx);text-transform:uppercase;
-  letter-spacing:1px;margin-bottom:4px;font-family:var(--mn)}
-.sys-val{font-size:12px;color:var(--br);font-weight:700;font-family:var(--mn)}
-.sys-sub{font-size:10px;color:var(--tx);margin-top:2px;line-height:1.6;font-family:var(--mn)}
-.pass{color:var(--lime)}.fail{color:var(--rd)}.warn{color:var(--yl)}
-.loading{color:var(--b2);font-size:11px;font-style:italic;font-family:var(--mn)}
+  border:1px solid var(--bl);text-align:center;transition:all .2s;text-decoration:none;font-family:var(--mn)}
+.modal-btn:hover{background:var(--bl);color:#000}
+/* FOOTER */
+footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
+  font-family:var(--mn);font-size:11px;color:var(--tx);line-height:2.2}
+.warn{color:rgba(255,204,0,.4)}
+.empty{padding:14px;font-family:var(--mn);font-size:11px;color:var(--tx);text-align:center}
+.file-tag{display:inline-block;padding:2px 7px;border-radius:3px;
+  background:rgba(117,188,255,.08);color:var(--bl);font-weight:700;
+  border:1px solid rgba(117,188,255,.3);margin-left:6px;font-family:var(--mn)}
 </style>
 </head>
 <body>
-
-<!-- NAV BAR -->
-<div id="nav">
-  <div class="nav-logo">
-    <span class="nav-sat">🛰️</span>
-    <div class="nav-brand">
-      <div class="nav-name"><em>XRPRadar</em></div>
-      <div class="nav-tagline" style="color:#FFFFFF">Signals Over Noise 24/7</div>
-    </div>
-  </div>
-  <div class="nav-links">
-    <a href="#price-row">MARKETS</a>
-    <a href="#news-panel">NEWS</a>
-    <a href="#ai-briefing-us">INTELLIGENCE</a>
-    <a href="#regional-rows">REGIONS</a>
-    <a href="#analytics-row">ANALYTICS</a>
-    <a href="#sys-health">SYSTEM</a>
-  </div>
-  <div class="nav-live">
-    <div class="live-dot"></div>
-    <span>LIVE</span>
-    <span id="nav-updated" style="margin-left:8px;color:var(--heather)">Connecting...</span>
+<div id="breaking">
+  <div class="bkinner">
+    <span class="bklbl">⚡ BREAKING NEWS</span>
+    <div class="bkscroll"><div class="bktext" id="bktext">Monitoring XRP global news feeds...</div></div>
   </div>
 </div>
 
-<!-- BREAKING NEWS BANNER -->
-<div id="breaking" style="display:flex">
-  <span class="breaking-label">⚡ BREAKING NEWS</span>
-  <div class="breaking-scroll">
-    <div class="breaking-text" id="breaking-text"></div>
+<div class="w">
+
+<!-- SECTION 1: HEADER -->
+<div class="hdr">
+  <div class="logo">
+    <div class="icon">🛰️</div>
+    <div>
+      <div class="title">XRPRadar</div>
+      <div class="sub">230 Sources &middot; Signals Over Noise 24/7</div>
+    </div>
+  </div>
+  <div class="hright">
+    <span class="dot"></span>
+    <span class="run-lbl">LIVE</span>
+    <span class="pill plive" id="feedPill">FEEDS OK</span>
+    <span class="upd" id="uts">&mdash;</span>
   </div>
 </div>
 
-<!-- PRICE AND VALUE -->
-<div id="price-row" class="section-wrap">
-  <div class="row-title">💲 PRICE AND VALUE</div>
-  <div class="card-grid g4">
-    <div class="card price-hero">
-      <div class="card-label">XRP / USD</div>
-      <div class="card-value" id="p-price">--</div>
-      <div class="card-change" id="p-change24">--</div>
-      <div class="card-sub" id="p-change7">7D: --</div>
-    </div>
-    <div class="card">
-      <div class="card-label">Market Cap</div>
-      <div class="card-value card-sm" id="p-mcap">--</div>
-      <div class="card-sub" id="p-rank">Rank --</div>
-      <div class="card-sub" id="p-supply">-- circulating</div>
-    </div>
-    <div class="card">
-      <div class="card-label">24h Trading Volume</div>
-      <div class="card-value card-sm" id="p-vol">--</div>
-      <div class="card-sub" id="p-volratio">Vol/MCap: --%</div>
-      <div class="card-sub" id="p-btc">BTC: --</div>
-    </div>
-    <div class="card">
-      <div class="card-label">Fear &amp; Greed Index</div>
-      <div class="card-value card-sm" id="fg-score">--</div>
-      <div class="card-sub" id="fg-label">--</div>
-      <div class="card-sub" style="margin-top:6px;font-size:12px;color:var(--gray)">Extreme Fear ← → Extreme Greed</div>
-    </div>
+<!-- SECTION 2: STATUS ROW -->
+<div class="srow">
+  <div class="si"><span class="si-lbl">💲 XRP / USD</span><span class="sv g" id="st-price">--</span></div>
+  <div class="si"><span class="si-lbl">📡 Active Sources</span><span class="sv y" id="st-feeds">--</span></div>
+  <div class="si"><span class="si-lbl">😰 Fear &amp; Greed</span><span class="sv b" id="st-fg">-- / Neutral</span></div>
+</div>
+
+<!-- SECTION 3: MARKET OVERVIEW -->
+<div class="acct">
+  <div class="sec-title" style="color:var(--bl)">💹 XRP Market Overview</div>
+  <div class="agrid">
+    <div class="abox hi"><div class="albl">Market Cap</div><div class="aval b" id="mk-mcap">--</div><div class="asub" id="mk-rank">Rank --</div></div>
+    <div class="abox"><div class="albl">24h Volume</div><div class="aval" id="mk-vol">--</div><div class="asub" id="mk-vratio">Vol/MCap: --</div></div>
+    <div class="abox"><div class="albl">All-Time High</div><div class="aval y" id="mk-ath">--</div><div class="asub" id="mk-athpct">-- below ATH</div></div>
+    <div class="abox"><div class="albl">24h High</div><div class="aval g" id="mk-high">--</div><div class="asub">Session high</div></div>
+    <div class="abox neg"><div class="albl">24h Low</div><div class="aval r" id="mk-low">--</div><div class="asub">Session low</div></div>
+    <div class="abox"><div class="albl">XRP / BTC</div><div class="aval" id="mk-btc">--</div><div class="asub">Altseason signal</div></div>
   </div>
 </div>
 
-<!-- SECONDARY PRICE ROW -->
-<div class="section-wrap" style="background:var(--dark)">
-  <div class="card-grid g4">
-    <div class="card card-sm">
-      <div class="card-label">Price Change</div>
-      <div class="card-sub">7 Day: <span id="s-7d" style="font-weight:700">--</span></div>
-      <div class="card-sub" style="margin-top:5px">30 Day: <span id="s-30d" style="font-weight:700">--</span></div>
-    </div>
-    <div class="card card-sm">
-      <div class="card-label">All-Time High</div>
-      <div class="card-value" id="s-ath" style="font-size:24px">--</div>
-      <div class="card-sub" id="s-ath-pct">--% below ATH</div>
-    </div>
-    <div class="card card-sm">
-      <div class="card-label">24h Range</div>
-      <div class="card-sub">High: <span id="p-high" style="font-weight:700;color:var(--lime)">--</span></div>
-      <div class="card-sub" style="margin-top:5px">Low: <span id="p-low" style="font-weight:700;color:var(--red)">--</span></div>
-    </div>
-    <div class="card card-sm">
-      <div class="card-label">XRP / BTC</div>
-      <div class="card-value" id="s-btc" style="font-size:20px;word-break:break-all">--</div>
-      <div class="card-sub" style="color:var(--gray);font-size:12px">BTC pair — altseason signal</div>
-    </div>
-  </div>
-</div>
-
-<!-- LIVE CHART -->
-<div id="chart-row">
-  <div class="row-title">📊 LIVE XRP/USD CHART</div>
-  <div id="tv-chart">
-    <div class="tradingview-widget-container">
+<!-- SECTION 4: CHART -->
+<div class="acct" style="padding:10px;border-color:rgba(117,188,255,.15)">
+  <div class="sec-title" style="color:var(--bl)">📊 Live XRP/USD Chart</div>
+  <div style="height:420px;border-radius:8px;overflow:hidden;border:1px solid var(--b)">
+    <div class="tradingview-widget-container" style="width:100%;height:100%">
       <div id="tradingview_xrp"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-      {"autosize":true,"symbol":"BITSTAMP:XRPUSD","interval":"60","timezone":"Etc/UTC","theme":"dark","style":"1","locale":"en","backgroundColor":"#000000","gridColor":"#0A0A0A","hide_top_toolbar":false,"hide_legend":false,"save_image":false,"calendar":false,"support_host":"https://www.tradingview.com"}
+      {"autosize":true,"symbol":"BITSTAMP:XRPUSD","interval":"60","timezone":"Etc/UTC","theme":"dark","style":"1","locale":"en","backgroundColor":"#000000","gridColor":"#0a0a0a","hide_top_toolbar":false,"save_image":false,"support_host":"https://www.tradingview.com"}
       </script>
     </div>
   </div>
 </div>
 
-<!-- US INTELLIGENCE -->
-<div id="ai-briefing-us" class="ai-section">
-  <div class="row-title" style="color:var(--tc)">🇺🇸 US INTELLIGENCE</div>
-  <div class="card-grid g4">
-    <div>
-      <div class="ai-badge ai-badge-tc">US PULSE</div>
-      <div class="ai-text" id="ai-us-pulse"><span class="loading">Analyzing US sources...</span></div>
-    </div>
-    <div>
-      <div class="ai-badge ai-badge-tc">REGULATORY</div>
-      <div class="ai-text" id="ai-us-regulatory"><span class="loading">Loading...</span></div>
-    </div>
-    <div>
-      <div class="ai-badge ai-badge-tc">INSTITUTIONAL</div>
-      <div class="ai-text" id="ai-us-institutional"><span class="loading">Loading...</span></div>
-    </div>
-    <div>
-      <div class="ai-badge ai-badge-tc">📍 US DATA</div>
-      <div class="ai-meta" id="ai-us-meta">Waiting for data...</div>
-    </div>
+<!-- SECTION 5: US + GLOBAL INTELLIGENCE (2-column panel) -->
+<div class="two">
+  <div class="panel" id="ai-briefing-us">
+    <div class="ph"><span class="pt" style="color:var(--bl)">🇺🇸 US Intelligence</span><span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="ai-us-ts">--</span></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">US Pulse</div><div class="pv" id="ai-us-pulse" style="font-size:12px;line-height:1.7;font-family:system-ui">Fetching US intelligence...</div></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">Regulatory</div><div class="pv" id="ai-us-reg" style="font-size:12px;line-height:1.7;font-family:system-ui">Loading...</div></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">Institutional</div><div class="pv" id="ai-us-inst" style="font-size:12px;line-height:1.7;font-family:system-ui">Loading...</div></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="pt" style="color:var(--gr)">🌐 Global Pulse</span><span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="ai-gl-ts">--</span></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">Global Summary</div><div class="pv g" id="ai-gl-pulse" style="font-size:12px;line-height:1.7;font-family:system-ui">Synthesizing global signals...</div></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">Regional Signals</div><div id="ai-signals" class="sig-chips"><span class="empty">Loading...</span></div></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">Cumulative Thesis</div><div style="font-size:12px;line-height:1.7;color:var(--gr);font-family:system-ui" id="ai-gl-thesis">Building analysis...</div></div>
   </div>
 </div>
 
-<!-- GLOBAL PULSE -->
-<div class="ai-section" style="background:#040A04">
-  <div class="row-title" style="color:var(--lime)">🌐 GLOBAL PULSE</div>
-  <div class="card-grid g4">
-    <div>
-      <div class="ai-badge ai-badge-lime">GLOBAL SUMMARY</div>
-      <div class="ai-text" id="ai-gl-pulse"><span class="loading">Synthesizing global signals...</span></div>
-    </div>
-    <div>
-      <div class="ai-badge ai-badge-lime">REGIONAL SIGNALS</div>
-      <div id="ai-signals" class="signal-grid"><div class="loading">Loading...</div></div>
-    </div>
-    <div>
-      <div class="ai-badge ai-badge-lime">CUMULATIVE THESIS</div>
-      <div class="ai-thesis" id="ai-gl-thesis"><span class="loading">Building analysis...</span></div>
-    </div>
-    <div>
-      <div class="ai-badge ai-badge-lime">📍 GLOBAL DATA</div>
-      <div class="ai-meta" id="ai-gl-meta">Waiting for data...</div>
-    </div>
-  </div>
+<!-- SECTION 6: REGIONAL INTELLIGENCE CARDS -->
+<div class="sec-title" style="color:var(--bl)">🗺️ Regional Intelligence</div>
+<div class="slots" id="regionGrid">
+  <div class="empty" style="grid-column:1/-1">Loading regional intelligence...</div>
 </div>
 
-<!-- REGIONAL INTELLIGENCE — 3 per row -->
-<div id="regional-rows" style="background:var(--bg);border-bottom:1px solid var(--b)">
-  <div style="padding:10px 16px 2px 16px">
-    <div class="row-title">🗺️ REGIONAL INTELLIGENCE</div>
+<!-- SECTION 7: NEWS SCOREBOARD -->
+<div class="score">
+  <div class="sec-title" style="color:var(--bl)">📡 Signal Scoreboard</div>
+  <div class="sgrid">
+    <div class="sbox bc"><div class="snum b" id="sc-total">--</div><div class="snlbl">Stories Today</div><div class="snsub" id="sc-feeds">-- sources</div></div>
+    <div class="sbox wc"><div class="snum g" id="sc-bull">--</div><div class="snlbl">Bullish</div><div class="snsub" id="sc-bull-pct">--%</div></div>
+    <div class="sbox lc"><div class="snum r" id="sc-bear">--</div><div class="snlbl">Bearish</div><div class="snsub" id="sc-bear-pct">--%</div></div>
+    <div class="sbox"><div class="snum" id="sc-neut">--</div><div class="snlbl">Neutral</div><div class="snsub" id="sc-net">Net: --</div></div>
+    <div class="sbox yc"><div class="snum y" id="sc-fg">--</div><div class="snlbl">Fear &amp; Greed</div><div class="snsub" id="sc-fg-lbl">--</div></div>
+    <div class="sbox"><div class="snum b" id="sc-rank">#--</div><div class="snlbl">Global Rank</div><div class="snsub">CoinGecko</div></div>
   </div>
-
-  <!-- Row 1: Japan | Korea | UAE -->
-  <div class="region-grid">
-    <div class="region-box">
-      <div class="region-hdr"><span class="region-flag">🇯🇵</span><span class="region-name">JAPAN</span><span class="region-sig" id="region-sig-Japan"></span></div>
-      <div class="region-body"><div class="region-pulse" id="region-pulse-Japan">Loading...</div><div id="region-stories-Japan"></div></div>
-    </div>
-    <div class="region-box">
-      <div class="region-hdr"><span class="region-flag">🇰🇷</span><span class="region-name">SOUTH KOREA</span><span class="region-sig" id="region-sig-Korea"></span></div>
-      <div class="region-body"><div class="region-pulse" id="region-pulse-Korea">Loading...</div><div id="region-stories-Korea"></div></div>
-    </div>
-    <div class="region-box">
-      <div class="region-hdr"><span class="region-flag">🇦🇪</span><span class="region-name">UAE &amp; MIDDLE EAST</span><span class="region-sig" id="region-sig-UAE"></span></div>
-      <div class="region-body"><div class="region-pulse" id="region-pulse-UAE">Loading...</div><div id="region-stories-UAE"></div></div>
-    </div>
+  <div class="sgrid4" style="margin-top:8px">
+    <div class="sbox bc"><div class="snum b" id="sc-mcap">--</div><div class="snlbl">Market Cap</div></div>
+    <div class="sbox"><div class="snum y" id="sc-vol">--</div><div class="snlbl">24h Volume</div></div>
+    <div class="sbox wc"><div class="snum g" id="sc-high">--</div><div class="snlbl">24h High</div></div>
+    <div class="sbox lc"><div class="snum r" id="sc-low">--</div><div class="snlbl">24h Low</div></div>
   </div>
-
-  <!-- Row 2: Europe | India | LatAm -->
-  <div class="region-grid" style="padding-top:0">
-    <div class="region-box">
-      <div class="region-hdr"><span class="region-flag">🇪🇺</span><span class="region-name">EUROPE</span><span class="region-sig" id="region-sig-Europe"></span></div>
-      <div class="region-body"><div class="region-pulse" id="region-pulse-Europe">Loading...</div><div id="region-stories-Europe"></div></div>
-    </div>
-    <div class="region-box">
-      <div class="region-hdr"><span class="region-flag">🇮🇳</span><span class="region-name">INDIA</span><span class="region-sig" id="region-sig-India"></span></div>
-      <div class="region-body"><div class="region-pulse" id="region-pulse-India">Loading...</div><div id="region-stories-India"></div></div>
-    </div>
-    <div class="region-box">
-      <div class="region-hdr"><span class="region-flag">🌎</span><span class="region-name">LATIN AMERICA</span><span class="region-sig" id="region-sig-LatAm"></span></div>
-      <div class="region-body"><div class="region-pulse" id="region-pulse-LatAm">Loading...</div><div id="region-stories-LatAm"></div></div>
-    </div>
-  </div>
-
-  <!-- Row 3: Africa | SEA -->
-  <div class="region-grid" style="padding-top:0;padding-bottom:12px;grid-template-columns:repeat(3,1fr)">
-    <div class="region-box">
-      <div class="region-hdr"><span class="region-flag">🌍</span><span class="region-name">AFRICA</span><span class="region-sig" id="region-sig-Africa"></span></div>
-      <div class="region-body"><div class="region-pulse" id="region-pulse-Africa">Loading...</div><div id="region-stories-Africa"></div></div>
-    </div>
-    <div class="region-box">
-      <div class="region-hdr"><span class="region-flag">🌏</span><span class="region-name">SOUTHEAST ASIA</span><span class="region-sig" id="region-sig-SEA"></span></div>
-      <div class="region-body"><div class="region-pulse" id="region-pulse-SEA">Loading...</div><div id="region-stories-SEA"></div></div>
-    </div>
-    <div class="region-box" style="border-color:transparent;background:transparent"></div>
-  </div>
+  <div class="wrbar"><div class="wrfill" id="sc-fill" style="width:50%"></div></div>
 </div>
 
-<!-- INSIGHTS HEADER -->
-<div id="insights-hdr">
-  <span class="insights-label">📡 INSIGHTS</span>
-  <span style="color:#1A1A1A;font-size:14px">|</span>
-  <span class="insights-label" style="color:var(--lime)">📰 GLOBAL NEWS FEED</span>
-  <span style="font-size:12px;color:var(--heather);margin-left:auto">🔗 ON-CHAIN &amp; MARKET DATA ▶</span>
-</div>
-
-<!-- MAIN CONTENT -->
-<div id="main-content">
-
-  <!-- NEWS PANEL -->
-  <div id="news-panel">
-    <div class="news-controls" style="flex-direction:column;gap:8px">
-      <input class="search-box" id="search-box" placeholder="🔍 Search XRP news..." oninput="filterNews()" style="width:100%">
-      <div class="filter-btns">
-        <button class="filter-btn active" onclick="setFilter(this,'all')">ALL</button>
-        <button class="filter-btn" onclick="setFilter(this,'Price')">PRICE</button>
-        <button class="filter-btn" onclick="setFilter(this,'Legal')">LEGAL</button>
-        <button class="filter-btn" onclick="setFilter(this,'Regulatory')">REG</button>
-        <button class="filter-btn" onclick="setFilter(this,'Ecosystem')">ECOSYSTEM</button>
-        <button class="filter-btn" onclick="setFilter(this,'Technical')">TECH</button>
-        <button class="filter-btn" onclick="setFilter(this,'Whale')">WHALE</button>
+<!-- SECTION 8: NEWS FEED + RIGHT PANEL -->
+<div class="nrow" id="news-panel">
+  <div class="npanel">
+    <div class="nctrl">
+      <input class="nsearch" id="search-box" placeholder="🔍 Search XRP news..." oninput="filterNews()">
+      <div class="nbtns">
+        <button class="nbtn on" onclick="setFilter(this,'all')">ALL</button>
+        <button class="nbtn" onclick="setFilter(this,'Price')">PRICE</button>
+        <button class="nbtn" onclick="setFilter(this,'Legal')">LEGAL</button>
+        <button class="nbtn" onclick="setFilter(this,'Regulatory')">REG</button>
+        <button class="nbtn" onclick="setFilter(this,'Ecosystem')">ECOSYSTEM</button>
+        <button class="nbtn" onclick="setFilter(this,'Technical')">TECH</button>
+        <button class="nbtn" onclick="setFilter(this,'Whale')">WHALE</button>
       </div>
     </div>
-    <div id="news-count" class="loading">Loading news...</div>
-    <div id="news-feed"></div>
+    <div class="ncount" id="news-count">Loading news...</div>
+    <div class="nfeed" id="news-feed"></div>
   </div>
+  <div class="rpanel" id="right-panel">
+    <div class="rcard"><div class="rtitle">🔗 XRPL Network</div>
+      <div class="rrow"><span class="rk">Network</span><span class="rv g">● Live</span></div>
+      <div class="rrow"><span class="rk">Consensus</span><span class="rv">Federated Byzantine</span></div>
+      <div class="rrow"><span class="rk">Ledger Close</span><span class="rv">~3-5 seconds</span></div>
+      <div class="rrow"><span class="rk">Tx Fee</span><span class="rv">~0.00001 XRP</span></div>
+      <div class="rrow"><span class="rk">Circulating</span><span class="rv b" id="rc-supply">--</span></div>
+      <div class="rrow"><span class="rk">Escrow Locked</span><span class="rv">~43B XRP</span></div>
+      <div class="rrow"><span class="rk">Live TPS</span><span class="rv g" id="rc-tps">--</span></div>
+      <div class="rrow"><span class="rk">Ledger Index</span><span class="rv" id="rc-ledger">--</span></div>
+    </div>
+    <div class="rcard"><div class="rtitle">📊 Market Structure</div>
+      <div class="rrow"><span class="rk">Global Rank</span><span class="rv b" id="rm-rank">--</span></div>
+      <div class="rrow"><span class="rk">Market Cap</span><span class="rv" id="rm-mcap">--</span></div>
+      <div class="rrow"><span class="rk">24h Volume</span><span class="rv" id="rm-vol">--</span></div>
+      <div class="rrow"><span class="rk">Vol / MCap</span><span class="rv y" id="rm-ratio">--</span></div>
+      <div class="rrow"><span class="rk">ATH</span><span class="rv" id="rm-ath">--</span></div>
+      <div class="rrow"><span class="rk">% Below ATH</span><span class="rv r" id="rm-athpct">--</span></div>
+      <div class="rrow"><span class="rk">24h High</span><span class="rv g" id="rm-high">--</span></div>
+      <div class="rrow"><span class="rk">24h Low</span><span class="rv r" id="rm-low">--</span></div>
+      <div class="rrow"><span class="rk">XRP/BTC</span><span class="rv" id="rm-btc">--</span></div>
+    </div>
+    <div class="rcard"><div class="rtitle">⏳ Ripple Escrow</div>
+      <div class="rrow"><span class="rk">Next Release</span><span class="rv b">1st of month</span></div>
+      <div class="rrow"><span class="rk">Amount</span><span class="rv">1B XRP</span></div>
+      <div class="rrow"><span class="rk">Schedule</span><span class="rv">Monthly</span></div>
+      <div class="rrow"><span class="rk">Est. Locked</span><span class="rv">~43B XRP</span></div>
+    </div>
+    <div class="rcard"><div class="rtitle">📡 Feed Status</div>
+      <div class="rrow"><span class="rk">Active Sources</span><span class="rv g" id="feed-active">--/230</span></div>
+      <div id="feed-list" style="max-height:180px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
 
-  <!-- RIGHT PANEL -->
-  <div id="right-panel">
-    <!-- XRPL Network -->
-    <div class="right-card">
-      <div class="right-title">🔗 XRPL NETWORK</div>
-      <div class="stat-row"><span class="stat-label">Network</span><span class="stat-val lime">● Live</span></div>
-      <div class="stat-row"><span class="stat-label">Consensus</span><span class="stat-val">Federated Byzantine</span></div>
-      <div class="stat-row"><span class="stat-label">Ledger Close</span><span class="stat-val">~3-5 seconds</span></div>
-      <div class="stat-row"><span class="stat-label">Transaction Fee</span><span class="stat-val">~0.00001 XRP</span></div>
-      <div class="stat-row"><span class="stat-label">Circulating</span><span class="stat-val tc" id="rc-supply">--</span></div>
-      <div class="stat-row"><span class="stat-label">Escrow Locked</span><span class="stat-val">~43B XRP</span></div>
-      <div class="stat-row"><span class="stat-label">Live TPS</span><span class="stat-val lime" id="oc-tps">--</span></div>
-      <div class="stat-row"><span class="stat-label">Ledger Index</span><span class="stat-val" id="oc-ledger">--</span></div>
+<!-- SECTION 9: ANALYTICS LAB -->
+<div class="lab">
+  <div class="sec-title" style="color:var(--tq)">🔬 Analytics Lab</div>
+  <div class="lab3">
+    <div class="labp">
+      <div class="labt">📈 Signal Metrics</div>
+      <div class="bstat"><span class="bk">Stories Today</span><span class="bv b" id="al-today">--</span></div>
+      <div class="bstat"><span class="bk">Bullish Signals</span><span class="bv g" id="al-bull">--</span></div>
+      <div class="bstat"><span class="bk">Bearish Signals</span><span class="bv r" id="al-bear">--</span></div>
+      <div class="bstat"><span class="bk">Neutral</span><span class="bv" id="al-neut">--</span></div>
+      <div class="bstat"><span class="bk">Net Sentiment</span><span class="bv g" id="al-net">--</span></div>
+      <div class="bstat"><span class="bk">Bull/Bear Ratio</span><span class="bv y" id="al-ratio">--</span></div>
     </div>
-    <!-- Market Structure -->
-    <div class="right-card">
-      <div class="right-title">📊 MARKET STRUCTURE</div>
-      <div class="stat-row"><span class="stat-label">Global Rank</span><span class="stat-val tc" id="rm-rank">--</span></div>
-      <div class="stat-row"><span class="stat-label">Market Cap</span><span class="stat-val" id="rm-mcap">--</span></div>
-      <div class="stat-row"><span class="stat-label">24h Volume</span><span class="stat-val" id="rm-vol">--</span></div>
-      <div class="stat-row"><span class="stat-label">Vol / MCap</span><span class="stat-val" id="rm-ratio">--</span></div>
-      <div class="stat-row"><span class="stat-label">ATH</span><span class="stat-val" id="rm-ath">--</span></div>
-      <div class="stat-row"><span class="stat-label">% Below ATH</span><span class="stat-val" id="rm-ath-pct">--</span></div>
-      <div class="stat-row"><span class="stat-label">24h High</span><span class="stat-val lime" id="rm-high">--</span></div>
-      <div class="stat-row"><span class="stat-label">24h Low</span><span class="stat-val" style="color:var(--red)" id="rm-low">--</span></div>
+    <div class="labp">
+      <div class="labt">📊 Market Analytics</div>
+      <div class="bstat"><span class="bk">Global Rank</span><span class="bv b" id="al-rank">--</span></div>
+      <div class="bstat"><span class="bk">Market Cap</span><span class="bv" id="al-mcap">--</span></div>
+      <div class="bstat"><span class="bk">24h Volume</span><span class="bv y" id="al-vol">--</span></div>
+      <div class="bstat"><span class="bk">Vol / MCap %</span><span class="bv b" id="al-vratio">--</span></div>
+      <div class="bstat"><span class="bk">Fear &amp; Greed</span><span class="bv y" id="al-fg">--</span></div>
+      <div class="bstat"><span class="bk">% Below ATH</span><span class="bv r" id="al-athpct">--</span></div>
     </div>
-    <!-- Escrow -->
-    <div class="right-card">
-      <div class="right-title">⏳ RIPPLE ESCROW</div>
-      <div class="stat-row"><span class="stat-label">Next Release</span><span class="stat-val tc" id="esc-date">--</span></div>
-      <div class="stat-row"><span class="stat-label">Amount</span><span class="stat-val">1B XRP</span></div>
-      <div class="stat-row"><span class="stat-label">Schedule</span><span class="stat-val">Monthly, 1st</span></div>
-      <div class="stat-row"><span class="stat-label">Est. Locked</span><span class="stat-val">~43B XRP</span></div>
+    <div class="labp">
+      <div class="labt">🔍 Feed Intelligence</div>
+      <div class="bstat"><span class="bk">Total Sources</span><span class="bv b">230</span></div>
+      <div class="bstat"><span class="bk">Active Feeds</span><span class="bv g" id="al-feeds">--</span></div>
+      <div class="bstat"><span class="bk">US / Europe</span><span class="bv">166 sources</span></div>
+      <div class="bstat"><span class="bk">Global Hubs</span><span class="bv">64 sources</span></div>
+      <div class="bstat"><span class="bk">Regions Tracked</span><span class="bv y">8 regions</span></div>
+      <div class="bstat"><span class="bk">AI Powered</span><span class="bv g">Claude API</span></div>
     </div>
-    <!-- Feed Status -->
-    <div class="right-card">
-      <div class="right-title">📡 FEED STATUS</div>
-      <div class="stat-row">
-        <span class="stat-label">Active Sources</span>
-        <span class="stat-val lime" id="feed-active">--</span>
+  </div>
+  <div class="sgrid4" style="margin-top:12px">
+    <div class="sbox bc"><div class="snum b" id="al2-total">--</div><div class="snlbl">Total Stories</div><div class="snsub">In memory</div></div>
+    <div class="sbox wc"><div class="snum g" id="al2-bull-pct">--%</div><div class="snlbl">Bullish %</div><div class="snsub">Of today's stories</div></div>
+    <div class="sbox lc"><div class="snum r" id="al2-bear-pct">--%</div><div class="snlbl">Bearish %</div><div class="snsub">Of today's stories</div></div>
+    <div class="sbox yc"><div class="snum y" id="al2-onchain">--</div><div class="snlbl">Live TPS</div><div class="snsub">XRPL network</div></div>
+  </div>
+</div>
+
+<!-- STORY POPUP -->
+<div id="story-modal" onclick="closeModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-hdr">
+      <div class="modal-x" onclick="closeModal()">✕</div>
+      <div class="modal-ttl" id="modal-title"></div>
+    </div>
+    <div class="modal-body">
+      <div id="modal-translation" class="modal-trans" style="display:none">
+        <div class="modal-translbl">🌐 Translated to English</div>
+        <div id="modal-translation-text"></div>
       </div>
-      <div id="feed-health-list" style="margin-top:8px;max-height:220px;overflow-y:auto"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ANALYTICS ROW -->
-<div id="analytics-row" class="analytics-section">
-  <div class="row-title">🔬 ANALYTICS LAB</div>
-  <div class="analytics-grid">
-    <div class="analytics-card">
-      <div class="analytics-val" id="an-total">--</div>
-      <div class="analytics-lbl">Stories Today</div>
-      <div class="analytics-sub" id="an-sources">-- of -- sources</div>
-    </div>
-    <div class="analytics-card">
-      <div class="analytics-val lime" id="an-bull">--</div>
-      <div class="analytics-lbl">🟢 Bullish</div>
-      <div class="analytics-sub" id="an-bull-pct">--%</div>
-    </div>
-    <div class="analytics-card">
-      <div class="analytics-val" style="color:var(--red)" id="an-bear">--</div>
-      <div class="analytics-lbl">🔴 Bearish</div>
-      <div class="analytics-sub" id="an-bear-pct">--%</div>
-    </div>
-    <div class="analytics-card">
-      <div class="analytics-val heather" id="an-neut">--</div>
-      <div class="analytics-lbl">⚪ Neutral</div>
-      <div class="analytics-sub" id="an-net">Net: --</div>
-    </div>
-    <div class="analytics-card">
-      <div class="analytics-val" id="an-fear" style="color:var(--ylw)">--</div>
-      <div class="analytics-lbl">Fear &amp; Greed</div>
-      <div class="analytics-sub" id="an-fear-lbl">--</div>
-    </div>
-    <div class="analytics-card">
-      <div class="analytics-val tc" id="an-rank">--</div>
-      <div class="analytics-lbl">Global Rank</div>
-      <div class="analytics-sub">CoinGecko</div>
-    </div>
-    <div class="analytics-card">
-      <div class="analytics-val lime" id="an-vol-ratio">--</div>
-      <div class="analytics-lbl">Vol / MCap %</div>
-      <div class="analytics-sub">Trading activity</div>
-    </div>
-    <div class="analytics-card">
-      <div class="analytics-val" id="an-ath-pct" style="color:var(--org)">--</div>
-      <div class="analytics-lbl">% Below ATH</div>
-      <div class="analytics-sub">ATH recovery</div>
-    </div>
-  </div>
-</div>
-
-<!-- SCOREBOARD -->
-<div id="scoreboard">
-  <div class="row-title" style="color:var(--tc)">🛰️ XRPRADAR SCOREBOARD</div>
-  <div class="score-grid">
-    <div class="score-card">
-      <div class="score-num tc" id="sc-total">--</div>
-      <div class="score-lbl">Stories Today</div>
-      <div class="score-sub" id="sc-sources">-- of -- sources</div>
-    </div>
-    <div class="score-card" >
-      <div class="score-num lime" id="sc-bull">--</div>
-      <div class="score-lbl">🟢 Bullish</div>
-      <div class="score-sub" id="sc-bull-pct">--%</div>
-    </div>
-    <div class="score-card" style="border-top:3px solid var(--red)">
-      <div class="score-num red" id="sc-bear">--</div>
-      <div class="score-lbl">🔴 Bearish</div>
-      <div class="score-sub" id="sc-bear-pct">--%</div>
-    </div>
-    <div class="score-card">
-      <div class="score-num heather" id="sc-neut">--</div>
-      <div class="score-lbl">⚪ Neutral</div>
-      <div class="score-sub" id="sc-net">Net: --</div>
+      <div class="modal-sum" id="modal-summary"></div>
+      <div class="modal-meta" id="modal-meta"></div>
+      <a class="modal-btn" id="modal-read-btn" target="_blank">Read Full Story ↗</a>
     </div>
   </div>
 </div>
 
 <!-- FOOTER -->
-<div id="footer" style="background:var(--mid);border-top:1px solid var(--border);font-size:11px;color:var(--heather);padding:14px 18px">
+<footer>
+  <div>🛰️ <em style="color:var(--bl);font-weight:700">XRPRadar</em> &nbsp;|&nbsp; Version: <span id="ft-ver" style="color:var(--tq);font-weight:700">--</span> &nbsp;|&nbsp; Updated: <span id="ft-last" style="color:var(--br)">--</span> &nbsp;|&nbsp; Uptime: <span id="ft-uptime" style="color:var(--br)">--</span> &nbsp;&nbsp;<a href="/debug" target="_blank" style="color:var(--or);font-size:10px;font-weight:700;text-decoration:none;border:1px solid var(--or);padding:1px 6px;border-radius:3px">DEBUG</a></div>
+  <div style="color:var(--yl)">⚠️ Not Financial Advice — XRPRadar is for informational purposes only. DYOR.</div>
+  <div>System Precheck: <span id="ft-qa" style="font-weight:700">--</span> &nbsp;|&nbsp; Maintenance: <span id="ft-maint">--</span> &nbsp;|&nbsp; Feeds: <span id="ft-feeds">--</span></div>
+  <div>Preflight: <span id="ft-qa-status" style="font-weight:700">--</span> &nbsp;|&nbsp; Last run: <span id="ft-qa-last">--</span> &nbsp;|&nbsp; <span id="footer-precheck"></span></div>
+  <div>Feed Integrity: <span id="ft-feed-detail" style="color:var(--br)">--</span> &nbsp;|&nbsp; As of: <span id="ft-feed-ts" style="color:var(--br)">--</span></div>
+  <div>Maintenance: <span id="ft-maint-detail" style="color:var(--br)">--</span></div>
+  <div style="height:16px"></div>
+</footer>
 
-  <div style="line-height:2.2">
-
-    <div>🛰️ <em style="color:var(--tc);font-weight:700">XRPRadar</em> &nbsp;|&nbsp; Version: <span id="ft-ver" style="color:#fff">--</span> &nbsp;|&nbsp; Updated: <span id="ft-last" style="color:#fff">--</span> &nbsp;|&nbsp; Uptime: <span id="ft-uptime" style="color:#fff">--</span></div>
-
-    <div style="color:var(--ylw)">⚠️ Not Financial Advice — XRPRadar is for informational purposes only. DYOR.</div>
-
-    <div>System Precheck: <span id="ft-qa" style="color:#fff;font-weight:700">--</span> &nbsp;|&nbsp; Maintenance: <span id="ft-maint" style="color:#fff">--</span> &nbsp;|&nbsp; Feeds: <span id="ft-feeds" style="color:#fff">--</span></div>
-
-    <div>Preflight: <span id="ft-qa-status" style="font-weight:700">--</span> &nbsp;|&nbsp; Last run: <span id="ft-qa-last" style="color:#fff">--</span> &nbsp;|&nbsp; <span id="footer-precheck"></span></div>
-
-    <div>Feed Integrity: <span id="ft-feed-detail" style="color:#fff">--</span> &nbsp;|&nbsp; As of: <span id="ft-feed-ts" style="color:#fff">--</span></div>
-
-    <div>Maintenance: <span id="ft-maint-detail" style="color:#fff">--</span></div>
-
-  </div>
-
-  <div style="height:24px"></div>
-
-</div>
-
-<!-- SYSTEM HEALTH BAR -->
-<div id="sys-health">
-  <div class="sys-zone">
-    <div class="sys-title">📦 Version / Last Updated</div>
-    <div class="sys-val heather" id="sh-version">--</div>
-    <div class="sys-sub heather" id="sh-updated">--</div>
-  </div>
-  <div class="sys-zone">
-    <div class="sys-title">✅ Preflight / QA Check (4h)</div>
-    <div class="sys-val" id="sh-qa-status">--</div>
-    <div class="sys-sub" id="sh-qa-last">Last run: --</div>
-    <div id="sh-qa-detail" class="sys-sub" style="margin-top:4px"></div>
-  </div>
-  <div class="sys-zone">
-    <div class="sys-title">📡 Feed Integrity</div>
-    <div class="sys-val" id="sh-feeds">-- feeds active</div>
-    <div class="sys-sub" id="sh-error">No errors</div>
-    <div class="sys-sub" id="sh-error-ts" style="color:#333"></div>
-  </div>
-  <div class="sys-zone">
-    <div class="sys-title">🔧 Maintenance</div>
-    <div class="sys-val pass" id="sh-maint">✅ OK</div>
-    <div class="sys-sub">Start: <span id="sh-start" class="heather">--</span></div>
-  </div>
-</div>
-
-<!-- STORY POPUP OVERLAY -->
-<div id="story-modal" onclick="closeStoryModal(event)">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <div class="modal-close" onclick="closeStoryModal()">✕</div>
-      <div class="modal-title" id="modal-title"></div>
-    </div>
-    <div class="modal-body">
-      <div id="modal-translation" class="modal-translation" style="display:none">
-        <div class="modal-translation-label">🌐 Translated to English</div>
-        <div id="modal-translation-text"></div>
-      </div>
-      <div class="modal-summary" id="modal-summary"></div>
-      <div class="modal-meta" id="modal-meta"></div>
-      <a class="modal-read-btn" id="modal-read-btn" target="_blank">Read Full Story ↗</a>
-    </div>
-  </div>
-</div>
+</div><!-- end .w -->
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-let allStories   = [];
-let activeCat    = "all";
+// ── State ─────────────────────────────────────────────────────────────────
+let allStories = [];
+let storyData  = {};
+let activeCat  = "all";
 let activeSearch = "";
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function c(id, val){ const el=document.getElementById(id); if(el&&val!==undefined) el.textContent=val; }
+// ── Fetch ─────────────────────────────────────────────────────────────────
+async function fetchData(){
+  try{
+    const d = await fetch("/api/data").then(r=>r.json());
+    updateHeader(d);
+    updateStatus(d);
+    updateMarket(d);
+    updateAI(d);
+    updateScoreboard(d);
+    updateAnalytics(d);
+    updateRegions(d);
+    updateRight(d);
+    updateFooter(d);
+    updateBreaking(d);
+  }catch(e){console.error("fetchData:",e);}
+}
+
+async function fetchNews(){
+  try{
+    const d = await fetch("/api/news").then(r=>r.json());
+    allStories = d.stories||[];
+    allStories.forEach(s=>{storyData[s.id]=s;});
+    renderNews(d.total_all||0);
+  }catch(e){console.error("fetchNews:",e);}
+}
+
+// ── Format helpers ─────────────────────────────────────────────────────────
 function fmtUSD(v){
   if(!v) return "--";
   v=parseFloat(v);
   if(v>=1e12) return `$${(v/1e12).toFixed(2)}T`;
   if(v>=1e9)  return `$${(v/1e9).toFixed(2)}B`;
   if(v>=1e6)  return `$${(v/1e6).toFixed(2)}M`;
-  if(v>=1e3)  return `$${(v/1e3).toFixed(2)}K`;
   return `$${v.toFixed(2)}`;
 }
-function col(id, v, pos, neg){
-  const el=document.getElementById(id);
-  if(el) el.style.color = parseFloat(v||0)>=0 ? pos : neg;
+function c(id,v){const el=document.getElementById(id);if(el&&v!==undefined)el.textContent=v;}
+
+// ── Header ─────────────────────────────────────────────────────────────────
+function updateHeader(d){
+  c("uts", d.last_updated||"--");
+  const fa = document.getElementById("feedPill");
+  if(fa){fa.textContent=`${d.feeds_active||0}/${d.feeds_total||230} FEEDS`;}
 }
 
-// ── Fetch Data ─────────────────────────────────────────────────────────────
-async function fetchData(){
-  try{
-    const r = await fetch("/api/data");
-    const d = await r.json();
-    updatePrice(d);
-    updateAI(d);
-    updateScoreboard(d);
-    updateAnalytics(d);
-    updateRegions(d);
-    updateSystemHealth(d);
-    updateFooter(d);
-    if(d.last_updated) c("nav-updated", d.last_updated);
-  }catch(e){ console.error("fetchData:",e); }
-}
-
-async function fetchNews(){
-  try{
-    const r = await fetch("/api/news");
-    const d = await r.json();
-    allStories = d.stories||[];
-    renderNews(d.total_all||0);
-  }catch(e){ console.error("fetchNews:",e); }
-}
-
-// ── Price ──────────────────────────────────────────────────────────────────
-function updatePrice(d){
-  const p  = d.price||{};
-  const fg = d.fear_greed||{};
-  const oc = d.onchain||{};
-
-  // Main price card
-  c("p-price", p.usd ? `$${parseFloat(p.usd).toFixed(4)}` : "--");
-  const ch24 = parseFloat(p.change_24h||0);
-  const p24  = document.getElementById("p-change24");
-  if(p24){ p24.textContent=`${ch24>=0?"▲":"▼"} ${Math.abs(ch24).toFixed(2)}% (24h)`; p24.style.color=ch24>=0?"var(--lime)":"var(--red)"; }
-  const ch7=parseFloat(p.change_7d||0);
-  const p7=document.getElementById("p-change7");
-  if(p7){ p7.textContent=`7D: ${ch7>=0?"+":""}${ch7.toFixed(2)}%`; p7.style.color=ch7>=0?"var(--lime)":"var(--red)"; }
-
-  c("p-mcap",    fmtUSD(p.mcap));
-  c("p-rank",    `Rank #${p.rank||"--"}`);
-  c("p-supply",  p.supply_circ ? `${(p.supply_circ/1e9).toFixed(1)}B circulating` : "--");
-  c("p-vol",     fmtUSD(p.volume_24h));
-  c("p-volratio",p.vol_mcap_ratio ? `Vol/MCap: ${p.vol_mcap_ratio}%` : "Vol/MCap: --");
-  c("p-btc",     p.btc ? `BTC: ${parseFloat(p.btc).toFixed(8)}` : "BTC: --");
-  c("fg-score",  fg.score!==undefined ? fg.score : "--");
-  c("fg-label",  fg.label||"--");
-  const fgEl=document.getElementById("fg-score");
-  if(fgEl&&fg.score!==undefined) fgEl.style.color=fg.score<30?"var(--red)":fg.score>70?"var(--lime)":"var(--ylw)";
-
-  // Secondary row
-  const ch30=parseFloat(p.change_30d||0);
-  const s7=document.getElementById("s-7d"); if(s7){s7.textContent=`${ch7>=0?"+":""}${ch7.toFixed(2)}%`;s7.style.color=ch7>=0?"var(--lime)":"var(--red)";}
-  const s30=document.getElementById("s-30d"); if(s30){s30.textContent=`${ch30>=0?"+":""}${ch30.toFixed(2)}%`;s30.style.color=ch30>=0?"var(--lime)":"var(--red)";}
-  c("s-ath", p.ath ? `$${parseFloat(p.ath).toFixed(4)}` : "--");
-  const athPct=parseFloat(p.ath_pct||0);
-  const athEl=document.getElementById("s-ath-pct"); if(athEl){athEl.textContent=`${athPct.toFixed(1)}% below ATH`;athEl.style.color="var(--org)";}
-  c("s-btc", p.btc ? `₿ ${parseFloat(p.btc).toFixed(8)}` : "--");
-  c("p-high", p.high_24h ? `$${parseFloat(p.high_24h).toFixed(4)}` : "--");
-  c("p-low",  p.low_24h  ? `$${parseFloat(p.low_24h).toFixed(4)}`  : "--");
-  c("esc-date", (d.escrow||{}).next_date || "1st of next month");
-
-  // Right panel mirrors
-  c("rc-supply",  p.supply_circ ? `${(p.supply_circ/1e9).toFixed(1)}B XRP` : "--");
-  c("rm-rank",    `#${p.rank||"--"}`);
-  c("rm-mcap",    fmtUSD(p.mcap));
-  c("rm-vol",     fmtUSD(p.volume_24h));
-  c("rm-ratio",   p.vol_mcap_ratio ? `${p.vol_mcap_ratio}%` : "--");
-  c("rm-ath",     p.ath ? `$${parseFloat(p.ath).toFixed(4)}` : "--");
-  c("rm-ath-pct", athPct ? `${Math.abs(athPct).toFixed(1)}% below` : "--");
-  c("rm-high",    p.high_24h ? `$${parseFloat(p.high_24h).toFixed(4)}` : "--");
-  c("rm-low",     p.low_24h  ? `$${parseFloat(p.low_24h).toFixed(4)}`  : "--");
-
-  // On-chain
-  c("oc-tps",    oc.tps ? `${oc.tps} TPS` : "--");
-  c("oc-ledger", oc.ledger_index||"--");
-
-  // Breaking news
-  if(d.breaking){
-    const bb=document.getElementById("breaking");
-    const bt=document.getElementById("breaking-text");
-    if(bb&&bt){ bt.textContent=`${d.breaking.title} — ${d.breaking.source} — ${d.breaking.age||""}`; bb.style.display="flex"; }
-  } else {
-    const bt2=document.getElementById("breaking-text"); if(bt2) bt2.textContent="Monitoring XRP global news feeds — no breaking alerts at this time.";
+// ── Status Row ─────────────────────────────────────────────────────────────
+function updateStatus(d){
+  const p=d.price||{};
+  const fg=d.fear_greed||{};
+  const pr=document.getElementById("st-price");
+  if(pr&&p.usd){
+    const ch=parseFloat(p.change_24h||0);
+    pr.textContent=`$${parseFloat(p.usd).toFixed(4)} ${ch>=0?"▲":"▼"}${Math.abs(ch).toFixed(2)}%`;
+    pr.style.color=ch>=0?"var(--gr)":"var(--rd)";
   }
+  c("st-feeds",`${d.feeds_active||0} / ${d.feeds_total||230} active`);
+  const fgEl=document.getElementById("st-fg");
+  if(fgEl&&fg.score!==undefined){
+    fgEl.textContent=`${fg.score} / ${fg.label||"--"}`;
+    fgEl.style.color=fg.score<30?"var(--rd)":fg.score>70?"var(--gr)":"var(--yl)";
+  }
+}
+
+// ── Market Overview ─────────────────────────────────────────────────────────
+function updateMarket(d){
+  const p=d.price||{};
+  c("mk-mcap",   fmtUSD(p.mcap));
+  c("mk-rank",   `Rank #${p.rank||"--"}`);
+  c("mk-vol",    fmtUSD(p.volume_24h));
+  c("mk-vratio", `Vol/MCap: ${p.vol_mcap_ratio||"--"}%`);
+  c("mk-ath",    p.ath?`$${parseFloat(p.ath).toFixed(4)}`:"--");
+  c("mk-athpct", p.ath_pct?`${Math.abs(parseFloat(p.ath_pct)).toFixed(1)}% below ATH`:"--");
+  const hi=document.getElementById("mk-high");
+  if(hi&&p.high_24h){hi.textContent=`$${parseFloat(p.high_24h).toFixed(4)}`;}
+  const lo=document.getElementById("mk-low");
+  if(lo&&p.low_24h){lo.textContent=`$${parseFloat(p.low_24h).toFixed(4)}`;}
+  c("mk-btc", p.btc?`₿ ${parseFloat(p.btc).toFixed(8)}`:"--");
+  // Right panel mirrors
+  c("rc-supply", p.supply_circ?`${(p.supply_circ/1e9).toFixed(1)}B XRP`:"--");
+  c("rc-tps",    (d.onchain||{}).tps||"--");
+  c("rc-ledger", (d.onchain||{}).ledger_index||"--");
+  c("rm-rank",   `#${p.rank||"--"}`);
+  c("rm-mcap",   fmtUSD(p.mcap));
+  c("rm-vol",    fmtUSD(p.volume_24h));
+  c("rm-ratio",  p.vol_mcap_ratio?`${p.vol_mcap_ratio}%`:"--");
+  c("rm-ath",    p.ath?`$${parseFloat(p.ath).toFixed(4)}`:"--");
+  c("rm-athpct", p.ath_pct?`${Math.abs(parseFloat(p.ath_pct)).toFixed(1)}% below`:"--");
+  if(p.high_24h) c("rm-high",`$${parseFloat(p.high_24h).toFixed(4)}`);
+  if(p.low_24h)  c("rm-low", `$${parseFloat(p.low_24h).toFixed(4)}`);
+  c("rm-btc",    p.btc?`₿ ${parseFloat(p.btc).toFixed(8)}`:"--");
 }
 
 // ── AI ─────────────────────────────────────────────────────────────────────
@@ -1621,214 +1415,223 @@ function updateAI(d){
   const us=d.ai_us||{};
   const gl=d.ai_global||{};
   if(us.pulse) c("ai-us-pulse", us.pulse);
-  if(us.regulatory) c("ai-us-regulatory", us.regulatory);
-  if(us.institutional) c("ai-us-institutional", us.institutional);
-  if(us.ts){
-    const m=document.getElementById("ai-us-meta");
-    if(m) m.innerHTML=`Last analysis: <strong style="color:var(--tc)">${us.ts}</strong><br>Sources monitored: US/Institutional/Legal<br>Feeds: Major crypto + Google News`;
-  }
+  if(us.regulatory) c("ai-us-reg", us.regulatory);
+  if(us.institutional) c("ai-us-inst", us.institutional);
+  if(us.ts) c("ai-us-ts", us.ts);
   if(gl.pulse) c("ai-gl-pulse", gl.pulse);
   if(gl.thesis) c("ai-gl-thesis", gl.thesis);
+  if(gl.ts) c("ai-gl-ts", gl.ts);
   const sg=gl.signals||{};
   const sigEl=document.getElementById("ai-signals");
   if(sigEl&&Object.keys(sg).length){
-    const dc={"bullish":"sig-bull","bearish":"sig-bear","neutral":"sig-neut","quiet":"sig-quiet"};
+    const dc={"bullish":"g","bearish":"r","neutral":"y","quiet":"q"};
     const fl={"Japan":"🇯🇵","Korea":"🇰🇷","UAE":"🇦🇪","Europe":"🇪🇺","LatAm":"🌎","Africa":"🌍","India":"🇮🇳","SEA":"🌏"};
     sigEl.innerHTML=Object.entries(sg).map(([r,s])=>
-      `<div class="signal-chip"><div class="sig-dot ${dc[s]||"sig-quiet"}"></div><span>${fl[r]||""}  ${r}</span></div>`
+      `<div class="sig-chip"><div class="sdot ${dc[s]||"q"}"></div><span>${fl[r]||""} ${r}</span></div>`
     ).join("");
   }
-  if(gl.ts){
-    const m=document.getElementById("ai-gl-meta");
-    if(m) m.innerHTML=`Last analysis: <strong style="color:var(--lime)">${gl.ts}</strong><br>${Object.keys(sg).length} regions monitored<br>${(d.feeds_active||0)}/${(d.feeds_total||0)} sources active`;
-  }
 }
 
-// ── Regional Rows ──────────────────────────────────────────────────────────
-const REGION_FLAGS={"Japan":"🇯🇵","Korea":"🇰🇷","UAE":"🇦🇪","Europe":"🇪🇺","India":"🇮🇳","LatAm":"🌎","Africa":"🌍","SEA":"🌏"};
-const SIG_COLORS={"bullish":"var(--lime)","bearish":"var(--red)","neutral":"var(--ylw)","quiet":"var(--gray)"};
+// ── Regional Cards ─────────────────────────────────────────────────────────
+const REGIONS=[{k:"Japan",f:"🇯🇵"},{k:"Korea",f:"🇰🇷"},{k:"UAE",f:"🇦🇪"},{k:"Europe",f:"🇪🇺"},
+               {k:"India",f:"🇮🇳"},{k:"LatAm",f:"🌎"},{k:"Africa",f:"🌍"},{k:"SEA",f:"🌏"}];
+const SIGMAP={"bullish":"bull","bearish":"bear","neutral":"neut","quiet":"quiet"};
+const DOTMAP={"bullish":"gbull","bearish":"gbear","neutral":"gneut","quiet":"gquiet"};
 
 function updateRegions(d){
-  const regions=d.ai_regions||{};
-  const signals=(d.ai_global||{}).signals||{};
-  ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"].forEach(reg=>{
-    const ri=regions[reg]||{};
-    const sig=signals[reg]||"quiet";
-    const sigEl=document.getElementById(`region-sig-${reg}`);
-    if(sigEl){sigEl.textContent=`● ${sig.toUpperCase()}`;sigEl.style.color=SIG_COLORS[sig]||"var(--gray)";}
-    if(ri.pulse){const pel=document.getElementById(`region-pulse-${reg}`);if(pel)pel.textContent=ri.pulse;}
-  });
+  const sigs=(d.ai_global||{}).signals||{};
+  const rAI=d.ai_regions||{};
+  const grid=document.getElementById("regionGrid");
+  if(!grid) return;
+  grid.innerHTML=REGIONS.map(({k,f})=>{
+    const sig=sigs[k]||"quiet";
+    const pulse=(rAI[k]||{}).pulse||"Loading intelligence...";
+    return `<div class="slot ${SIGMAP[sig]||""}" id="slot-${k}">
+      <div class="slot-top">
+        <div class="tqdot ${DOTMAP[sig]}"></div>
+        <span class="sname">${f} ${k.toUpperCase()}</span>
+        <span class="sbadge ${SIGMAP[sig]||"quiet"}">${sig.toUpperCase()}</span>
+      </div>
+      <div class="sstrat">${k} Intelligence</div>
+      <div class="sact" id="reg-pulse-${k}">${pulse}</div>
+      <div id="reg-stories-${k}" style="margin-top:6px"></div>
+      <div class="sfoot"><span id="reg-count-${k}">Loading...</span></div>
+    </div>`;
+  }).join("");
+  REGIONS.forEach(({k})=>fetchRegionStories(k));
 }
 
-async function fetchRegionNews(reg){
+async function fetchRegionStories(reg){
   try{
-    const r=await fetch(`/api/news?region=${reg}`);
-    const d=await r.json();
-    const stories=(d.stories||[]).slice(0,5);
-    const el=document.getElementById(`region-stories-${reg}`);
+    const d=await fetch(`/api/news?region=${reg}`).then(r=>r.json());
+    const stories=(d.stories||[]).slice(0,3);
+    const el=document.getElementById(`reg-stories-${reg}`);
+    const cnt=document.getElementById(`reg-count-${reg}`);
+    if(cnt) cnt.textContent=`${d.total||0} stories`;
     if(!el) return;
-    if(!stories.length){el.innerHTML='<div style="font-size:12px;color:#333;padding:4px 0">No regional stories found yet...</div>';return;}
+    if(!stories.length){el.innerHTML='<div style="font-size:10px;color:var(--tx);font-family:var(--mn)">No regional stories yet</div>';return;}
     el.innerHTML=stories.map(s=>{
-      const isForeign=s.lang==="non-english";
-      const trans=s.translated_title ? `<div class="region-story-translation">🌐 ${s.translated_title}</div>` : "";
-      const fb=isForeign ? `<span class="foreign-badge">🌐 Translated</span>` : "";
-      return `<div class="region-story" onclick="openStoryModal('${s.link}','${s.title.replace(/'/g,\"\\'\")}','${s.source}')">
-        <div class="region-story-title ${isForeign?"foreign":""}">${s.title}</div>
+      const trans=s.translated_title?`<div style="font-size:10px;color:var(--tq);font-family:var(--mn);margin-top:2px">🌐 ${s.translated_title}</div>`:"";
+      const sent=s.sentiment==="bullish"?"g":s.sentiment==="bearish"?"r":"";
+      return `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer" onclick="openStoryModal('${s.id}')">
+        <div style="font-size:11px;font-weight:700;color:var(--bl);line-height:1.3">${s.title}</div>
         ${trans}
-        <div class="region-story-meta">
-          <span class="region-sent ${s.sentiment}">${s.sentiment}</span>
-          <span class="region-src">${s.source}</span>
-          ${fb}
-          <span class="region-age">${s.age||""}</span>
+        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+          <span style="color:${sent==="g"?"var(--gr)":sent==="r"?"var(--rd)":"var(--tx)"};font-weight:700">${s.sentiment}</span>
+          &nbsp;·&nbsp;${s.source}&nbsp;·&nbsp;${s.age||""}
         </div>
       </div>`;
     }).join("");
   }catch(e){}
 }
 
-// ── Scoreboard & Analytics ─────────────────────────────────────────────────
+// ── Scoreboard ─────────────────────────────────────────────────────────────
 function updateScoreboard(d){
   const st=d.story_stats||{};
-  c("sc-total",   st.today||0);
-  c("sc-sources", `${d.feeds_active||0} of ${d.feeds_total||0} sources`);
-  c("sc-bull",    st.bullish||0);
-  c("sc-bear",    st.bearish||0);
-  c("sc-neut",    st.neutral||0);
+  const p=d.price||{};
+  const fg=d.fear_greed||{};
+  c("sc-total", st.today||0);
+  c("sc-feeds", `${d.feeds_active||0}/${d.feeds_total||230} sources`);
+  c("sc-bull",  st.bullish||0);
+  c("sc-bear",  st.bearish||0);
+  c("sc-neut",  st.neutral||0);
+  c("sc-fg",    fg.score||"--");
+  c("sc-fg-lbl",fg.label||"--");
+  c("sc-rank",  p.rank?`#${p.rank}`:"#--");
+  c("sc-mcap",  fmtUSD(p.mcap));
+  c("sc-vol",   fmtUSD(p.volume_24h));
+  if(p.high_24h) c("sc-high",`$${parseFloat(p.high_24h).toFixed(4)}`);
+  if(p.low_24h)  c("sc-low", `$${parseFloat(p.low_24h).toFixed(4)}`);
   const t=(st.today)||1;
   c("sc-bull-pct",`${Math.round((st.bullish||0)/t*100)}%`);
   c("sc-bear-pct",`${Math.round((st.bearish||0)/t*100)}%`);
   const net=(st.bullish||0)-(st.bearish||0);
   const netEl=document.getElementById("sc-net");
-  if(netEl){netEl.textContent=`Net: ${net>=0?"+":""}${net}`;netEl.style.color=net>=0?"var(--lime)":"var(--red)";}
+  if(netEl){netEl.textContent=`Net: ${net>=0?"+":""}${net}`;netEl.style.color=net>=0?"var(--gr)":"var(--rd)";}
+  const fill=document.getElementById("sc-fill");
+  if(fill) fill.style.width=`${Math.round((st.bullish||0)/t*100)}%`;
 }
 
+// ── Analytics ──────────────────────────────────────────────────────────────
 function updateAnalytics(d){
   const st=d.story_stats||{};
   const p=d.price||{};
   const fg=d.fear_greed||{};
+  const oc=d.onchain||{};
   const t=(st.today)||1;
-  c("an-total",     st.today||0);
-  c("an-sources",   `${d.feeds_active||0} of ${d.feeds_total||0} sources`);
-  c("an-bull",      st.bullish||0);
-  c("an-bear",      st.bearish||0);
-  c("an-neut",      st.neutral||0);
-  c("an-bull-pct",  `${Math.round((st.bullish||0)/t*100)}%`);
-  c("an-bear-pct",  `${Math.round((st.bearish||0)/t*100)}%`);
+  c("al-today",  st.today||0);
+  c("al-bull",   st.bullish||0);
+  c("al-bear",   st.bearish||0);
+  c("al-neut",   st.neutral||0);
   const net=(st.bullish||0)-(st.bearish||0);
-  const netEl=document.getElementById("an-net");
-  if(netEl){netEl.textContent=`Net: ${net>=0?"+":""}${net}`;netEl.style.color=net>=0?"var(--lime)":"var(--red)";}
-  c("an-fear",     fg.score!==undefined?fg.score:"--");
-  c("an-fear-lbl", fg.label||"--");
-  c("an-rank",     p.rank?`#${p.rank}`:"--");
-  c("an-vol-ratio",p.vol_mcap_ratio?`${p.vol_mcap_ratio}%`:"--");
-  const athPct=parseFloat(p.ath_pct||0);
-  c("an-ath-pct",  athPct?`${Math.abs(athPct).toFixed(1)}%`:"--");
+  const nel=document.getElementById("al-net");
+  if(nel){nel.textContent=`${net>=0?"+":""}${net}`;nel.style.color=net>=0?"var(--gr)":"var(--rd)";}
+  const ratio=st.bearish?((st.bullish||0)/(st.bearish)).toFixed(2):"∞";
+  c("al-ratio",  `${ratio}:1 bull/bear`);
+  c("al-rank",   p.rank?`#${p.rank}`:"--");
+  c("al-mcap",   fmtUSD(p.mcap));
+  c("al-vol",    fmtUSD(p.volume_24h));
+  c("al-vratio", p.vol_mcap_ratio?`${p.vol_mcap_ratio}%`:"--");
+  const fgEl2=document.getElementById("al-fg");
+  if(fgEl2&&fg.score){fgEl2.textContent=`${fg.score} — ${fg.label||""}`;fgEl2.style.color=fg.score<30?"var(--rd)":fg.score>70?"var(--gr)":"var(--yl)";}
+  c("al-athpct", p.ath_pct?`${Math.abs(parseFloat(p.ath_pct)).toFixed(1)}% below`:"--");
+  c("al-feeds",  `${d.feeds_active||0}/${d.feeds_total||230}`);
+  c("al2-total", st.total||0);
+  c("al2-bull-pct",`${Math.round((st.bullish||0)/t*100)}%`);
+  c("al2-bear-pct",`${Math.round((st.bearish||0)/t*100)}%`);
+  c("al2-onchain",oc.tps||"--");
 }
 
-// ── System Health ──────────────────────────────────────────────────────────
-function updateSystemHealth(d){
-  c("sh-version",  d.version||"--");
-  c("sh-updated",  d.last_updated||"--");
-  c("sh-feeds",    `${d.feeds_active||0}/${d.feeds_total||0} feeds active`);
-  const qaEl=document.getElementById("sh-qa-status");
-  if(qaEl){qaEl.textContent=d.qa_status||"PENDING";qaEl.className="sys-val "+(d.qa_status==="PASS"?"pass":d.qa_status==="FAIL"?"fail":"warn");}
-  c("sh-qa-last", `Last run: ${d.qa_last||"Not yet run"}`);
-  if(d.qa_details&&d.qa_details.length){
-    const det=document.getElementById("sh-qa-detail");
-    if(det) det.innerHTML=d.qa_details.map(chk=>`<span style="color:${chk.ok?"var(--lime)":"var(--red)"}">${chk.ok?"✓":"✗"} ${chk.name}</span>`).join(" ");
-  }
-  const errEl=document.getElementById("sh-error");
-  if(d.last_error){
-    if(errEl){errEl.textContent=`Last error: ${d.last_error}`;errEl.style.color="var(--red)";}
-    c("sh-error-ts", d.last_error_ts||"");
-  } else {
-    if(errEl){errEl.textContent="No errors logged";errEl.style.color="var(--gray)";}
-  }
-  const maintEl=document.getElementById("sh-maint");
-  if(maintEl){const m=d.maintenance||"OK";maintEl.textContent=m==="OK"?"✅ OK":m==="ACTIVE"?"🔧 ACTIVE":"⏳ PENDING";maintEl.className="sys-val "+(m==="OK"?"pass":"warn");}
-  if(d.start_time) c("sh-start", new Date(d.start_time).toISOString().replace("T"," ").substring(0,16)+" UTC");
-  const fhl=document.getElementById("feed-health-list");
-  const fha=document.getElementById("feed-active");
-  if(fhl&&d.feed_health){
+// ── Right Panel Feed List ──────────────────────────────────────────────────
+function updateRight(d){
+  c("feed-active",`${d.feeds_active||0}/230`);
+  const fl=document.getElementById("feed-list");
+  if(fl&&d.feed_health){
     const entries=Object.entries(d.feed_health);
-    const up=entries.filter(([,v])=>v==="UP").length;
-    if(fha) fha.textContent=`${up}/${entries.length}`;
-    fhl.innerHTML=entries.map(([name,status])=>
-      `<div class="stat-row"><span class="stat-label" style="font-size:11px">${name}</span><span style="font-size:11px;color:${status==="UP"?"var(--lime)":"var(--red)"}">${status==="UP"?"●":"✗"}</span></div>`
+    fl.innerHTML=entries.map(([name,status])=>
+      `<div class="rrow"><span class="rk" style="font-size:10px">${name}</span><span style="font-size:10px;color:${status==="UP"?"var(--gr)":"var(--rd)"}">${status==="UP"?"●":"✗"}</span></div>`
     ).join("");
   }
 }
 
+// ── Breaking News ──────────────────────────────────────────────────────────
+function updateBreaking(d){
+  const bb=document.getElementById("breaking");
+  const bt=document.getElementById("bktext");
+  if(d.breaking&&bt){
+    bt.textContent=`${d.breaking.title} — ${d.breaking.source} — ${d.breaking.age||""}`;
+    if(bb) bb.style.display="flex";
+  }
+}
+
+// ── Footer ─────────────────────────────────────────────────────────────────
 function updateFooter(d){
-  c("ft-ver",     d.version||"--");
-  c("ft-updated", `Last updated: ${d.last_updated||"--"}`);
+  c("ft-ver",  d.version||"--");
+  c("ft-last", d.last_updated||"--");
   if(d.start_time){
     const hrs=Math.floor((Date.now()-new Date(d.start_time))/3600000);
-    const mins=Math.floor(((Date.now()-new Date(d.start_time))%3600000)/60000); c("ft-uptime", hrs+"h "+mins+"m");
+    const mins=Math.floor(((Date.now()-new Date(d.start_time))%3600000)/60000);
+    c("ft-uptime",`${hrs}h ${mins}m`);
   }
-  if(d.upgrade_log){
-    document.getElementById("upgrade-log").innerHTML=
-      d.upgrade_log.map(u=>`<div style="margin-bottom:4px"><span style="color:var(--heather)">${u.ts}</span> — ${u.note}</div>`).join("");
-  // Color-coded precheck results
-  if(d.qa_details && d.qa_details.length) {
-    const precheckEl = document.getElementById("footer-precheck");
-    if(precheckEl) precheckEl.innerHTML = d.qa_details.map(chk=>
-      `<span style="color:${chk.ok?"#FFFFFF":"var(--heather)"};margin-right:12px">${chk.ok?"✓":"✗"} ${chk.name}</span>`
+  const qaEl=document.getElementById("ft-qa");
+  if(qaEl){qaEl.textContent=d.qa_status||"--";qaEl.style.color=d.qa_status==="PASS"?"var(--gr)":"var(--rd)";}
+  const maintEl=document.getElementById("ft-maint");
+  if(maintEl){const m=d.maintenance||"OK";maintEl.textContent=m==="OK"?"✅ OK":"🔧 "+m;maintEl.style.color=m==="OK"?"var(--gr)":"var(--yl)";}
+  c("ft-feeds",`${d.feeds_active||0}/${d.feeds_total||230} active`);
+  const qsEl=document.getElementById("ft-qa-status");
+  if(qsEl){qsEl.textContent=d.qa_status||"--";qsEl.style.color=d.qa_status==="PASS"?"var(--gr)":"var(--rd)";}
+  c("ft-qa-last", d.qa_last||"--");
+  if(d.qa_details&&d.qa_details.length){
+    const pre=document.getElementById("footer-precheck");
+    if(pre) pre.innerHTML=d.qa_details.map(ch=>
+      `<span style="color:${ch.ok?"var(--gr)":"var(--rd)"};margin-right:10px;font-weight:700">${ch.ok?"✓":"✗"} ${ch.name}</span>`
     ).join("");
   }
-  }
+  c("ft-feed-detail",`${d.feeds_active||0}/${d.feeds_total||230} feeds active`);
+  c("ft-feed-ts", d.last_updated||"--");
+  const mdEl=document.getElementById("ft-maint-detail");
+  if(mdEl){const m=d.maintenance||"OK";mdEl.textContent=m==="OK"?"✅ All systems operational":"🔧 "+m;mdEl.style.color=m==="OK"?"var(--gr)":"var(--yl)";}
 }
 
-// ── News Render ────────────────────────────────────────────────────────────
+// ── News Render ─────────────────────────────────────────────────────────────
 const SRC_COLORS={
-  official:"src-official",major:"src-major",xrp:"src-xrp",
-  community:"src-community",international:"src-international",
-  aggregator:"src-aggregator",legal:"src-legal",mainstream:"src-mainstream",
-  institutional:"src-institutional",whale:"src-whale",ecosystem:"src-ecosystem",technical:"src-technical"
+  official:"official",major:"major",xrp:"xrp",community:"community",
+  international:"international",aggregator:"aggregator",legal:"legal",
+  mainstream:"mainstream",institutional:"institutional",whale:"whale",
+  ecosystem:"xrp",technical:"international"
 };
 
 function renderNews(totalAll){
   let stories=allStories;
   if(activeCat!=="all") stories=stories.filter(s=>s.category===activeCat);
-  if(activeSearch)      stories=stories.filter(s=>s.title.toLowerCase().includes(activeSearch));
-  // Index all stories for modal lookup
-  allStories.forEach(s=>{ storyData[s.id]=s; });
-
+  if(activeSearch)       stories=stories.filter(s=>s.title.toLowerCase().includes(activeSearch));
   const feed=document.getElementById("news-feed");
   const cnt=document.getElementById("news-count");
   if(!feed) return;
-
-  const total=totalAll||allStories.length;
-  const activeFeeds = document.getElementById("feed-active")?.textContent || "--";
-  if(cnt) cnt.innerHTML = `<span style="color:var(--tc);font-weight:700">${stories.length}</span> stories shown &nbsp;|&nbsp; <span style="color:var(--lime);font-weight:700">${total}</span> total collected &nbsp;|&nbsp; <span style="color:var(--tc);font-weight:700">${activeFeeds}</span> of <span style="color:var(--lime);font-weight:700">230</span> sources online`;
-
-  if(!stories.length){
-    feed.innerHTML=`<div class="loading" style="padding:20px 0">No stories match your filter. Feeds refresh every 10 minutes.</div>`;
-    return;
-  }
-
+  const tot=totalAll||allStories.length;
+  const fa=document.getElementById("feed-active");
+  const faText=fa?fa.textContent:"--";
+  if(cnt) cnt.innerHTML=`<span style="color:var(--bl);font-weight:700">${stories.length}</span> stories shown &nbsp;|&nbsp; <span style="color:var(--gr);font-weight:700">${tot}</span> total &nbsp;|&nbsp; <span style="color:var(--bl);font-weight:700">${faText}</span> of <span style="color:var(--gr);font-weight:700">230</span> sources online`;
+  if(!stories.length){feed.innerHTML='<div class="empty">No stories match filter.</div>';return;}
   feed.innerHTML=stories.slice(0,100).map(s=>{
-    const srcClass=SRC_COLORS[s.type]||"src-major";
-    const sentClass=`sent-${s.sentiment}`;
-    const sentLabel=s.sentiment==="bullish"?"🟢 Bullish":s.sentiment==="bearish"?"🔴 Bearish":"⚪ Neutral";
-    const summary=s.summary?`<div class="story-summary">${s.summary.substring(0,200)}${s.summary.length>200?"...":""}</div>`:"";
+    const sc=SRC_COLORS[s.type]||"major";
+    const sent=s.sentiment==="bullish"?"bull":s.sentiment==="bearish"?"bear":"neut";
+    const sentLbl=s.sentiment==="bullish"?"🟢 Bullish":s.sentiment==="bearish"?"🔴 Bearish":"⚪ Neutral";
+    const sum=s.summary?`<div class="nsum">${s.summary.substring(0,200)}${s.summary.length>200?"...":""}</div>`:"";
     const isForeign=s.lang==="non-english";
-    const titleClass=isForeign?"story-title foreign-title":"story-title";
-    const trans=s.translated_title?`<div class="story-translation">🌐 ${s.translated_title}</div>`:(isForeign?`<div class="story-translation" style="color:var(--heather)">🌐 Translation loading...</div>`:"");
-    const fb="";
-    return `<div class="story-card" onclick="openStoryModal('${s.id}')">
-      <div class="story-header">
-        <span class="src-badge ${srcClass}">${s.source}</span>
-        <span class="cat-tag">${s.category}</span>
-        ${s.breaking?'<span style="color:var(--org);font-size:11px;font-weight:700">⚡ BREAKING</span>':""}
-        ${fb}
+    const trans=s.translated_title?`<div class="ntrans">🌐 ${s.translated_title}</div>`:(isForeign?`<div class="ntrans" style="color:var(--tx)">🌐 Translation loading...</div>`:"");
+    const brk=s.breaking?`<span class="nbreak">⚡ BREAKING</span>`:"";
+    return `<div class="ncard" onclick="openStoryModal('${s.id}')">
+      <div class="ncard-hdr">
+        <span class="nsrc ${sc}">${s.source}</span>
+        <span class="ncat">${s.category}</span>
+        ${brk}
       </div>
-      <div class="${titleClass}">${s.title}</div>
-      ${trans}
-      ${summary}
-      <div class="story-footer">
-        <span class="sentiment-tag ${sentClass}">${sentLabel}</span>
-        <span class="story-age">${s.age||""}</span>
+      <div class="ntitle">${s.title}</div>
+      ${trans}${sum}
+      <div class="nfoot">
+        <span class="nsent ${sent}">${sentLbl}</span>
+        <span class="nage">${s.age||""}</span>
       </div>
     </div>`;
   }).join("");
@@ -1836,8 +1639,8 @@ function renderNews(totalAll){
 
 function setFilter(btn,cat){
   activeCat=cat;
-  document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
+  document.querySelectorAll(".nbtn").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
   renderNews();
 }
 function filterNews(){
@@ -1845,80 +1648,47 @@ function filterNews(){
   renderNews();
 }
 
-// ── Story Modal ────────────────────────────────────────────────────────────
-// storyData holds all stories for modal lookup
-let storyData = {};
-
-function openStoryModal(sid) {
-  const s = storyData[sid];
-  if(!s) return;
-  
-  // Title
-  document.getElementById("modal-title").textContent = s.title;
-  
-  // Translation block
-  const transEl = document.getElementById("modal-translation");
-  const transText = document.getElementById("modal-translation-text");
-  if(s.translated_title || s.translated_summary) {
-    transEl.style.display = "block";
-    transText.innerHTML = (s.translated_title ? `<strong>${s.translated_title}</strong><br>` : "") +
-                          (s.translated_summary || "");
-  } else if(s.lang === "non-english") {
-    transEl.style.display = "block";
-    transText.textContent = "Translation pending — check back after next AI refresh cycle.";
-  } else {
-    transEl.style.display = "none";
-  }
-  
-  // Summary
-  const sumEl = document.getElementById("modal-summary");
-  sumEl.textContent = s.summary || "Click Read Full Story for the complete article.";
-  
-  // Meta
-  const metaEl = document.getElementById("modal-meta");
-  const sentColor = s.sentiment==="bullish"?"var(--lime)":s.sentiment==="bearish"?"var(--red)":"var(--heather)";
-  metaEl.innerHTML = `
-    <span style="color:var(--tc);font-weight:700">${s.source}</span>
-    <span style="color:${sentColor};font-weight:700">${s.sentiment?.toUpperCase()||""}</span>
-    <span style="color:var(--heather)">${s.category||""}</span>
-    <span style="color:var(--heather);margin-left:auto">${s.age||""}</span>
-  `;
-  
-  // Read button
-  document.getElementById("modal-read-btn").href = s.link;
-  
-  document.getElementById("story-modal").style.display = "flex";
-  document.body.style.overflow = "hidden";
+// ── Story Modal ─────────────────────────────────────────────────────────────
+function openStoryModal(sid){
+  const s=storyData[sid]; if(!s) return;
+  document.getElementById("modal-title").textContent=s.title;
+  const transEl=document.getElementById("modal-translation");
+  const transText=document.getElementById("modal-translation-text");
+  if(s.translated_title||s.translated_summary){
+    transEl.style.display="block";
+    transText.innerHTML=(s.translated_title?`<strong>${s.translated_title}</strong><br>`:"")+(s.translated_summary||"");
+  } else if(s.lang==="non-english"){
+    transEl.style.display="block";
+    transText.textContent="Translation pending — check back after next AI cycle.";
+  } else { transEl.style.display="none"; }
+  c("modal-summary", s.summary||"Click Read Full Story for the complete article.");
+  const sentC=s.sentiment==="bullish"?"var(--gr)":s.sentiment==="bearish"?"var(--rd)":"var(--tx)";
+  document.getElementById("modal-meta").innerHTML=
+    `<span style="color:var(--bl);font-weight:700">${s.source}</span>
+     <span style="color:${sentC};font-weight:700">${(s.sentiment||"").toUpperCase()}</span>
+     <span style="color:var(--tx)">${s.category||""}</span>
+     <span style="color:var(--tx);margin-left:auto">${s.age||""}</span>`;
+  document.getElementById("modal-read-btn").href=s.link;
+  document.getElementById("story-modal").style.display="flex";
+  document.body.style.overflow="hidden";
 }
-
-function closeStoryModal(e) {
-  if(e && e.target !== document.getElementById("story-modal")) return;
-  document.getElementById("story-modal").style.display = "none";
-  document.body.style.overflow = "";
+function closeModal(e){
+  if(e&&e.target!==document.getElementById("story-modal")) return;
+  document.getElementById("story-modal").style.display="none";
+  document.body.style.overflow="";
 }
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){document.getElementById("story-modal").style.display="none";document.body.style.overflow="";}});
 
-document.addEventListener("keydown", e => { if(e.key === "Escape") {
-  document.getElementById("story-modal").style.display = "none";
-  document.body.style.overflow = "";
-}});
-
-// ── Init ───────────────────────────────────────────────────────────────────
-async function init(){
-  await fetchData();
-  await fetchNews();
-  // Load regional stories
-  ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"].forEach(reg=>{
-    fetchRegionNews(reg);
-  });
-}
-
-init();
+// ── Init ─────────────────────────────────────────────────────────────────────
+fetchData();
+fetchNews();
 setInterval(fetchData,  60000);
-setInterval(fetchNews,  600000);
-setInterval(()=>{ ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"].forEach(r=>fetchRegionNews(r)); }, 600000);
+setInterval(fetchNews, 600000);
+setInterval(()=>REGIONS.forEach(({k})=>fetchRegionStories(k)), 600000);
 </script>
 </body>
-</html>"""
+</html>
+"""
 
 # ── Startup ────────────────────────────────────────────────────────────────────
 load_state()
