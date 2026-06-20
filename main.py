@@ -1,7 +1,6 @@
 """
 XRPRadar v1.1 — XRPRadar.com
 Signals Over Noise 24/7
-Built on Railway | Flask + Python
 """
 
 import os, json, time, threading, hashlib, re
@@ -14,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v1.2"
+BOT_FILE          = "XRPRadar_v1.3"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -858,7 +857,7 @@ DASHBOARD = """<!DOCTYPE html>
   --ylw:#FFD700;
   --border:#1A2A1A;
 }
-body{background:var(--bg);color:var(--wht);font-family:Arial,sans-serif;font-size:15px}
+body{background:var(--bg);color:var(--wht);font-family:Arial,sans-serif;font-size:14px;letter-spacing:.01em;-webkit-font-smoothing:antialiased}
 a{color:var(--tc);text-decoration:none}
 a:hover{text-decoration:underline;color:var(--lime)}
 
@@ -876,28 +875,27 @@ a:hover{text-decoration:underline;color:var(--lime)}
 .nav-tagline{font-size:13px;color:var(--lime);font-style:italic;margin-top:1px}
 .nav-links{display:flex;gap:8px}
 .nav-links a{
-  color:#000;font-size:13px;font-weight:700;
-  letter-spacing:.04em;text-transform:uppercase;
-  transition:all .2s;text-decoration:none;
-  background:var(--tc);padding:6px 14px;border-radius:5px;
-  border:1px solid var(--tc);
+  background:#0A0A0A;border:1px solid #333;color:var(--heather);
+  padding:6px 14px;border-radius:5px;cursor:pointer;
+  font-size:12px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;transition:all .2s;text-decoration:none;
 }
-.nav-links a:hover{background:var(--lime);color:#000;border-color:var(--lime)}
+.nav-links a:hover,.nav-links a.active{background:var(--tc);color:#000;border-color:var(--tc)}
 .nav-live{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--heather)}
 .live-dot{width:9px;height:9px;border-radius:50%;background:var(--lime);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 4px var(--lime)}50%{opacity:.4;box-shadow:none}}
 
 /* ── BREAKING NEWS ────────────────────────────────────────────────── */
 #breaking{
-  background:#3A3A42;
-  border-top:2px solid var(--org);border-bottom:2px solid var(--org);
-  padding:10px 20px;display:none;
+  background:#4B5563;
+  border-top:1px solid #6B7280;border-bottom:1px solid #6B7280;
+  padding:5px 20px;display:none;
   align-items:center;gap:0;overflow:hidden;
 }
 .breaking-label{
-  color:var(--org);font-weight:900;font-size:14px;
-  flex-shrink:0;padding-right:16px;border-right:2px solid var(--org);
-  margin-right:16px;white-space:nowrap;letter-spacing:.05em;
+  color:#FFFFFF;font-weight:900;font-size:13px;
+  flex-shrink:0;padding-right:14px;border-right:1px solid #9CA3AF;
+  margin-right:14px;white-space:nowrap;letter-spacing:.04em;
 }
 .breaking-scroll{flex:1;overflow:hidden;position:relative;height:22px}
 .breaking-text{
@@ -937,8 +935,8 @@ a:hover{text-decoration:underline;color:var(--lime)}
 .card-value{font-size:32px;font-weight:900;color:var(--wht);line-height:1.1}
 .card-sub{font-size:14px;color:var(--gray);margin-top:6px}
 .card-change{font-size:18px;font-weight:700;margin-top:6px}
-.card-sm .card-value{font-size:24px}
-.price-hero .card-value{font-size:46px}
+.card-sm .card-value{font-size:28px}
+.price-hero .card-value{font-size:38px}
 
 /* ── CHART ────────────────────────────────────────────────────────── */
 #chart-row{background:var(--dark);padding:16px 20px}
@@ -1208,8 +1206,8 @@ a:hover{text-decoration:underline;color:var(--lime)}
 <!-- SECONDARY PRICE ROW -->
 <div class="section-wrap" style="background:var(--dark)">
   <div class="card-grid g4">
-    <div class="card card-sm lime">
-      <div class="card-label lime">Price Change</div>
+    <div class="card card-sm">
+      <div class="card-label">Price Change</div>
       <div class="card-sub">7 Day: <span id="s-7d" style="font-weight:700">--</span></div>
       <div class="card-sub" style="margin-top:5px">30 Day: <span id="s-30d" style="font-weight:700">--</span></div>
     </div>
@@ -1398,15 +1396,17 @@ a:hover{text-decoration:underline;color:var(--lime)}
 
   <!-- NEWS PANEL -->
   <div id="news-panel">
-    <div class="news-controls">
-      <input class="search-box" id="search-box" placeholder="🔍 Search XRP news..." oninput="filterNews()">
-      <button class="filter-btn active" onclick="setFilter(this,'all')">ALL</button>
-      <button class="filter-btn" onclick="setFilter(this,'Price')">PRICE</button>
-      <button class="filter-btn" onclick="setFilter(this,'Legal')">LEGAL</button>
-      <button class="filter-btn" onclick="setFilter(this,'Regulatory')">REG</button>
-      <button class="filter-btn" onclick="setFilter(this,'Ecosystem')">ECOSYSTEM</button>
-      <button class="filter-btn" onclick="setFilter(this,'Technical')">TECH</button>
-      <button class="filter-btn" onclick="setFilter(this,'Whale')">WHALE</button>
+    <div class="news-controls" style="flex-direction:column;gap:8px">
+      <input class="search-box" id="search-box" placeholder="🔍 Search XRP news..." oninput="filterNews()" style="width:100%">
+      <div style="display:flex;gap:6px;flex-wrap:nowrap">
+        <button class="filter-btn active" onclick="setFilter(this,'all')">ALL</button>
+        <button class="filter-btn" onclick="setFilter(this,'Price')">PRICE</button>
+        <button class="filter-btn" onclick="setFilter(this,'Legal')">LEGAL</button>
+        <button class="filter-btn" onclick="setFilter(this,'Regulatory')">REG</button>
+        <button class="filter-btn" onclick="setFilter(this,'Ecosystem')">ECOSYSTEM</button>
+        <button class="filter-btn" onclick="setFilter(this,'Technical')">TECH</button>
+        <button class="filter-btn" onclick="setFilter(this,'Whale')">WHALE</button>
+      </div>
     </div>
     <div id="news-count" class="loading">Loading news...</div>
     <div id="news-feed"></div>
@@ -1533,44 +1533,29 @@ a:hover{text-decoration:underline;color:var(--lime)}
 </div>
 
 <!-- FOOTER -->
-<div id="footer">
-  <div class="footer-grid">
-    <div>
-      <div class="footer-brand">🛰️ XRPRadar</div>
-      <div class="footer-tagline">Signals Over Noise 24/7</div>
-      <div class="footer-txt">
-        Version: <strong id="ft-ver">--</strong><br>
-        Built on Railway + Flask + Claude AI<br>
-        Uptime: <span id="ft-uptime" style="color:var(--heather)">--</span>
-      </div>
-    </div>
-    <div class="footer-txt">
-      🔄 Auto-refresh<br>
-      Price: every 60s<br>
-      News &amp; AI: every 10m<br>
-      QA Check: every 4h
-    </div>
-    <div class="footer-txt footer-disclaimer">
-      ⚠️ <strong>Not Financial Advice</strong><br>
-      XRPRadar is for informational purposes only.<br>
-      DYOR before making any investment decisions.<br>
-      © 2026 XRPRadar.com
-    </div>
-    <div class="footer-txt">
-      <span style="color:var(--heather);font-size:11px" id="ft-updated">--</span>
-    </div>
+<div id="footer" style="background:#020505;padding:12px 20px;border-top:2px solid #111;font-size:11px;color:var(--heather)">
+  <!-- Row a: Brand + version + runtime -->
+  <div style="display:flex;align-items:center;gap:20px;padding:4px 0;border-bottom:1px solid #111">
+    <span style="color:var(--tc);font-weight:700;font-size:13px">🛰️ <em>XRPRadar</em></span>
+    <span>Version: <strong id="ft-ver" style="color:#fff">--</strong></span>
+    <span>Uptime: <span id="ft-uptime" style="color:#fff">--</span></span>
+    <span id="ft-updated" style="margin-left:auto">--</span>
   </div>
-  <div class="footer-upgrade">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:10px">
-      <div>
-        <div class="footer-upgrade-title">📋 Upgrade Log</div>
-        <div class="footer-upgrade-log" id="upgrade-log"></div>
-      </div>
-      <div>
-        <div class="footer-upgrade-title">✅ System Precheck</div>
-        <div id="footer-precheck" style="font-size:11px;line-height:2.0"></div>
-      </div>
-    </div>
+  <!-- Row d: Not financial advice in yellow -->
+  <div style="padding:4px 0;border-bottom:1px solid #111;color:var(--ylw)">
+    ⚠️ Not Financial Advice — XRPRadar is for informational purposes only. DYOR.
+  </div>
+  <!-- Row e: Last updated + precheck -->
+  <div style="display:flex;gap:20px;padding:4px 0;border-bottom:1px solid #111">
+    <span>Last Updated: <span id="ft-last" style="color:#fff">--</span></span>
+    <span>System Precheck: <span id="ft-qa" style="color:#fff">--</span></span>
+  </div>
+  <!-- Row f: Preflight details -->
+  <div style="padding:4px 0;border-bottom:1px solid #111" id="footer-precheck"></div>
+  <!-- Row g: Maintenance -->
+  <div style="padding:4px 0">
+    Maintenance: <span id="ft-maint" style="color:#fff">--</span>
+    &nbsp;|&nbsp; Feeds: <span id="ft-feeds" style="color:#fff">--</span>
   </div>
 </div>
 
