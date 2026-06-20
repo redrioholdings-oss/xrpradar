@@ -1,8 +1,7 @@
 """
-XRPRadar v1.0 — XRPRadar.com
-Everything XRP. All the time.
+XRPRadar v1.1 — XRPRadar.com
+Signals Over Noise 24/7
 Built on Railway | Flask + Python
-Same patterns as Scorpion Universal
 """
 
 import os, json, time, threading, hashlib, re
@@ -10,102 +9,196 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import feedparser
 import requests
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v1.0a"
+BOT_FILE          = "XRPRadar_v1.1"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-SCAN_INTERVAL     = 600   # 10 minutes — news refresh
-PRICE_INTERVAL    = 60    # 60 seconds — price refresh
-AI_INTERVAL       = 600   # 10 minutes — AI briefing
-MAX_STORIES       = 300   # max stories in memory
-QA_INTERVAL       = 14400 # 4 hours — preflight QA check
+SCAN_INTERVAL     = 600
+PRICE_INTERVAL    = 60
+AI_INTERVAL       = 600
+MAX_STORIES       = 500
+QA_INTERVAL       = 14400
 
-# ── XRP Keyword Filter ────────────────────────────────────────────────────────
+# ── XRP Keywords ──────────────────────────────────────────────────────────────
 XRP_KEYWORDS = [
     "xrp","ripple","xrpl","garlinghouse","david schwartz","joelkatz",
-    "ripplenet","rlusd","on-demand liquidity","odl","sbi ripple","xrp ledger"
+    "ripplenet","rlusd","on-demand liquidity","odl","sbi ripple","xrp ledger",
+    "brad garlinghouse","ripple labs","xrpturbo","xrp etf","xrp spot"
 ]
 
-# ── Breaking News Keywords ────────────────────────────────────────────────────
 BREAKING_KEYWORDS = [
     "sec","etf","lawsuit","hack","ban","arrested","sanction","escrow",
     "rlusd","occ","crash","surge","ruling","verdict","settlement","injunction",
-    "delisted","partnership","approved","rejected","seized"
+    "delisted","partnership","approved","rejected","seized","breaking","urgent",
+    "alert","just in","confirmed","official"
 ]
 
-# ── Sentiment Keywords ─────────────────────────────────────────────────────────
 BULL_WORDS = [
     "surge","rally","rise","pump","bull","gain","high","ath","partnership",
     "approval","bullish","positive","launch","adoption","buy","soar","spike",
-    "jump","up","approved","milestone","record","win","victory","integration"
+    "jump","up","approved","milestone","record","win","victory","integration",
+    "listed","breakout","recovery","rebound","support"
 ]
+
 BEAR_WORDS = [
     "drop","crash","fall","dump","bear","loss","low","lawsuit","ban","sell",
     "bearish","negative","hack","reject","fud","plunge","decline","down",
-    "arrest","seized","delisted","suspended","warning","risk","fear","concern"
+    "arrest","seized","delisted","suspended","warning","risk","fear","concern",
+    "resistance","breakdown","correction"
 ]
 
-# ── Category Keywords ──────────────────────────────────────────────────────────
 CAT_KEYWORDS = {
-    "Legal":      ["sec","lawsuit","court","ruling","regulatory","cftc","legal","judge","verdict","settlement","appeal"],
-    "Regulatory": ["regulation","law","bill","act","policy","government","congress","senate","mica","fsb","mica"],
-    "Whale":      ["whale","large transaction","transfer","escrow","million xrp","billion xrp","moved"],
-    "Ecosystem":  ["partnership","bank","adoption","launch","integration","ripplenet","odl","liquidity","sbi"],
-    "Technical":  ["xrpl","protocol","ledger","developer","update","release","code","github","amend","validator"],
-    "Price":      ["price","market","trading","ath","rally","drop","value","usd","chart","analysis","prediction"],
+    "Legal":      ["sec","lawsuit","court","ruling","regulatory","cftc","legal","judge","verdict","settlement","appeal","doj"],
+    "Regulatory": ["regulation","law","bill","act","policy","government","congress","senate","mica","fsb","occ","fed"],
+    "Whale":      ["whale","large transaction","transfer","escrow","million xrp","billion xrp","moved","wallet","address"],
+    "Ecosystem":  ["partnership","bank","adoption","launch","integration","ripplenet","odl","liquidity","sbi","payment","remittance"],
+    "Technical":  ["xrpl","protocol","ledger","developer","update","release","code","github","amend","validator","amendment"],
+    "Price":      ["price","market","trading","ath","rally","drop","value","usd","chart","analysis","prediction","target"],
 }
 
-# ── RSS Feed List (v1 — 25 highest-signal feeds) ─────────────────────────────
+REGION_KEYWORDS = {
+    "Japan":          ["japan","japanese","sbi","moneynetint","coinpost","bitflyer","coincheck","jpn"],
+    "Korea":          ["korea","korean","upbit","bithumb","coinone","korbit","krw"],
+    "UAE":            ["uae","dubai","abu dhabi","emirates","difc","vara","middle east"],
+    "Europe":         ["europe","european","eu","mica","ecb","uk","britain","germany","france","swiss"],
+    "LatAm":          ["latin","latam","mexico","brazil","argentina","colombia","peru","chile","venezuela"],
+    "Africa":         ["africa","nigeria","kenya","south africa","ghana","ethiopia","naira","afri"],
+    "India":          ["india","indian","wazirx","coinswitch","coindcx","inr","sebi","rbi"],
+    "Southeast Asia": ["singapore","thailand","vietnam","philippines","indonesia","malaysia","myanmar","sea"],
+}
+
+# ── Non-English detection ──────────────────────────────────────────────────────
+def detect_language(text):
+    non_ascii = sum(1 for c in text if ord(c) > 127)
+    ratio = non_ascii / max(len(text), 1)
+    if ratio > 0.15:
+        return "non-english"
+    return "en"
+
+# ── RSS Feed List — 100 sources ───────────────────────────────────────────────
 RSS_FEEDS = [
-    # XRP-dedicated
-    {"name": "U.Today XRP",       "url": "https://u.today/rss/ripple.rss",                                             "type": "xrp",           "filter": False},
-    {"name": "Crypto News Flash",  "url": "https://crypto-news-flash.com/tag/ripple/feed",                              "type": "xrp",           "filter": False},
-    # Official
-    {"name": "Ripple Insights",    "url": "https://ripple.com/insights/feed",                                           "type": "official",      "filter": False},
-    {"name": "XRPL.org Blog",      "url": "https://xrpl.org/blog/feed.xml",                                             "type": "official",      "filter": False},
-    # Major Crypto
-    {"name": "CoinTelegraph XRP",  "url": "https://cointelegraph.com/rss/tag/ripple",                                   "type": "major",         "filter": False},
-    {"name": "CoinDesk",           "url": "https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml",             "type": "major",         "filter": True},
-    {"name": "Decrypt",            "url": "https://decrypt.co/feed",                                                    "type": "major",         "filter": True},
-    {"name": "The Block",          "url": "https://www.theblock.co/rss.xml",                                            "type": "major",         "filter": True},
-    {"name": "Blockworks",         "url": "https://blockworks.co/feed",                                                 "type": "major",         "filter": True},
-    {"name": "Daily Hodl",         "url": "https://dailyhodl.com/feed",                                                 "type": "major",         "filter": True},
-    {"name": "AMBCrypto",          "url": "https://ambcrypto.com/feed",                                                 "type": "major",         "filter": True},
-    {"name": "BeInCrypto",         "url": "https://beincrypto.com/feed",                                                "type": "major",         "filter": True},
-    {"name": "NewsBTC",            "url": "https://www.newsbtc.com/feed",                                               "type": "major",         "filter": True},
-    {"name": "Finbold",            "url": "https://finbold.com/feed",                                                   "type": "major",         "filter": True},
-    {"name": "CryptoSlate",        "url": "https://cryptoslate.com/feed",                                               "type": "major",         "filter": True},
-    # Google News Filters
-    {"name": "Google News: XRP",   "url": "https://news.google.com/rss/search?q=XRP+Ripple&hl=en-US&gl=US&ceid=US:en", "type": "aggregator",    "filter": False},
-    {"name": "Google News: Legal", "url": "https://news.google.com/rss/search?q=XRP+SEC+Ripple+lawsuit",                "type": "legal",         "filter": False},
-    {"name": "Google News: ETF",   "url": "https://news.google.com/rss/search?q=XRP+ETF+institutional+2026",            "type": "institutional", "filter": False},
-    {"name": "Google News: RLUSD", "url": "https://news.google.com/rss/search?q=RLUSD+stablecoin+Ripple",               "type": "xrp",           "filter": False},
-    # Community
-    {"name": "Reddit r/Ripple",    "url": "https://www.reddit.com/r/Ripple/.rss",                                       "type": "community",     "filter": False},
-    {"name": "Reddit r/XRP",       "url": "https://www.reddit.com/r/XRP/.rss",                                          "type": "community",     "filter": False},
-    # International
-    {"name": "CoinPost Japan",     "url": "https://coinpost.jp/?tag=ripple&feed=rss2",                                  "type": "international", "filter": False},
-    {"name": "Forkast Asia",       "url": "https://forkast.news/feed",                                                  "type": "international", "filter": True},
-    # Mainstream
-    {"name": "Yahoo Finance Crypto","url": "https://finance.yahoo.com/rss/topic/crypto",                                "type": "mainstream",    "filter": True},
-    {"name": "Forbes Crypto",      "url": "https://www.forbes.com/crypto-blockchain/feed2",                             "type": "mainstream",    "filter": True},
+    # ── XRP-Dedicated ─────────────────────────────────────────────────────────
+    {"name": "U.Today XRP",          "url": "https://u.today/rss/ripple.rss",                                                      "type": "xrp",          "region": "US",    "filter": False},
+    {"name": "Crypto News Flash",     "url": "https://crypto-news-flash.com/tag/ripple/feed",                                       "type": "xrp",          "region": "US",    "filter": False},
+    {"name": "XRP News (CoinTele)",   "url": "https://cointelegraph.com/rss/tag/ripple",                                            "type": "xrp",          "region": "US",    "filter": False},
+    {"name": "CryptoSlate XRP",       "url": "https://cryptoslate.com/crypto/xrp/feed",                                             "type": "xrp",          "region": "US",    "filter": False},
+    {"name": "Ripple Insights",       "url": "https://ripple.com/insights/feed",                                                    "type": "official",     "region": "US",    "filter": False},
+    {"name": "XRPL.org Blog",         "url": "https://xrpl.org/blog/feed.xml",                                                      "type": "official",     "region": "US",    "filter": False},
+    # ── Major US Crypto ────────────────────────────────────────────────────────
+    {"name": "CoinDesk",              "url": "https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml",                      "type": "major",        "region": "US",    "filter": True},
+    {"name": "Decrypt",               "url": "https://decrypt.co/feed",                                                             "type": "major",        "region": "US",    "filter": True},
+    {"name": "The Block",             "url": "https://www.theblock.co/rss.xml",                                                     "type": "major",        "region": "US",    "filter": True},
+    {"name": "Blockworks",            "url": "https://blockworks.co/feed",                                                          "type": "major",        "region": "US",    "filter": True},
+    {"name": "Daily Hodl",            "url": "https://dailyhodl.com/feed",                                                          "type": "major",        "region": "US",    "filter": True},
+    {"name": "AMBCrypto",             "url": "https://ambcrypto.com/feed",                                                          "type": "major",        "region": "US",    "filter": True},
+    {"name": "BeInCrypto",            "url": "https://beincrypto.com/feed",                                                         "type": "major",        "region": "US",    "filter": True},
+    {"name": "NewsBTC",               "url": "https://www.newsbtc.com/feed",                                                        "type": "major",        "region": "US",    "filter": True},
+    {"name": "Finbold",               "url": "https://finbold.com/feed",                                                            "type": "major",        "region": "US",    "filter": True},
+    {"name": "CryptoSlate",           "url": "https://cryptoslate.com/feed",                                                        "type": "major",        "region": "US",    "filter": True},
+    {"name": "CryptoPotato",          "url": "https://cryptopotato.com/feed",                                                       "type": "major",        "region": "US",    "filter": True},
+    {"name": "ZyCrypto",              "url": "https://zycrypto.com/feed",                                                           "type": "major",        "region": "US",    "filter": True},
+    {"name": "Bitcoinist",            "url": "https://bitcoinist.com/feed",                                                         "type": "major",        "region": "US",    "filter": True},
+    {"name": "Cryptonews",            "url": "https://cryptonews.com/feed",                                                         "type": "major",        "region": "US",    "filter": True},
+    {"name": "CoinGape",              "url": "https://coingape.com/feed",                                                           "type": "major",        "region": "US",    "filter": True},
+    {"name": "CryptoGlobe",           "url": "https://www.cryptoglobe.com/latest/feed",                                             "type": "major",        "region": "US",    "filter": True},
+    {"name": "Crypto Daily",          "url": "https://cryptodaily.co.uk/feed",                                                      "type": "major",        "region": "EU",    "filter": True},
+    {"name": "Invezz",                "url": "https://invezz.com/feed",                                                             "type": "major",        "region": "US",    "filter": True},
+    {"name": "InsideBitcoins",        "url": "https://insidebitcoins.com/feed",                                                     "type": "major",        "region": "US",    "filter": True},
+    {"name": "Crypto Briefing",       "url": "https://cryptobriefing.com/feed",                                                     "type": "major",        "region": "US",    "filter": True},
+    {"name": "The Defiant",           "url": "https://thedefiant.io/feed",                                                          "type": "major",        "region": "US",    "filter": True},
+    {"name": "Bitcoin Magazine",      "url": "https://bitcoinmagazine.com/feed",                                                    "type": "major",        "region": "US",    "filter": True},
+    {"name": "Forbes Crypto",         "url": "https://www.forbes.com/crypto-blockchain/feed2",                                      "type": "mainstream",   "region": "US",    "filter": True},
+    {"name": "Yahoo Finance Crypto",  "url": "https://finance.yahoo.com/rss/topic/crypto",                                         "type": "mainstream",   "region": "US",    "filter": True},
+    # ── Google News — XRP Specific ────────────────────────────────────────────
+    {"name": "GN: XRP Ripple",        "url": "https://news.google.com/rss/search?q=XRP+Ripple&hl=en-US&gl=US&ceid=US:en",         "type": "aggregator",   "region": "US",    "filter": False},
+    {"name": "GN: XRP Legal",         "url": "https://news.google.com/rss/search?q=XRP+SEC+Ripple+lawsuit",                        "type": "legal",        "region": "US",    "filter": False},
+    {"name": "GN: XRP ETF",           "url": "https://news.google.com/rss/search?q=XRP+ETF+institutional+2026",                    "type": "institutional","region": "US",    "filter": False},
+    {"name": "GN: RLUSD",             "url": "https://news.google.com/rss/search?q=RLUSD+stablecoin+Ripple",                       "type": "xrp",          "region": "US",    "filter": False},
+    {"name": "GN: XRP Price",         "url": "https://news.google.com/rss/search?q=XRP+price+analysis+prediction",                 "type": "xrp",          "region": "US",    "filter": False},
+    {"name": "GN: XRP Whale",         "url": "https://news.google.com/rss/search?q=XRP+whale+transfer+billion",                    "type": "whale",        "region": "US",    "filter": False},
+    {"name": "GN: XRP Adoption",      "url": "https://news.google.com/rss/search?q=XRP+adoption+bank+payment+Ripple",              "type": "ecosystem",    "region": "US",    "filter": False},
+    {"name": "GN: Garlinghouse",      "url": "https://news.google.com/rss/search?q=Garlinghouse+XRP+Ripple",                       "type": "official",     "region": "US",    "filter": False},
+    {"name": "GN: XRP Congress",      "url": "https://news.google.com/rss/search?q=XRP+crypto+regulation+Congress",                "type": "legal",        "region": "US",    "filter": False},
+    {"name": "GN: XRP CFTC",          "url": "https://news.google.com/rss/search?q=XRP+CFTC+commodity",                            "type": "legal",        "region": "US",    "filter": False},
+    {"name": "GN: XRP ODL",           "url": "https://news.google.com/rss/search?q=ODL+%22on-demand+liquidity%22+Ripple",          "type": "ecosystem",    "region": "US",    "filter": False},
+    {"name": "GN: XRPL Dev",          "url": "https://news.google.com/rss/search?q=XRPL+developer+protocol+amendment",             "type": "technical",    "region": "US",    "filter": False},
+    {"name": "GN: XRP Reuters",       "url": "https://news.google.com/rss/search?q=XRP+Ripple+Reuters",                            "type": "mainstream",   "region": "US",    "filter": False},
+    {"name": "GN: XRP Bloomberg",     "url": "https://news.google.com/rss/search?q=XRP+Ripple+Bloomberg",                          "type": "mainstream",   "region": "US",    "filter": False},
+    {"name": "GN: XRP CNBC",          "url": "https://news.google.com/rss/search?q=XRP+Ripple+CNBC",                               "type": "mainstream",   "region": "US",    "filter": False},
+    {"name": "GN: XRP WSJ",           "url": "https://news.google.com/rss/search?q=XRP+Ripple+%22Wall+Street+Journal%22",          "type": "mainstream",   "region": "US",    "filter": False},
+    {"name": "GN: XRP Bank",          "url": "https://news.google.com/rss/search?q=XRP+bank+financial+institution+payment",        "type": "institutional","region": "US",    "filter": False},
+    {"name": "GN: XRP SBI",           "url": "https://news.google.com/rss/search?q=XRP+SBI+Japan+MoneyTap",                        "type": "international","region": "Japan", "filter": False},
+    # ── Japan ─────────────────────────────────────────────────────────────────
+    {"name": "CoinPost Japan",        "url": "https://coinpost.jp/?tag=ripple&feed=rss2",                                           "type": "international","region": "Japan", "filter": False},
+    {"name": "CoinPost JP All",       "url": "https://coinpost.jp/?feed=rss2",                                                      "type": "international","region": "Japan", "filter": True},
+    {"name": "Crypto Times JP",       "url": "https://crypto-times.jp/feed",                                                        "type": "international","region": "Japan", "filter": True},
+    {"name": "GN Japan XRP",          "url": "https://news.google.com/rss/search?q=XRP+Ripple+%E3%83%AA%E3%83%97%E3%83%AB&hl=ja&gl=JP&ceid=JP:ja","type": "international","region": "Japan","filter": False},
+    {"name": "GN Japan XRP EN",       "url": "https://news.google.com/rss/search?q=XRP+Ripple+Japan&hl=en",                        "type": "international","region": "Japan", "filter": False},
+    # ── Korea ─────────────────────────────────────────────────────────────────
+    {"name": "GN Korea XRP",          "url": "https://news.google.com/rss/search?q=XRP+%EB%A6%AC%ED%94%8C&hl=ko&gl=KR&ceid=KR:ko","type": "international","region": "Korea", "filter": False},
+    {"name": "GN Korea XRP EN",       "url": "https://news.google.com/rss/search?q=XRP+Ripple+Korea+Bithumb+Upbit",                "type": "international","region": "Korea", "filter": False},
+    {"name": "Decenter KR",           "url": "https://decenter.kr/feed",                                                            "type": "international","region": "Korea", "filter": True},
+    # ── UAE & Middle East ─────────────────────────────────────────────────────
+    {"name": "GN UAE XRP",            "url": "https://news.google.com/rss/search?q=XRP+Ripple+UAE+Dubai+%22Abu+Dhabi%22",          "type": "international","region": "UAE",   "filter": False},
+    {"name": "GN ME Crypto",          "url": "https://news.google.com/rss/search?q=XRP+cryptocurrency+%22Middle+East%22+VARA",     "type": "international","region": "UAE",   "filter": False},
+    # ── Europe ────────────────────────────────────────────────────────────────
+    {"name": "BTC Echo DE",           "url": "https://www.btc-echo.de/feed",                                                        "type": "international","region": "Europe","filter": True},
+    {"name": "CoinTelegraph DE",      "url": "https://de.cointelegraph.com/rss",                                                    "type": "international","region": "Europe","filter": True},
+    {"name": "CoinTelegraph ES",      "url": "https://es.cointelegraph.com/rss",                                                    "type": "international","region": "LatAm", "filter": True},
+    {"name": "Forkast Asia",          "url": "https://forkast.news/feed",                                                           "type": "international","region": "SEA",   "filter": True},
+    {"name": "GN Europe XRP",         "url": "https://news.google.com/rss/search?q=XRP+Ripple+Europe+MiCA+ECB&hl=en-GB&gl=GB&ceid=GB:en","type": "international","region": "Europe","filter": False},
+    {"name": "GN UK XRP",             "url": "https://news.google.com/rss/search?q=XRP+Ripple+UK+FCA+Britain",                     "type": "international","region": "Europe","filter": False},
+    # ── India ─────────────────────────────────────────────────────────────────
+    {"name": "GN India XRP",          "url": "https://news.google.com/rss/search?q=XRP+Ripple+India+SEBI+RBI&hl=en-IN&gl=IN&ceid=IN:en","type": "international","region": "India","filter": False},
+    {"name": "WazirX Blog",           "url": "https://blog.wazirx.com/feed",                                                        "type": "international","region": "India", "filter": True},
+    {"name": "Coinpedia",             "url": "https://coinpedia.org/feed",                                                          "type": "international","region": "India", "filter": True},
+    # ── Latin America ─────────────────────────────────────────────────────────
+    {"name": "CriptoNoticias",        "url": "https://www.criptonoticias.com/feed",                                                 "type": "international","region": "LatAm", "filter": True},
+    {"name": "Diario Bitcoin",        "url": "https://www.diariobitcoin.com/feed",                                                  "type": "international","region": "LatAm", "filter": True},
+    {"name": "GN LatAm XRP",          "url": "https://news.google.com/rss/search?q=XRP+Ripple+%22Latin+America%22+Mexico+Brazil",  "type": "international","region": "LatAm", "filter": False},
+    # ── Africa ────────────────────────────────────────────────────────────────
+    {"name": "GN Africa XRP",         "url": "https://news.google.com/rss/search?q=XRP+Ripple+Africa+Nigeria+Kenya+crypto",        "type": "international","region": "Africa","filter": False},
+    # ── Southeast Asia ────────────────────────────────────────────────────────
+    {"name": "GN SEA XRP",            "url": "https://news.google.com/rss/search?q=XRP+Ripple+Singapore+Thailand+Philippines",     "type": "international","region": "SEA",   "filter": False},
+    # ── Community ─────────────────────────────────────────────────────────────
+    {"name": "Reddit r/Ripple",       "url": "https://www.reddit.com/r/Ripple/.rss",                                                "type": "community",    "region": "US",    "filter": False},
+    {"name": "Reddit r/XRP",          "url": "https://www.reddit.com/r/XRP/.rss",                                                   "type": "community",    "region": "US",    "filter": False},
+    {"name": "Reddit r/XRPTrader",    "url": "https://www.reddit.com/r/XRPTrader/.rss",                                             "type": "community",    "region": "US",    "filter": False},
+    {"name": "Reddit r/CryptoCurr",   "url": "https://www.reddit.com/r/CryptoCurrency/search.rss?q=XRP&sort=new&restrict_sr=on",   "type": "community",    "region": "US",    "filter": False},
+    # ── Technical / On-chain ──────────────────────────────────────────────────
+    {"name": "GN XRPL Tech",          "url": "https://news.google.com/rss/search?q=XRPL+%22XRP+Ledger%22+developer+validator",     "type": "technical",    "region": "US",    "filter": False},
+    {"name": "GN XRP DeFi",           "url": "https://news.google.com/rss/search?q=XRP+DeFi+AMM+%22XRP+Ledger%22",                 "type": "technical",    "region": "US",    "filter": False},
+    # ── Institutional ─────────────────────────────────────────────────────────
+    {"name": "GN XRP Custody",        "url": "https://news.google.com/rss/search?q=XRP+custody+%22hedge+fund%22+institutional",    "type": "institutional","region": "US",    "filter": False},
+    {"name": "GN XRP ETF Latest",     "url": "https://news.google.com/rss/search?q=%22XRP+ETF%22+approved+filed+2026",             "type": "institutional","region": "US",    "filter": False},
+    # ── More aggregators ──────────────────────────────────────────────────────
+    {"name": "GN XRP Breaking",       "url": "https://news.google.com/rss/search?q=XRP+breaking+news+today",                       "type": "aggregator",   "region": "US",    "filter": False},
+    {"name": "GN Ripple CEO",         "url": "https://news.google.com/rss/search?q=Ripple+CEO+%22Brad+Garlinghouse%22",             "type": "official",     "region": "US",    "filter": False},
+    {"name": "GN XRP OCC",            "url": "https://news.google.com/rss/search?q=XRP+OCC+%22national+bank%22+crypto",            "type": "legal",        "region": "US",    "filter": False},
+    {"name": "GN XRP Treasury",       "url": "https://news.google.com/rss/search?q=XRP+%22US+Treasury%22+FinCEN+crypto",           "type": "legal",        "region": "US",    "filter": False},
+    {"name": "GN XRP ISO20022",       "url": "https://news.google.com/rss/search?q=XRP+ISO20022+SWIFT+%22cross-border%22",         "type": "ecosystem",    "region": "US",    "filter": False},
+    {"name": "GN XRP CBDC",           "url": "https://news.google.com/rss/search?q=XRP+CBDC+%22central+bank%22+digital",          "type": "ecosystem",    "region": "US",    "filter": False},
 ]
+
+REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
 
 # ── State ──────────────────────────────────────────────────────────────────────
 STATE = {
     "price":         {},
-    "secondary":     {},
     "fear_greed":    {},
     "escrow":        {},
+    "onchain":       {},
     "stories":       [],
-    "ai_us":         {"pulse": "Fetching US intelligence...", "regulatory": "Loading...", "institutional": "Loading...", "ts": ""},
-    "ai_global":     {"pulse": "Fetching global intelligence...", "signals": {}, "thesis": "Analyzing...", "ts": ""},
+    "stories_by_region": {r: [] for r in REGIONS},
+    "ai_us":         {"pulse":"Fetching US intelligence...","regulatory":"Loading...","institutional":"Loading...","ts":""},
+    "ai_global":     {"pulse":"Fetching global intelligence...","signals":{},"thesis":"Analyzing...","ts":""},
+    "ai_regions":    {r: {"pulse":"Loading...","ts":""} for r in REGIONS},
     "feed_health":   {},
     "breaking":      None,
-    "story_stats":   {"today": 0, "bullish": 0, "bearish": 0, "neutral": 0},
+    "story_stats":   {"today":0,"bullish":0,"bearish":0,"neutral":0},
     "version":       BOT_FILE,
     "last_updated":  None,
     "qa_status":     "PENDING",
@@ -114,10 +207,12 @@ STATE = {
     "last_error":    None,
     "last_error_ts": None,
     "feeds_active":  0,
+    "feeds_total":   len(RSS_FEEDS),
     "maintenance":   "OK",
     "start_time":    datetime.now(timezone.utc).isoformat(),
     "upgrade_log":   [
-        {"ts": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"), "note": "v1.0a — XRPRadar initial build. 25 RSS feeds, price data, AI briefing panels, System Health Bar."}
+        {"ts": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
+         "note": "v1.1 — Full redesign. Turquoise + lime color scheme. 100 sources. Regional intelligence rows. Enhanced analytics."}
     ]
 }
 
@@ -154,8 +249,8 @@ def detect_sentiment(title, summary=""):
     text = (title + " " + summary).lower()
     b = sum(1 for w in BULL_WORDS if w in text)
     r = sum(1 for w in BEAR_WORDS if w in text)
-    if b > r:   return "bullish"
-    if r > b:   return "bearish"
+    if b > r: return "bullish"
+    if r > b: return "bearish"
     return "neutral"
 
 def detect_category(title, summary=""):
@@ -169,6 +264,13 @@ def detect_breaking(title):
     text = title.lower()
     return any(kw in text for kw in BREAKING_KEYWORDS)
 
+def detect_region(title, summary, feed_region):
+    text = (title + " " + summary).lower()
+    for region, keywords in REGION_KEYWORDS.items():
+        if any(kw in text for kw in keywords):
+            return region
+    return feed_region if feed_region in REGIONS else None
+
 def story_id(title, link):
     return hashlib.md5((title + link).encode()).hexdigest()[:12]
 
@@ -178,47 +280,48 @@ def fmt_ts(ts):
         now  = datetime.now(timezone.utc)
         diff = now - ts
         s    = int(diff.total_seconds())
-        if s < 60:   return f"{s}s ago"
-        if s < 3600: return f"{s//60}m ago"
-        if s < 86400:return f"{s//3600}h ago"
+        if s < 60:    return f"{s}s ago"
+        if s < 3600:  return f"{s//60}m ago"
+        if s < 86400: return f"{s//3600}h ago"
         return f"{s//86400}d ago"
     except: return ""
 
-# ── Price Fetch ────────────────────────────────────────────────────────────────
+# ── Price & Data Fetch ─────────────────────────────────────────────────────────
 def fetch_price():
     try:
-        hdr = {"User-Agent": "XRPRadar/1.0"}
-        # Primary: CoinGecko
+        hdr = {"User-Agent": "XRPRadar/1.1"}
         cg = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple"
             "?localization=false&tickers=false&community_data=false&developer_data=false",
             headers=hdr, timeout=10).json()
         md = cg.get("market_data", {})
         STATE["price"] = {
-            "usd":        md.get("current_price", {}).get("usd", 0),
-            "btc":        md.get("current_price", {}).get("btc", 0),
-            "change_24h": md.get("price_change_percentage_24h", 0),
-            "change_7d":  md.get("price_change_percentage_7d",  0),
-            "change_30d": md.get("price_change_percentage_30d", 0),
-            "mcap":       md.get("market_cap",      {}).get("usd", 0),
-            "volume_24h": md.get("total_volume",    {}).get("usd", 0),
-            "ath":        md.get("ath",              {}).get("usd", 0),
-            "ath_pct":    md.get("ath_change_percentage", {}).get("usd", 0),
-            "supply_circ":md.get("circulating_supply", 0),
-            "supply_total":cg.get("market_data", {}).get("total_supply", 100000000000),
-            "rank":       cg.get("market_cap_rank", 0),
+            "usd":          md.get("current_price", {}).get("usd", 0),
+            "btc":          md.get("current_price", {}).get("btc", 0),
+            "change_24h":   md.get("price_change_percentage_24h", 0),
+            "change_7d":    md.get("price_change_percentage_7d",  0),
+            "change_30d":   md.get("price_change_percentage_30d", 0),
+            "mcap":         md.get("market_cap",      {}).get("usd", 0),
+            "volume_24h":   md.get("total_volume",    {}).get("usd", 0),
+            "ath":          md.get("ath",              {}).get("usd", 0),
+            "ath_pct":      md.get("ath_change_percentage", {}).get("usd", 0),
+            "supply_circ":  md.get("circulating_supply", 0),
+            "supply_total": cg.get("market_data", {}).get("total_supply", 100000000000),
+            "rank":         cg.get("market_cap_rank", 0),
+            "high_24h":     md.get("high_24h", {}).get("usd", 0),
+            "low_24h":      md.get("low_24h",  {}).get("usd", 0),
         }
     except Exception as e:
         log_error(f"fetch_price CoinGecko: {e}")
-        # Fallback: Binance
         try:
-            b = requests.get("https://api.binance.com/api/v3/ticker/24hr?symbol=XRPUSDT",
-                             timeout=5).json()
+            b = requests.get("https://api.binance.com/api/v3/ticker/24hr?symbol=XRPUSDT", timeout=5).json()
             STATE["price"]["usd"]        = float(b.get("lastPrice", 0))
             STATE["price"]["change_24h"] = float(b.get("priceChangePercent", 0))
             STATE["price"]["volume_24h"] = float(b.get("quoteVolume", 0))
+            STATE["price"]["high_24h"]   = float(b.get("highPrice", 0))
+            STATE["price"]["low_24h"]    = float(b.get("lowPrice", 0))
         except Exception as e2:
-            log_error(f"fetch_price Binance fallback: {e2}")
+            log_error(f"fetch_price Binance: {e2}")
 
     # Fear & Greed
     try:
@@ -231,17 +334,8 @@ def fetch_price():
     except Exception as e:
         log_error(f"fetch_fear_greed: {e}")
 
-    # Escrow (XRPScan)
-    try:
-        xs = requests.get("https://api.xrpscan.com/api/v1/account/rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
-                          timeout=8).json()
-        STATE["escrow"] = {
-            "next_date":   "1st of next month",
-            "amount_b":    1.0,
-            "note":        "Ripple releases 1B XRP monthly from escrow"
-        }
-    except:
-        STATE["escrow"] = {"next_date": "~1st monthly", "amount_b": 1.0, "note": "1B XRP monthly release"}
+    # Escrow
+    STATE["escrow"] = {"next_date": "1st of next month", "amount_b": 1.0, "note": "1B XRP monthly release"}
 
     # Vol/Mcap ratio
     try:
@@ -250,19 +344,32 @@ def fetch_price():
             STATE["price"]["vol_mcap_ratio"] = round(p["volume_24h"] / p["mcap"] * 100, 2)
     except: pass
 
+    # On-chain metrics via XRPScan
+    try:
+        stats = requests.get("https://api.xrpscan.com/api/v1/ledger/stats", timeout=8).json()
+        STATE["onchain"] = {
+            "ledger_index": stats.get("ledger_index", "--"),
+            "tps":          round(float(stats.get("tps", 0)), 2),
+            "accounts":     stats.get("accounts", "--"),
+            "transactions": stats.get("transactions", "--"),
+        }
+    except:
+        STATE["onchain"] = {"ledger_index": "--", "tps": "--", "accounts": "--", "transactions": "--"}
+
     STATE["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 # ── News Fetch ─────────────────────────────────────────────────────────────────
 def fetch_news():
-    seen_ids   = {s["id"] for s in STATE["stories"]}
-    new_stories= []
-    active     = 0
-    health     = {}
+    seen_ids    = {s["id"] for s in STATE["stories"]}
+    new_stories = []
+    active      = 0
+    health      = {}
 
     for feed_cfg in RSS_FEEDS:
-        name = feed_cfg["name"]
-        url  = feed_cfg["url"]
-        ftype= feed_cfg["type"]
+        name      = feed_cfg["name"]
+        url       = feed_cfg["url"]
+        ftype     = feed_cfg["type"]
+        region    = feed_cfg.get("region", "US")
         do_filter = feed_cfg["filter"]
         try:
             parsed = feedparser.parse(url)
@@ -271,33 +378,29 @@ def fetch_news():
                 continue
             health[name] = "UP"
             active += 1
-            for entry in parsed.entries[:15]:
+            for entry in parsed.entries[:10]:
                 title   = getattr(entry, "title",   "")
                 link    = getattr(entry, "link",    "")
                 summary = getattr(entry, "summary", "")
-                summary = re.sub(r"<[^>]+>", "", summary)[:300]
-
+                summary = re.sub(r"<[^>]+>", "", summary)[:400]
                 if not title or not link: continue
                 if do_filter and not is_xrp(title, summary): continue
-
                 sid = story_id(title, link)
                 if sid in seen_ids: continue
-
-                # Parse published time
                 pub = None
                 try:
                     if hasattr(entry, "published_parsed") and entry.published_parsed:
                         pub = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)
                 except: pass
-
-                # Only stories from last 7 days
                 if pub:
                     age = (datetime.now(timezone.utc) - pub).total_seconds()
                     if age > 604800: continue
 
-                sentiment= detect_sentiment(title, summary)
-                category = detect_category(title, summary)
-                breaking = detect_breaking(title)
+                lang        = detect_language(title)
+                story_region= detect_region(title, summary, region)
+                sentiment   = detect_sentiment(title, summary)
+                category    = detect_category(title, summary)
+                breaking    = detect_breaking(title)
 
                 story = {
                     "id":        sid,
@@ -306,9 +409,11 @@ def fetch_news():
                     "summary":   summary,
                     "source":    name,
                     "type":      ftype,
+                    "region":    story_region,
                     "sentiment": sentiment,
                     "category":  category,
                     "breaking":  breaking,
+                    "lang":      lang,
                     "pub":       pub.isoformat() if pub else None,
                     "age":       fmt_ts(pub) if pub else "Recent",
                 }
@@ -318,14 +423,17 @@ def fetch_news():
             health[name] = "DOWN"
             log_error(f"feed {name}: {e}")
 
-    # Merge + sort
     all_stories = new_stories + STATE["stories"]
     all_stories.sort(key=lambda s: s.get("pub") or "", reverse=True)
     STATE["stories"]      = all_stories[:MAX_STORIES]
     STATE["feed_health"]  = health
     STATE["feeds_active"] = active
+    STATE["feeds_total"]  = len(RSS_FEEDS)
 
-    # Stats
+    # Group by region
+    for r in REGIONS:
+        STATE["stories_by_region"][r] = [s for s in STATE["stories"][:100] if s.get("region") == r][:20]
+
     today_cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     today_s = [s for s in STATE["stories"] if (s.get("pub") or "") >= today_cutoff]
     STATE["story_stats"] = {
@@ -333,9 +441,11 @@ def fetch_news():
         "bullish": sum(1 for s in today_s if s["sentiment"] == "bullish"),
         "bearish": sum(1 for s in today_s if s["sentiment"] == "bearish"),
         "neutral": sum(1 for s in today_s if s["sentiment"] == "neutral"),
+        "total":   len(STATE["stories"]),
+        "sources_active": active,
+        "sources_total":  len(RSS_FEEDS),
     }
 
-    # Breaking news: most recent breaking story < 2h old
     for s in STATE["stories"]:
         if s.get("breaking") and s.get("pub"):
             age_h = (datetime.now(timezone.utc) - datetime.fromisoformat(s["pub"])).total_seconds() / 3600
@@ -346,103 +456,107 @@ def fetch_news():
         STATE["breaking"] = None
 
 # ── Claude AI Briefing ─────────────────────────────────────────────────────────
-def call_claude(prompt, system_prompt, max_tokens=400):
+def call_claude(prompt, system_prompt, max_tokens=500):
     if not ANTHROPIC_API_KEY:
         return "Add ANTHROPIC_API_KEY to Railway Variables to enable AI briefings."
     try:
         r = requests.post(
             "https://api.anthropic.com/v1/messages",
-            headers={
-                "Content-Type":      "application/json",
-                "x-api-key":         ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01"
-            },
-            json={
-                "model":      "claude-sonnet-4-6",
-                "max_tokens": max_tokens,
-                "system":     system_prompt,
-                "messages":   [{"role": "user", "content": prompt}]
-            },
-            timeout=30
-        )
+            headers={"Content-Type":"application/json","x-api-key":ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01"},
+            json={"model":"claude-sonnet-4-6","max_tokens":max_tokens,"system":system_prompt,"messages":[{"role":"user","content":prompt}]},
+            timeout=30)
         data = r.json()
-        return data.get("content", [{}])[0].get("text", "No response")
+        return data.get("content",[{}])[0].get("text","No response")
     except Exception as e:
         log_error(f"Claude API: {e}")
-        return f"AI briefing temporarily unavailable."
+        return "AI briefing temporarily unavailable."
 
 def fetch_ai_briefing():
-    stories = STATE["stories"][:60]
-    if not stories:
-        return
+    stories = STATE["stories"][:80]
+    if not stories: return
 
-    # Bundle story titles for prompt
-    titles_all = "\n".join([f"- [{s['source']}] {s['title']} ({s['sentiment'].upper()})"
-                            for s in stories])
+    # Translate non-English story titles
+    foreign = [s for s in stories if s.get("lang") == "non-english"][:5]
+    translations = {}
+    if foreign and ANTHROPIC_API_KEY:
+        try:
+            titles_to_translate = "\n".join([f"{i+1}. {s['title']} (source: {s['source']})" for i,s in enumerate(foreign)])
+            trans_prompt = (f"Translate these news headlines to English. "
+                           f"Reply ONLY with a JSON object mapping numbers to translated text:\n{titles_to_translate}")
+            raw = call_claude(trans_prompt, "You are a translator. Reply only with valid JSON.", 300)
+            raw = raw.strip().lstrip("```json").rstrip("```").strip()
+            trans_map = json.loads(raw)
+            for i, s in enumerate(foreign):
+                key = str(i+1)
+                if key in trans_map:
+                    translations[s["id"]] = trans_map[key]
+                    # Update story with translation
+                    for story in STATE["stories"]:
+                        if story["id"] == s["id"]:
+                            story["translated_title"] = trans_map[key]
+                            break
+        except Exception as e:
+            log_error(f"Translation: {e}")
 
-    us_types = {"major","official","institutional","legal","mainstream","aggregator"}
-    us_stories = [s for s in stories if s["type"] in us_types]
-    titles_us  = "\n".join([f"- [{s['source']}] {s['title']} ({s['sentiment'].upper()})"
-                            for s in us_stories[:30]])
+    titles_all = "\n".join([f"- [{s['source']}] {s['title']} ({s['sentiment'].upper()})" for s in stories])
 
-    # ── US Briefing ──
-    sys_us = ("You are an XRP market intelligence analyst specializing in US markets. "
-              "Be concise, factual, and forward-looking. No disclaimers. No emojis.")
+    us_stories  = [s for s in stories if s.get("region") == "US" or s["type"] in {"major","official","institutional","legal","mainstream","aggregator"}]
+    titles_us   = "\n".join([f"- [{s['source']}] {s['title']} ({s['sentiment'].upper()})" for s in us_stories[:30]])
 
+    sys_us = "You are an XRP market intelligence analyst specializing in US markets. Be concise, factual, forward-looking. No disclaimers. No emojis."
     prompt_us = (f"Based on these recent US XRP/Ripple news stories:\n{titles_us}\n\n"
                  "Respond in JSON only (no markdown, no backticks):\n"
                  '{"pulse":"2 sentence US market intelligence summary","'
                  'regulatory":"1 sentence on US regulatory landscape (SEC/CFTC/legislation)","'
-                 'institutional":"1 sentence on US institutional XRP activity (ETFs/banks)"}')
-
+                 'institutional":"1 sentence on US institutional XRP activity (ETFs/banks/custody)"}')
     try:
-        raw = call_claude(prompt_us, sys_us, 300)
+        raw = call_claude(prompt_us, sys_us, 350)
         raw = raw.strip().lstrip("```json").rstrip("```").strip()
         d   = json.loads(raw)
-        STATE["ai_us"] = {
-            "pulse":         d.get("pulse", ""),
-            "regulatory":    d.get("regulatory", ""),
-            "institutional": d.get("institutional", ""),
-            "ts":            datetime.now(timezone.utc).strftime("%H:%M UTC")
-        }
+        STATE["ai_us"] = {"pulse": d.get("pulse",""),"regulatory": d.get("regulatory",""),"institutional": d.get("institutional",""),"ts": datetime.now(timezone.utc).strftime("%H:%M UTC")}
     except Exception as e:
-        log_error(f"AI US parse: {e}")
+        log_error(f"AI US: {e}")
 
-    # ── Global Briefing ──
-    sys_gl = ("You are a global XRP intelligence analyst. Synthesize news from all regions. "
-              "Be concise, analytical, forward-looking. No disclaimers. No emojis.")
-
-    regions = ["Japan","Korea","UAE","Europe","LatAm","Africa","India"]
+    # Global
+    sys_gl = "You are a global XRP intelligence analyst. Synthesize news from all regions. Be concise, analytical, forward-looking. No disclaimers. No emojis."
     region_signals = {}
-    for reg in regions:
-        reg_stories = [s for s in stories if s["type"] == "international"
-                       or reg.lower() in s["title"].lower()]
+    for reg in REGIONS:
+        reg_stories = [s for s in stories if s.get("region") == reg]
         if reg_stories:
             bulls = sum(1 for s in reg_stories if s["sentiment"] == "bullish")
             bears = sum(1 for s in reg_stories if s["sentiment"] == "bearish")
-            if bulls > bears:      region_signals[reg] = "bullish"
-            elif bears > bulls:    region_signals[reg] = "bearish"
-            else:                  region_signals[reg] = "neutral"
+            region_signals[reg] = "bullish" if bulls > bears else "bearish" if bears > bulls else "neutral"
         else:
             region_signals[reg] = "quiet"
 
-    prompt_gl = (f"Based on these recent global XRP/Ripple news stories:\n{titles_all}\n\n"
+    prompt_gl = (f"Based on these global XRP/Ripple news stories:\n{titles_all}\n\n"
                  "Respond in JSON only (no markdown, no backticks):\n"
                  '{"pulse":"2 sentence global XRP market synthesis","'
-                 'thesis":"1 paragraph forward-looking read on what all global signals mean for XRP right now"}')
-
+                 'thesis":"Forward-looking analysis: what do all global signals mean for XRP right now? 2-3 sentences."}')
     try:
-        raw = call_claude(prompt_gl, sys_gl, 400)
+        raw = call_claude(prompt_gl, sys_gl, 450)
         raw = raw.strip().lstrip("```json").rstrip("```").strip()
         d   = json.loads(raw)
-        STATE["ai_global"] = {
-            "pulse":   d.get("pulse",  ""),
-            "signals": region_signals,
-            "thesis":  d.get("thesis", ""),
-            "ts":      datetime.now(timezone.utc).strftime("%H:%M UTC")
-        }
+        STATE["ai_global"] = {"pulse": d.get("pulse",""),"signals": region_signals,"thesis": d.get("thesis",""),"ts": datetime.now(timezone.utc).strftime("%H:%M UTC")}
     except Exception as e:
-        log_error(f"AI Global parse: {e}")
+        log_error(f"AI Global: {e}")
+
+    # Regional briefings
+    for reg in REGIONS:
+        reg_stories = [s for s in stories if s.get("region") == reg][:20]
+        if not reg_stories: continue
+        titles_reg = "\n".join([f"- [{s['source']}] {s['title']}" for s in reg_stories])
+        sys_reg = f"You are an XRP analyst focused on {reg}. Be brief and factual."
+        prompt_reg = (f"Based on these {reg} XRP news stories:\n{titles_reg}\n\n"
+                      f"Respond in JSON only: {{\"pulse\":\"1-2 sentence {reg} XRP intelligence summary\"}}")
+        try:
+            raw = call_claude(prompt_reg, sys_reg, 200)
+            raw = raw.strip().lstrip("```json").rstrip("```").strip()
+            d   = json.loads(raw)
+            STATE["ai_regions"][reg] = {"pulse": d.get("pulse",""),"ts": datetime.now(timezone.utc).strftime("%H:%M UTC")}
+        except Exception as e:
+            log_error(f"AI {reg}: {e}")
+        time.sleep(0.5)
 
 # ── Preflight QA ───────────────────────────────────────────────────────────────
 def run_qa():
@@ -450,18 +564,13 @@ def run_qa():
     def chk(name, ok, detail=""):
         checks.append({"name": name, "ok": ok, "detail": detail})
 
-    chk("Price data present",    bool(STATE["price"].get("usd")),
-        f"${STATE['price'].get('usd', 'MISSING')}")
-    chk("Fear & Greed present",  bool(STATE["fear_greed"].get("score")),
-        f"{STATE['fear_greed'].get('score','MISSING')}/100")
-    chk("Stories collected",     len(STATE["stories"]) > 0,
-        f"{len(STATE['stories'])} stories")
-    chk("Active feeds > 15",     STATE["feeds_active"] >= 15,
-        f"{STATE['feeds_active']}/{len(RSS_FEEDS)} feeds UP")
-    chk("AI briefings present",  bool(STATE["ai_global"].get("pulse","").strip()),
-        "Global pulse OK" if STATE["ai_global"].get("pulse") else "Empty")
-    chk("Anthropic key set",     bool(ANTHROPIC_API_KEY),
-        "Set" if ANTHROPIC_API_KEY else "MISSING — add to Railway Variables")
+    chk("Price data present",    bool(STATE["price"].get("usd")),           f"${STATE['price'].get('usd','MISSING')}")
+    chk("Fear & Greed present",  bool(STATE["fear_greed"].get("score")),     f"{STATE['fear_greed'].get('score','MISSING')}/100")
+    chk("Stories collected",     len(STATE["stories"]) > 0,                  f"{len(STATE['stories'])} stories")
+    chk("Active feeds > 30",     STATE["feeds_active"] >= 30,                f"{STATE['feeds_active']}/{len(RSS_FEEDS)} feeds UP")
+    chk("AI briefings present",  bool(STATE["ai_global"].get("pulse","").strip()), "Global pulse OK" if STATE["ai_global"].get("pulse") else "Empty")
+    chk("Anthropic key set",     bool(ANTHROPIC_API_KEY),                    "Set" if ANTHROPIC_API_KEY else "MISSING")
+    chk("On-chain data",         STATE["onchain"].get("tps","--") != "--",   f"TPS: {STATE['onchain'].get('tps','--')}")
 
     all_ok = all(c["ok"] for c in checks)
     STATE["qa_status"]  = "PASS" if all_ok else "FAIL"
@@ -498,68 +607,73 @@ def news_loop():
 def fmt_usd(v):
     if not v: return "$0.00"
     v = float(v)
+    if v >= 1e12: return f"${v/1e12:.2f}T"
     if v >= 1e9:  return f"${v/1e9:.2f}B"
     if v >= 1e6:  return f"${v/1e6:.2f}M"
     if v >= 1e3:  return f"${v/1e3:.2f}K"
     return f"${v:.4f}"
 
-def fmt_price(v):
-    if not v: return "$0.0000"
-    return f"${float(v):.4f}"
-
-def fmt_pct(v):
-    if v is None: return "0.00%"
-    return f"{float(v):+.2f}%"
-
-def pct_color(v):
-    return "#00FF87" if float(v or 0) >= 0 else "#FF4444"
-
 # ── Routes ─────────────────────────────────────────────────────────────────────
 @app.route("/ping")
 def ping():
-    return "XRPRadar OK", 200
+    return "XRPRadar v1.1 OK", 200
 
 @app.route("/api/data")
 def api_data():
-    p  = STATE["price"]
-    fg = STATE["fear_greed"]
-    ex = STATE["escrow"]
-    st = STATE["story_stats"]
     return jsonify({
-        "price":       p,
-        "fear_greed":  fg,
-        "escrow":      ex,
-        "ai_us":       STATE["ai_us"],
-        "ai_global":   STATE["ai_global"],
-        "story_stats": st,
-        "breaking":    STATE["breaking"],
-        "feeds_active":STATE["feeds_active"],
-        "feeds_total": len(RSS_FEEDS),
-        "feed_health": STATE["feed_health"],
-        "last_updated":STATE["last_updated"],
-        "version":     STATE["version"],
-        "qa_status":   STATE["qa_status"],
-        "qa_last":     STATE["qa_last"],
-        "qa_details":  STATE["qa_details"],
-        "last_error":  STATE["last_error"],
-        "last_error_ts":STATE["last_error_ts"],
-        "maintenance": STATE["maintenance"],
-        "start_time":  STATE["start_time"],
-        "upgrade_log": STATE["upgrade_log"],
+        "price":            STATE["price"],
+        "fear_greed":       STATE["fear_greed"],
+        "escrow":           STATE["escrow"],
+        "onchain":          STATE["onchain"],
+        "ai_us":            STATE["ai_us"],
+        "ai_global":        STATE["ai_global"],
+        "ai_regions":       STATE["ai_regions"],
+        "story_stats":      STATE["story_stats"],
+        "breaking":         STATE["breaking"],
+        "feeds_active":     STATE["feeds_active"],
+        "feeds_total":      len(RSS_FEEDS),
+        "feed_health":      STATE["feed_health"],
+        "last_updated":     STATE["last_updated"],
+        "version":          STATE["version"],
+        "qa_status":        STATE["qa_status"],
+        "qa_last":          STATE["qa_last"],
+        "qa_details":       STATE["qa_details"],
+        "last_error":       STATE["last_error"],
+        "last_error_ts":    STATE["last_error_ts"],
+        "maintenance":      STATE["maintenance"],
+        "start_time":       STATE["start_time"],
+        "upgrade_log":      STATE["upgrade_log"],
     })
 
 @app.route("/api/news")
 def api_news():
-    cat = requests.args.get("cat","all") if False else "all"
-    from flask import request
-    cat  = request.args.get("cat",  "all")
-    sent = request.args.get("sent", "all")
-    q    = request.args.get("q",    "").lower()
+    cat    = request.args.get("cat",    "all")
+    sent   = request.args.get("sent",   "all")
+    region = request.args.get("region", "all")
+    q      = request.args.get("q",      "").lower()
     stories = STATE["stories"]
-    if cat  != "all": stories = [s for s in stories if s["category"] == cat]
-    if sent != "all": stories = [s for s in stories if s["sentiment"] == sent]
-    if q:             stories = [s for s in stories if q in s["title"].lower()]
-    return jsonify({"stories": stories[:100], "total": len(stories)})
+    if cat    != "all": stories = [s for s in stories if s["category"] == cat]
+    if sent   != "all": stories = [s for s in stories if s["sentiment"] == sent]
+    if region != "all": stories = [s for s in stories if s.get("region") == region]
+    if q:               stories = [s for s in stories if q in s["title"].lower()]
+    return jsonify({"stories": stories[:100], "total": len(stories), "total_all": len(STATE["stories"])})
+
+
+@app.route("/debug")
+def debug():
+    return jsonify({
+        "version":       STATE["version"],
+        "last_updated":  STATE["last_updated"],
+        "feeds_active":  STATE["feeds_active"],
+        "feeds_total":   len(RSS_FEEDS),
+        "stories_count": len(STATE["stories"]),
+        "price_usd":     STATE["price"].get("usd", 0),
+        "ai_key_set":    bool(ANTHROPIC_API_KEY),
+        "qa_status":     STATE["qa_status"],
+        "last_error":    STATE["last_error"],
+        "uptime_secs":   int((datetime.now(timezone.utc) - datetime.fromisoformat(STATE["start_time"])).total_seconds()),
+        "feed_health":   STATE["feed_health"],
+    })
 
 @app.route("/")
 def index():
@@ -571,200 +685,306 @@ DASHBOARD = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XRPRadar — Everything XRP. All the time.</title>
+<title>XRPRadar — Signals Over Noise 24/7</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  :root{
-    --dark:#050F0A;--mid:#0A1A10;--panel:#0D2118;--card:#0F2A1A;
-    --grn:#00FF87;--sgrn:#7DFFB3;--org:#FF6B35;--gold:#C9A84C;
-    --wht:#FFFFFF;--gray:#A0AEC0;--red:#FF4444;--ylw:#FFD700;
-    --legal:#1A0A00;--whale:#0A1500;--ai:#0D1F2E;
-  }
-  body{background:var(--dark);color:var(--wht);font-family:Arial,sans-serif;font-size:14px}
-  a{color:var(--grn);text-decoration:none}
-  a:hover{text-decoration:underline}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#000000;
+  --dark:#050505;
+  --mid:#0A0A0A;
+  --panel:#0D0D0D;
+  --card:#111111;
+  --tc:#00E5CC;
+  --tcd:#00B8A3;
+  --lime:#39FF14;
+  --org:#FF8C00;
+  --gold:#C9A84C;
+  --wht:#FFFFFF;
+  --heather:#9FA8B3;
+  --gray:#6B7280;
+  --red:#FF4444;
+  --ylw:#FFD700;
+  --border:#1A2A1A;
+}
+body{background:var(--bg);color:var(--wht);font-family:Arial,sans-serif;font-size:15px}
+a{color:var(--tc);text-decoration:none}
+a:hover{text-decoration:underline;color:var(--lime)}
 
-  /* NAV */
-  #nav{position:sticky;top:0;z-index:100;background:var(--dark);border-bottom:1px solid var(--grn);
-    display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px}
-  .nav-logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:bold;color:var(--grn)}
-  .nav-logo .sat{font-size:26px;animation:spin 8s linear infinite}
-  @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-  .nav-tagline{font-size:11px;color:var(--sgrn);font-style:italic}
-  .nav-links{display:flex;gap:20px}
-  .nav-links a{color:var(--gray);font-size:13px;font-weight:bold;transition:color .2s}
-  .nav-links a:hover{color:var(--grn);text-decoration:none}
-  .nav-live{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gray)}
-  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--grn);animation:pulse 2s infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* ── NAV ──────────────────────────────────────────────────────────── */
+#nav{
+  position:sticky;top:0;z-index:100;
+  background:#000;border-bottom:2px solid var(--tc);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;height:68px;
+}
+.nav-logo{display:flex;align-items:center;gap:14px}
+.nav-sat{font-size:42px;filter:drop-shadow(0 0 10px var(--tc));line-height:1}
+.nav-brand{}
+.nav-name{font-size:28px;font-weight:900;color:var(--tc);letter-spacing:.06em;line-height:1}
+.nav-tagline{font-size:13px;color:var(--lime);font-style:italic;margin-top:1px}
+.nav-links{display:flex;gap:28px}
+.nav-links a{
+  color:var(--tc);font-size:15px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;
+  transition:color .2s;text-decoration:none;
+}
+.nav-links a:hover{color:var(--lime)}
+.nav-live{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--heather)}
+.live-dot{width:9px;height:9px;border-radius:50%;background:var(--lime);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 4px var(--lime)}50%{opacity:.4;box-shadow:none}}
 
-  /* BREAKING */
-  #breaking{background:#3D0000;border-top:2px solid var(--red);border-bottom:2px solid var(--red);
-    padding:10px 20px;display:none;align-items:center;gap:12px;overflow:hidden}
-  .breaking-icon{font-size:20px;flex-shrink:0}
-  .breaking-label{color:var(--red);font-weight:bold;font-size:13px;flex-shrink:0}
-  .breaking-text{color:#FFB3B3;font-size:13px;white-space:nowrap;overflow:hidden;
-    animation:scroll 30s linear infinite}
-  @keyframes scroll{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+/* ── BREAKING NEWS ────────────────────────────────────────────────── */
+#breaking{
+  background:#3A3A42;
+  border-top:2px solid var(--org);border-bottom:2px solid var(--org);
+  padding:10px 20px;display:none;
+  align-items:center;gap:0;overflow:hidden;
+}
+.breaking-label{
+  color:var(--org);font-weight:900;font-size:14px;
+  flex-shrink:0;padding-right:16px;border-right:2px solid var(--org);
+  margin-right:16px;white-space:nowrap;letter-spacing:.05em;
+}
+.breaking-scroll{flex:1;overflow:hidden;position:relative;height:22px}
+.breaking-text{
+  color:#FFD0A0;font-size:13px;white-space:nowrap;
+  position:absolute;top:0;left:0;
+  animation:marquee 40s linear infinite;
+}
+@keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 
-  /* CARDS */
-  .row{padding:12px 16px;background:var(--mid);border-bottom:1px solid #1A3D28}
-  .card-grid{display:grid;gap:12px}
-  .g4{grid-template-columns:repeat(4,1fr)}
-  .g3{grid-template-columns:repeat(3,1fr)}
-  .g2{grid-template-columns:repeat(2,1fr)}
-  .card{background:var(--panel);border:1px solid #1A4030;border-radius:8px;padding:14px;
-    position:relative;overflow:hidden}
-  .card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--grn)}
-  .card-label{font-size:10px;color:var(--sgrn);font-weight:bold;text-transform:uppercase;
-    letter-spacing:1px;margin-bottom:6px}
-  .card-value{font-size:28px;font-weight:bold;color:var(--wht);line-height:1.1}
-  .card-sub{font-size:13px;color:var(--gray);margin-top:4px}
-  .card-change{font-size:16px;font-weight:bold;margin-top:4px}
-  .card-sm .card-value{font-size:20px}
+/* ── SECTION TITLES ───────────────────────────────────────────────── */
+.row-title{
+  font-size:16px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:12px;color:var(--tc);
+}
+.section-wrap{padding:16px 20px;border-bottom:1px solid #111}
 
-  /* PRICE HERO */
-  #price-row{background:var(--dark);padding:16px}
-  .price-hero .card-value{font-size:42px}
+/* ── CARDS ────────────────────────────────────────────────────────── */
+.card-grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.card{
+  background:var(--panel);border:1px solid #1E1E1E;
+  border-radius:10px;padding:18px;
+  position:relative;overflow:hidden;
+}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--tc)}
+.card.lime::before{background:var(--lime)}
+.card.org::before{background:var(--org)}
+.card-label{
+  font-size:12px;color:var(--tc);font-weight:700;
+  text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;
+}
+.card-label.lime{color:var(--lime)}
+.card-label.heather{color:var(--heather)}
+.card-value{font-size:32px;font-weight:900;color:var(--wht);line-height:1.1}
+.card-sub{font-size:14px;color:var(--gray);margin-top:6px}
+.card-change{font-size:18px;font-weight:700;margin-top:6px}
+.card-sm .card-value{font-size:24px}
+.price-hero .card-value{font-size:46px}
 
-  /* CHART ROW */
-  #chart-row{background:var(--dark);padding:8px 16px}
-  #tv-chart{width:100%;height:480px;border-radius:8px;overflow:hidden;border:1px solid #1A4030}
+/* ── CHART ────────────────────────────────────────────────────────── */
+#chart-row{background:var(--dark);padding:16px 20px}
+#tv-chart{width:100%;height:500px;border-radius:10px;overflow:hidden;border:1px solid #1E2E1E}
+.tradingview-widget-container{width:100%;height:100%}
 
-  /* AI ROW */
-  .ai-row{background:var(--ai);border:1px solid var(--gold);border-radius:0}
-  .ai-label{background:var(--gold);color:#000;font-size:10px;font-weight:bold;
-    padding:4px 10px;letter-spacing:1px;display:inline-block;border-radius:4px;margin-bottom:8px}
-  .ai-us-label{background:#0050AA;color:#fff;font-size:10px;font-weight:bold;
-    padding:4px 10px;letter-spacing:1px;display:inline-block;border-radius:4px;margin-bottom:8px}
-  .ai-text{font-size:13px;color:#D0E8FF;line-height:1.6}
-  .ai-thesis{font-size:13px;color:var(--sgrn);line-height:1.7}
-  .signal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
-  .signal-chip{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--wht);
-    background:#0A2020;padding:4px 6px;border-radius:4px}
-  .sig-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-  .sig-bull{background:var(--grn)}.sig-bear{background:var(--red)}
-  .sig-neut{background:var(--ylw)}.sig-quiet{background:#444}
-  .ai-meta{font-size:11px;color:#556;line-height:1.8}
+/* ── AI ROWS ──────────────────────────────────────────────────────── */
+.ai-section{background:#070F0A;border-bottom:1px solid #111;padding:16px 20px}
+.ai-badge{
+  display:inline-block;padding:5px 14px;border-radius:5px;
+  font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:10px;
+}
+.ai-badge-tc{background:rgba(0,229,204,.15);color:var(--tc);border:1px solid var(--tc)}
+.ai-badge-lime{background:rgba(57,255,20,.12);color:var(--lime);border:1px solid var(--lime)}
+.ai-text{font-size:14px;color:#C8E8D8;line-height:1.7}
+.ai-thesis{font-size:14px;color:var(--lime);line-height:1.7}
+.ai-meta{font-size:12px;color:var(--gray);line-height:1.9}
+.signal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
+.signal-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--wht);background:#0A1A0A;padding:5px 8px;border-radius:5px}
+.sig-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.sig-bull{background:var(--lime)}.sig-bear{background:var(--red)}
+.sig-neut{background:var(--ylw)}.sig-quiet{background:#333}
 
-  /* INSIGHTS / NEWS */
-  #insights-hdr{background:#091A10;padding:8px 16px;border-bottom:1px solid #1A3D28;
-    display:flex;gap:20px;align-items:center}
-  .insights-label{font-size:12px;font-weight:bold;color:var(--grn);text-transform:uppercase;
-    letter-spacing:1px}
-  #main-content{display:grid;grid-template-columns:1fr 340px;gap:0;background:var(--dark)}
+/* ── REGIONAL ROWS ────────────────────────────────────────────────── */
+.region-section{padding:14px 20px;border-bottom:1px solid #0A0A0A;background:var(--bg)}
+.region-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.region-flag{font-size:22px}
+.region-name{font-size:17px;font-weight:700;color:var(--tc)}
+.region-pulse{font-size:13px;color:#A0C8A0;line-height:1.6;margin-bottom:8px}
+.region-stories{display:flex;flex-direction:column;gap:6px}
+.region-story{
+  background:var(--panel);border:1px solid #161616;border-radius:6px;
+  padding:8px 12px;cursor:pointer;transition:border-color .2s;
+}
+.region-story:hover{border-color:var(--tc)}
+.region-story-title{font-size:13px;font-weight:600;color:var(--wht);line-height:1.4}
+.region-story-title.foreign{color:#D0E8D0}
+.region-story-translation{font-size:11px;color:var(--tc);margin-top:3px;font-style:italic}
+.region-story-meta{display:flex;gap:8px;margin-top:5px;font-size:11px;align-items:center}
+.region-sent{padding:2px 7px;border-radius:3px;font-weight:700}
+.region-sent.bullish{background:#0A2A0A;color:var(--lime)}
+.region-sent.bearish{background:#2A0A0A;color:var(--red)}
+.region-sent.neutral{background:#1A1A1A;color:var(--gray)}
+.region-age{color:#333;margin-left:auto}
+.region-src{color:#444;font-size:10px}
+.foreign-badge{
+  font-size:10px;padding:1px 6px;border-radius:3px;
+  background:rgba(0,229,204,.1);color:var(--tc);border:1px solid rgba(0,229,204,.3);
+}
 
-  /* NEWS FEED */
-  #news-panel{background:var(--dark);border-right:1px solid #1A3D28;padding:12px}
-  .news-controls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
-  .search-box{flex:1;min-width:160px;background:#0A1A10;border:1px solid #1A4030;
-    color:var(--wht);padding:6px 10px;border-radius:4px;font-size:12px;outline:none}
-  .search-box:focus{border-color:var(--grn)}
-  .filter-btn{background:#0A1A10;border:1px solid #1A4030;color:var(--gray);
-    padding:5px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:bold;transition:all .2s}
-  .filter-btn:hover,.filter-btn.active{background:var(--grn);color:#000;border-color:var(--grn)}
-  .story-card{background:var(--panel);border:1px solid #1A4030;border-radius:6px;
-    padding:10px;margin-bottom:8px;cursor:pointer;transition:border-color .2s}
-  .story-card:hover{border-color:var(--grn)}
-  .story-header{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap}
-  .src-badge{font-size:10px;font-weight:bold;padding:2px 6px;border-radius:3px}
-  .src-official {background:#0050AA;color:#fff}
-  .src-major    {background:#1A4030;color:var(--sgrn)}
-  .src-xrp      {background:#003330;color:var(--grn)}
-  .src-community{background:#2A1A00;color:#FFA500}
-  .src-international{background:#1A0030;color:#CC99FF}
-  .src-aggregator{background:#1A1A00;color:#FFFF00}
-  .src-legal    {background:#3D0000;color:#FF9999}
-  .src-mainstream{background:#001A2E;color:#99CCFF}
-  .src-institutional{background:#001A2E;color:var(--gold)}
-  .story-title{font-size:13px;font-weight:bold;color:var(--wht);line-height:1.4;margin-bottom:4px}
-  .story-summary{font-size:11px;color:var(--gray);line-height:1.5;margin-bottom:5px}
-  .story-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .sentiment-tag{font-size:10px;font-weight:bold;padding:2px 6px;border-radius:3px}
-  .sent-bullish{background:#0A3A20;color:var(--grn)}
-  .sent-bearish{background:#3A0A0A;color:var(--red)}
-  .sent-neutral{background:#1A1A1A;color:var(--gray)}
-  .cat-tag{font-size:10px;color:#556;background:#0A1410;padding:2px 5px;border-radius:3px}
-  .story-age{font-size:10px;color:#3A5A40;margin-left:auto}
-  #news-count{font-size:11px;color:#3A6A40;padding:4px 0 8px}
+/* ── NEWS FEED ────────────────────────────────────────────────────── */
+#insights-hdr{
+  background:#050F05;padding:10px 20px;
+  border-bottom:1px solid #111;
+  display:flex;gap:20px;align-items:center;
+}
+.insights-label{font-size:14px;font-weight:700;color:var(--tc);text-transform:uppercase;letter-spacing:1px}
+#main-content{display:grid;grid-template-columns:1fr 360px;gap:0;background:var(--bg)}
+#news-panel{background:var(--bg);border-right:1px solid #111;padding:14px}
+.news-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.search-box{
+  flex:1;min-width:200px;
+  background:#0A0A0A;border:1px solid #222;
+  color:var(--wht);padding:9px 14px;border-radius:6px;
+  font-size:14px;outline:none;
+}
+.search-box:focus{border-color:var(--tc)}
+.filter-btn{
+  background:#0A0A0A;border:1px solid #222;color:var(--heather);
+  padding:7px 14px;border-radius:5px;cursor:pointer;
+  font-size:12px;font-weight:700;transition:all .2s;
+}
+.filter-btn:hover,.filter-btn.active{background:var(--tc);color:#000;border-color:var(--tc)}
+#news-count{font-size:13px;color:var(--heather);padding:4px 0 10px}
+.story-card{
+  background:var(--panel);border:1px solid #1A1A1A;border-radius:8px;
+  padding:12px;margin-bottom:10px;cursor:pointer;transition:border-color .2s;
+}
+.story-card:hover{border-color:var(--tc)}
+.story-header{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.src-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+.src-official{background:#003366;color:#6699FF}
+.src-major{background:#0A1A0A;color:var(--lime)}
+.src-xrp{background:#001A18;color:var(--tc)}
+.src-community{background:#1A1000;color:#FFA500}
+.src-international{background:#0A001A;color:#CC99FF}
+.src-aggregator{background:#0A0A00;color:#FFFF88}
+.src-legal{background:#1A0000;color:#FF9999}
+.src-mainstream{background:#000A1A;color:#88AAFF}
+.src-institutional{background:#0A0A00;color:var(--gold)}
+.src-whale{background:#001A00;color:var(--lime)}
+.src-ecosystem{background:#001818;color:var(--tc)}
+.src-technical{background:#0A001A;color:#BB88FF}
+.story-title{font-size:14px;font-weight:700;color:var(--wht);line-height:1.5;margin-bottom:5px}
+.story-title.foreign-title{color:#C8E8C8}
+.story-translation{font-size:12px;color:var(--tc);font-style:italic;margin-bottom:5px}
+.story-summary{font-size:12px;color:var(--gray);line-height:1.6;margin-bottom:6px}
+.story-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sentiment-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+.sent-bullish{background:#051A05;color:var(--lime)}
+.sent-bearish{background:#1A0505;color:var(--red)}
+.sent-neutral{background:#111;color:var(--gray)}
+.cat-tag{font-size:11px;color:#444;background:#0A0A0A;padding:2px 6px;border-radius:3px}
+.story-age{font-size:11px;color:#2A3A2A;margin-left:auto}
 
-  /* RIGHT PANEL */
-  #right-panel{background:var(--mid)}
-  .right-card{padding:12px;border-bottom:1px solid #1A3D28}
-  .right-title{font-size:11px;font-weight:bold;color:var(--sgrn);text-transform:uppercase;
-    letter-spacing:1px;margin-bottom:8px}
-  .stat-row{display:flex;justify-content:space-between;align-items:center;
-    padding:3px 0;border-bottom:1px solid #0A2018;font-size:12px}
-  .stat-label{color:var(--gray)}
-  .stat-val{color:var(--wht);font-weight:bold}
-  .stat-val.grn{color:var(--grn)}
+/* ── RIGHT PANEL ──────────────────────────────────────────────────── */
+#right-panel{background:var(--mid)}
+.right-card{padding:14px;border-bottom:1px solid #111}
+.right-title{font-size:13px;font-weight:700;color:var(--tc);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #0A0A0A;font-size:13px}
+.stat-label{color:var(--heather)}
+.stat-val{color:var(--wht);font-weight:700}
+.stat-val.tc{color:var(--tc)}
+.stat-val.lime{color:var(--lime)}
 
-  /* SCOREBOARD */
-  #scoreboard{background:var(--mid);padding:12px 16px;border-top:1px solid #1A3D28}
-  .score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-  .score-card{background:var(--panel);border-radius:6px;padding:10px;text-align:center}
-  .score-num{font-size:24px;font-weight:bold;color:var(--wht)}
-  .score-lbl{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:1px}
-  .score-sub{font-size:11px;color:#3A6A40;margin-top:2px}
+/* ── SCOREBOARD ───────────────────────────────────────────────────── */
+#scoreboard{background:var(--dark);padding:16px 20px;border-top:2px solid var(--tc)}
+.score-title{font-size:18px;font-weight:700;color:var(--tc);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.score-card{background:var(--panel);border:1px solid #1E1E1E;border-radius:8px;padding:14px;text-align:center}
+.score-card.tc{border-top:3px solid var(--tc)}
+.score-num{font-size:28px;font-weight:900;color:var(--wht)}
+.score-num.tc{color:var(--tc)}
+.score-num.lime{color:var(--lime)}
+.score-num.red{color:var(--red)}
+.score-lbl{font-size:12px;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+.score-sub{font-size:12px;color:var(--gray);margin-top:4px}
 
-  /* FOOTER */
-  #footer{background:#020805;padding:14px 20px;border-top:2px solid #1A3D28;
-    display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:center}
-  .footer-section{font-size:11px;color:#3A5A40;line-height:1.8}
-  .footer-section strong{color:var(--sgrn)}
-  .footer-disclaimer{font-size:10px;color:#555}
+/* ── ANALYTICS ────────────────────────────────────────────────────── */
+.analytics-section{padding:16px 20px;background:var(--bg);border-top:1px solid #111}
+.analytics-title{font-size:16px;font-weight:700;color:var(--lime);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.analytics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.analytics-card{background:var(--panel);border:1px solid #1A2A1A;border-radius:8px;padding:14px;text-align:center}
+.analytics-card::before{content:"";display:block;height:2px;background:var(--lime);margin-bottom:10px;border-radius:1px}
+.analytics-val{font-size:24px;font-weight:700;color:var(--wht)}
+.analytics-lbl{font-size:11px;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.analytics-sub{font-size:11px;color:var(--gray);margin-top:3px}
 
-  /* SYSTEM HEALTH BAR */
-  #sys-health{background:#0A0A05;border-top:2px solid var(--ylw);
-    display:grid;grid-template-columns:repeat(4,1fr);gap:0}
-  .sys-zone{padding:10px 14px;border-right:1px solid #2A2A00}
-  .sys-zone:last-child{border-right:none}
-  .sys-title{font-size:9px;font-weight:bold;color:var(--ylw);text-transform:uppercase;
-    letter-spacing:1px;margin-bottom:4px}
-  .sys-val{font-size:12px;color:var(--wht);font-weight:bold}
-  .sys-sub{font-size:10px;color:#666;margin-top:2px;line-height:1.5}
-  .pass{color:var(--grn)}.fail{color:var(--red)}.warn{color:var(--ylw)}
+/* ── FOOTER ───────────────────────────────────────────────────────── */
+#footer{background:#020505;padding:16px 20px;border-top:2px solid #111}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:16px;margin-bottom:14px}
+.footer-brand{font-size:22px;font-weight:900;color:var(--tc);margin-bottom:6px}
+.footer-tagline{font-size:13px;color:var(--lime);font-style:italic;margin-bottom:8px}
+.footer-txt{font-size:12px;color:var(--heather);line-height:1.9}
+.footer-txt strong{color:var(--tc)}
+.footer-disclaimer{font-size:11px;color:#444;line-height:1.8}
+.footer-upgrade{margin-top:10px;border-top:1px solid #111;padding-top:10px}
+.footer-upgrade-title{font-size:12px;font-weight:700;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.footer-upgrade-log{font-size:11px;color:#444;line-height:1.9}
 
-  /* MISC */
-  .row-title{font-size:10px;font-weight:bold;color:var(--sgrn);text-transform:uppercase;
-    letter-spacing:1px;margin-bottom:10px}
-  .loading{color:#1A4030;font-size:12px;font-style:italic}
-  .tradingview-widget-container{width:100%;height:100%}
+/* ── SYSTEM HEALTH ────────────────────────────────────────────────── */
+#sys-health{background:#020202;border-top:2px solid #1A2A00;display:grid;grid-template-columns:repeat(4,1fr)}
+.sys-zone{padding:12px 16px;border-right:1px solid #0A1A00}
+.sys-zone:last-child{border-right:none}
+.sys-title{font-size:10px;font-weight:700;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.sys-val{font-size:14px;color:var(--wht);font-weight:700}
+.sys-sub{font-size:11px;color:var(--gray);margin-top:3px;line-height:1.6}
+.pass{color:var(--lime)}.fail{color:var(--red)}.warn{color:var(--ylw)}
+
+/* ── MISC ─────────────────────────────────────────────────────────── */
+.loading{color:#222;font-size:13px;font-style:italic}
+.heather{color:var(--heather)}
 </style>
 </head>
 <body>
 
-<!-- ROW 0: NAV BAR -->
+<!-- NAV BAR -->
 <div id="nav">
   <div class="nav-logo">
-    <span class="sat">🛰️</span>
-    <div>
-      <div>XRPRadar</div>
-      <div class="nav-tagline">Everything XRP. All the time.</div>
+    <span class="nav-sat">🛰️</span>
+    <div class="nav-brand">
+      <div class="nav-name">XRPRadar</div>
+      <div class="nav-tagline">Signals Over Noise 24/7</div>
     </div>
   </div>
   <div class="nav-links">
     <a href="#price-row">MARKETS</a>
     <a href="#news-panel">NEWS</a>
     <a href="#ai-briefing-us">INTELLIGENCE</a>
+    <a href="#regional-rows">REGIONS</a>
+    <a href="#analytics-row">ANALYTICS</a>
     <a href="#sys-health">SYSTEM</a>
   </div>
   <div class="nav-live">
     <div class="live-dot"></div>
     <span>LIVE</span>
-    <span id="nav-updated" style="margin-left:6px">Connecting...</span>
+    <span id="nav-updated" style="margin-left:8px;color:var(--heather)">Connecting...</span>
   </div>
 </div>
 
-<!-- ROW 1: BREAKING NEWS BANNER -->
+<!-- BREAKING NEWS BANNER -->
 <div id="breaking">
-  <span class="breaking-icon">📰</span>
-  <span class="breaking-label">⚡ BREAKING</span>
-  <div class="breaking-text" id="breaking-text"></div>
+  <span class="breaking-label">⚡ BREAKING NEWS</span>
+  <div class="breaking-scroll">
+    <div class="breaking-text" id="breaking-text"></div>
+  </div>
 </div>
 
-<!-- ROW 2: PRICE AND VALUE -->
-<div id="price-row">
+<!-- PRICE AND VALUE -->
+<div id="price-row" class="section-wrap">
   <div class="row-title">💲 PRICE AND VALUE</div>
   <div class="card-grid g4">
     <div class="card price-hero">
@@ -786,129 +1006,206 @@ DASHBOARD = """<!DOCTYPE html>
       <div class="card-sub" id="p-btc">BTC: --</div>
     </div>
     <div class="card">
-      <div class="card-label">Fear &amp; Greed</div>
+      <div class="card-label">Fear &amp; Greed Index</div>
       <div class="card-value card-sm" id="fg-score">--</div>
       <div class="card-sub" id="fg-label">--</div>
-      <div class="card-sub" style="margin-top:8px">
-        <span style="font-size:10px;color:#3A6A40">Extreme Fear ← → Extreme Greed</span>
-      </div>
+      <div class="card-sub" style="margin-top:6px;font-size:12px;color:var(--gray)">Extreme Fear ← → Extreme Greed</div>
     </div>
   </div>
 </div>
 
-<!-- ROW 3: SECONDARY PRICE ROW -->
-<div class="row">
+<!-- SECONDARY PRICE ROW -->
+<div class="section-wrap" style="background:var(--dark)">
   <div class="card-grid g4">
-    <div class="card card-sm">
-      <div class="card-label">Price Change</div>
-      <div class="card-sub">7 Day: <span id="s-7d" style="font-weight:bold">--</span></div>
-      <div class="card-sub" style="margin-top:4px">30 Day: <span id="s-30d" style="font-weight:bold">--</span></div>
+    <div class="card card-sm lime">
+      <div class="card-label lime">Price Change</div>
+      <div class="card-sub">7 Day: <span id="s-7d" style="font-weight:700">--</span></div>
+      <div class="card-sub" style="margin-top:5px">30 Day: <span id="s-30d" style="font-weight:700">--</span></div>
     </div>
     <div class="card card-sm">
       <div class="card-label">All-Time High</div>
-      <div class="card-value" id="s-ath" style="font-size:22px">--</div>
+      <div class="card-value" id="s-ath" style="font-size:24px">--</div>
       <div class="card-sub" id="s-ath-pct">--% below ATH</div>
     </div>
     <div class="card card-sm">
-      <div class="card-label">XRP / BTC</div>
-      <div class="card-value" id="s-btc" style="font-size:18px;word-break:break-all">--</div>
-      <div class="card-sub" style="color:#3A6A40;font-size:10px">BTC pair — altseason signal</div>
+      <div class="card-label">24h Range</div>
+      <div class="card-sub">High: <span id="p-high" style="font-weight:700;color:var(--lime)">--</span></div>
+      <div class="card-sub" style="margin-top:5px">Low: <span id="p-low" style="font-weight:700;color:var(--red)">--</span></div>
     </div>
     <div class="card card-sm">
-      <div class="card-label">⏳ Next Ripple Escrow</div>
-      <div class="card-value" id="esc-date" style="font-size:14px">--</div>
-      <div class="card-sub" id="esc-note">1B XRP monthly release</div>
+      <div class="card-label">XRP / BTC</div>
+      <div class="card-value" id="s-btc" style="font-size:20px;word-break:break-all">--</div>
+      <div class="card-sub" style="color:var(--gray);font-size:12px">BTC pair — altseason signal</div>
     </div>
   </div>
 </div>
 
-<!-- ROW 4: LIVE CHART -->
+<!-- LIVE CHART -->
 <div id="chart-row">
   <div class="row-title">📊 LIVE XRP/USD CHART</div>
   <div id="tv-chart">
     <div class="tradingview-widget-container">
       <div id="tradingview_xrp"></div>
-      <script type="text/javascript"
-        src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-      {
-        "autosize": true,
-        "symbol": "BITSTAMP:XRPUSD",
-        "interval": "60",
-        "timezone": "Etc/UTC",
-        "theme": "dark",
-        "style": "1",
-        "locale": "en",
-        "backgroundColor": "#050F0A",
-        "gridColor": "#0A1A10",
-        "hide_top_toolbar": false,
-        "hide_legend": false,
-        "save_image": false,
-        "calendar": false,
-        "support_host": "https://www.tradingview.com"
-      }
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+      {"autosize":true,"symbol":"BITSTAMP:XRPUSD","interval":"60","timezone":"Etc/UTC","theme":"dark","style":"1","locale":"en","backgroundColor":"#000000","gridColor":"#0A0A0A","hide_top_toolbar":false,"hide_legend":false,"save_image":false,"calendar":false,"support_host":"https://www.tradingview.com"}
       </script>
     </div>
   </div>
 </div>
 
-<!-- ROW 5-A: AI BRIEFING — US FOCUS -->
-<div id="ai-briefing-us" class="row ai-row" style="padding:14px 16px">
+<!-- US INTELLIGENCE -->
+<div id="ai-briefing-us" class="ai-section">
+  <div class="row-title" style="color:var(--tc)">🇺🇸 US INTELLIGENCE</div>
   <div class="card-grid g4">
     <div>
-      <div class="ai-us-label">🇺🇸 US INTELLIGENCE</div>
+      <div class="ai-badge ai-badge-tc">US PULSE</div>
       <div class="ai-text" id="ai-us-pulse"><span class="loading">Analyzing US sources...</span></div>
     </div>
     <div>
-      <div class="ai-us-label">US REGULATORY</div>
+      <div class="ai-badge ai-badge-tc">REGULATORY</div>
       <div class="ai-text" id="ai-us-regulatory"><span class="loading">Loading...</span></div>
     </div>
     <div>
-      <div class="ai-us-label">US INSTITUTIONAL</div>
+      <div class="ai-badge ai-badge-tc">INSTITUTIONAL</div>
       <div class="ai-text" id="ai-us-institutional"><span class="loading">Loading...</span></div>
     </div>
     <div>
-      <div class="ai-us-label">📍 US DATA</div>
+      <div class="ai-badge ai-badge-tc">📍 US DATA</div>
       <div class="ai-meta" id="ai-us-meta">Waiting for data...</div>
     </div>
   </div>
 </div>
 
-<!-- ROW 5-B: AI BRIEFING — GLOBAL -->
-<div class="row ai-row" style="padding:14px 16px;border-top:1px solid #1A3A0A">
+<!-- GLOBAL PULSE -->
+<div class="ai-section" style="background:#040A04">
+  <div class="row-title" style="color:var(--lime)">🌐 GLOBAL PULSE</div>
   <div class="card-grid g4">
     <div>
-      <div class="ai-label">🌐 GLOBAL PULSE</div>
+      <div class="ai-badge ai-badge-lime">GLOBAL SUMMARY</div>
       <div class="ai-text" id="ai-gl-pulse"><span class="loading">Synthesizing global signals...</span></div>
     </div>
     <div>
-      <div class="ai-label">🗺️ REGIONAL SIGNALS</div>
-      <div id="ai-signals" class="signal-grid">
-        <div class="loading">Loading...</div>
-      </div>
+      <div class="ai-badge ai-badge-lime">REGIONAL SIGNALS</div>
+      <div id="ai-signals" class="signal-grid"><div class="loading">Loading...</div></div>
     </div>
     <div>
-      <div class="ai-label">🧠 CUMULATIVE THESIS</div>
+      <div class="ai-badge ai-badge-lime">CUMULATIVE THESIS</div>
       <div class="ai-thesis" id="ai-gl-thesis"><span class="loading">Building analysis...</span></div>
     </div>
     <div>
-      <div class="ai-label">📍 GLOBAL DATA</div>
+      <div class="ai-badge ai-badge-lime">📍 GLOBAL DATA</div>
       <div class="ai-meta" id="ai-gl-meta">Waiting for data...</div>
     </div>
   </div>
 </div>
 
-<!-- ROW 6: INSIGHTS HEADER -->
-<div id="insights-hdr">
-  <span class="insights-label">📡 INSIGHTS</span>
-  <span style="color:#1A4030;font-size:11px">|</span>
-  <span class="insights-label" style="color:var(--sgrn)">📰 GLOBAL NEWS FEED</span>
-  <span style="color:#1A4030;font-size:11px;margin-left:auto">🔗 ON-CHAIN &amp; MARKET DATA ▶</span>
+<!-- REGIONAL INTELLIGENCE ROWS -->
+<div id="regional-rows">
+  <div class="section-wrap" style="padding-bottom:6px">
+    <div class="row-title">🗺️ REGIONAL INTELLIGENCE</div>
+  </div>
+
+  <!-- Japan -->
+  <div class="region-section">
+    <div class="region-header">
+      <span class="region-flag">🇯🇵</span>
+      <span class="region-name">JAPAN</span>
+      <span id="region-sig-Japan" class="sentinel-chip" style="margin-left:auto;font-size:12px;color:var(--heather)"></span>
+    </div>
+    <div class="region-pulse" id="region-pulse-Japan">Loading Japan intelligence...</div>
+    <div class="region-stories" id="region-stories-Japan"></div>
+  </div>
+
+  <!-- Korea -->
+  <div class="region-section">
+    <div class="region-header">
+      <span class="region-flag">🇰🇷</span>
+      <span class="region-name">SOUTH KOREA</span>
+      <span id="region-sig-Korea" style="margin-left:auto;font-size:12px;color:var(--heather)"></span>
+    </div>
+    <div class="region-pulse" id="region-pulse-Korea">Loading Korea intelligence...</div>
+    <div class="region-stories" id="region-stories-Korea"></div>
+  </div>
+
+  <!-- UAE -->
+  <div class="region-section">
+    <div class="region-header">
+      <span class="region-flag">🇦🇪</span>
+      <span class="region-name">UAE &amp; MIDDLE EAST</span>
+      <span id="region-sig-UAE" style="margin-left:auto;font-size:12px;color:var(--heather)"></span>
+    </div>
+    <div class="region-pulse" id="region-pulse-UAE">Loading UAE intelligence...</div>
+    <div class="region-stories" id="region-stories-UAE"></div>
+  </div>
+
+  <!-- Europe -->
+  <div class="region-section">
+    <div class="region-header">
+      <span class="region-flag">🇪🇺</span>
+      <span class="region-name">EUROPE</span>
+      <span id="region-sig-Europe" style="margin-left:auto;font-size:12px;color:var(--heather)"></span>
+    </div>
+    <div class="region-pulse" id="region-pulse-Europe">Loading Europe intelligence...</div>
+    <div class="region-stories" id="region-stories-Europe"></div>
+  </div>
+
+  <!-- India -->
+  <div class="region-section">
+    <div class="region-header">
+      <span class="region-flag">🇮🇳</span>
+      <span class="region-name">INDIA</span>
+      <span id="region-sig-India" style="margin-left:auto;font-size:12px;color:var(--heather)"></span>
+    </div>
+    <div class="region-pulse" id="region-pulse-India">Loading India intelligence...</div>
+    <div class="region-stories" id="region-stories-India"></div>
+  </div>
+
+  <!-- LatAm -->
+  <div class="region-section">
+    <div class="region-header">
+      <span class="region-flag">🌎</span>
+      <span class="region-name">LATIN AMERICA</span>
+      <span id="region-sig-LatAm" style="margin-left:auto;font-size:12px;color:var(--heather)"></span>
+    </div>
+    <div class="region-pulse" id="region-pulse-LatAm">Loading LatAm intelligence...</div>
+    <div class="region-stories" id="region-stories-LatAm"></div>
+  </div>
+
+  <!-- Africa -->
+  <div class="region-section">
+    <div class="region-header">
+      <span class="region-flag">🌍</span>
+      <span class="region-name">AFRICA</span>
+      <span id="region-sig-Africa" style="margin-left:auto;font-size:12px;color:var(--heather)"></span>
+    </div>
+    <div class="region-pulse" id="region-pulse-Africa">Loading Africa intelligence...</div>
+    <div class="region-stories" id="region-stories-Africa"></div>
+  </div>
+
+  <!-- Southeast Asia -->
+  <div class="region-section">
+    <div class="region-header">
+      <span class="region-flag">🌏</span>
+      <span class="region-name">SOUTHEAST ASIA</span>
+      <span id="region-sig-SEA" style="margin-left:auto;font-size:12px;color:var(--heather)"></span>
+    </div>
+    <div class="region-pulse" id="region-pulse-SEA">Loading SEA intelligence...</div>
+    <div class="region-stories" id="region-stories-SEA"></div>
+  </div>
 </div>
 
-<!-- ROW 7: MAIN CONTENT -->
+<!-- INSIGHTS HEADER -->
+<div id="insights-hdr">
+  <span class="insights-label">📡 INSIGHTS</span>
+  <span style="color:#1A1A1A;font-size:14px">|</span>
+  <span class="insights-label" style="color:var(--lime)">📰 GLOBAL NEWS FEED</span>
+  <span style="font-size:12px;color:var(--heather);margin-left:auto">🔗 ON-CHAIN &amp; MARKET DATA ▶</span>
+</div>
+
+<!-- MAIN CONTENT -->
 <div id="main-content">
 
-  <!-- NEWS PANEL (left) -->
+  <!-- NEWS PANEL -->
   <div id="news-panel">
     <div class="news-controls">
       <input class="search-box" id="search-box" placeholder="🔍 Search XRP news..." oninput="filterNews()">
@@ -929,426 +1226,524 @@ DASHBOARD = """<!DOCTYPE html>
     <!-- XRPL Network -->
     <div class="right-card">
       <div class="right-title">🔗 XRPL NETWORK</div>
-      <div class="stat-row"><span class="stat-label">Network</span><span class="stat-val grn">● Live</span></div>
+      <div class="stat-row"><span class="stat-label">Network</span><span class="stat-val lime">● Live</span></div>
       <div class="stat-row"><span class="stat-label">Consensus</span><span class="stat-val">Federated Byzantine</span></div>
-      <div class="stat-row"><span class="stat-label">Avg Close Time</span><span class="stat-val">~3-5 sec</span></div>
+      <div class="stat-row"><span class="stat-label">Ledger Close</span><span class="stat-val">~3-5 seconds</span></div>
       <div class="stat-row"><span class="stat-label">Transaction Fee</span><span class="stat-val">~0.00001 XRP</span></div>
-      <div class="stat-row"><span class="stat-label">Circulating Supply</span><span class="stat-val" id="rc-supply">--</span></div>
-      <div class="stat-row"><span class="stat-label">Escrow Locked</span><span class="stat-val" id="rc-escrow">~43B XRP</span></div>
+      <div class="stat-row"><span class="stat-label">Circulating</span><span class="stat-val tc" id="rc-supply">--</span></div>
+      <div class="stat-row"><span class="stat-label">Escrow Locked</span><span class="stat-val">~43B XRP</span></div>
+      <div class="stat-row"><span class="stat-label">Live TPS</span><span class="stat-val lime" id="oc-tps">--</span></div>
+      <div class="stat-row"><span class="stat-label">Ledger Index</span><span class="stat-val" id="oc-ledger">--</span></div>
     </div>
     <!-- Market Structure -->
     <div class="right-card">
       <div class="right-title">📊 MARKET STRUCTURE</div>
-      <div class="stat-row"><span class="stat-label">Global Rank</span><span class="stat-val" id="rm-rank">--</span></div>
+      <div class="stat-row"><span class="stat-label">Global Rank</span><span class="stat-val tc" id="rm-rank">--</span></div>
       <div class="stat-row"><span class="stat-label">Market Cap</span><span class="stat-val" id="rm-mcap">--</span></div>
       <div class="stat-row"><span class="stat-label">24h Volume</span><span class="stat-val" id="rm-vol">--</span></div>
       <div class="stat-row"><span class="stat-label">Vol / MCap</span><span class="stat-val" id="rm-ratio">--</span></div>
       <div class="stat-row"><span class="stat-label">ATH</span><span class="stat-val" id="rm-ath">--</span></div>
       <div class="stat-row"><span class="stat-label">% Below ATH</span><span class="stat-val" id="rm-ath-pct">--</span></div>
+      <div class="stat-row"><span class="stat-label">24h High</span><span class="stat-val lime" id="rm-high">--</span></div>
+      <div class="stat-row"><span class="stat-label">24h Low</span><span class="stat-val" style="color:var(--red)" id="rm-low">--</span></div>
     </div>
-    <!-- Feed Health -->
+    <!-- Escrow -->
+    <div class="right-card">
+      <div class="right-title">⏳ RIPPLE ESCROW</div>
+      <div class="stat-row"><span class="stat-label">Next Release</span><span class="stat-val tc" id="esc-date">--</span></div>
+      <div class="stat-row"><span class="stat-label">Amount</span><span class="stat-val">1B XRP</span></div>
+      <div class="stat-row"><span class="stat-label">Schedule</span><span class="stat-val">Monthly, 1st</span></div>
+      <div class="stat-row"><span class="stat-label">Est. Locked</span><span class="stat-val">~43B XRP</span></div>
+    </div>
+    <!-- Feed Status -->
     <div class="right-card">
       <div class="right-title">📡 FEED STATUS</div>
       <div class="stat-row">
-        <span class="stat-label">Active Feeds</span>
-        <span class="stat-val grn" id="feed-active">--/25</span>
+        <span class="stat-label">Active Sources</span>
+        <span class="stat-val lime" id="feed-active">--</span>
       </div>
-      <div id="feed-health-list" style="margin-top:6px;max-height:200px;overflow-y:auto"></div>
-    </div>
-    <!-- Upgrade Log -->
-    <div class="right-card">
-      <div class="right-title">📋 UPGRADE LOG</div>
-      <div id="upgrade-log" style="font-size:11px;color:#3A6A40;line-height:1.8"></div>
+      <div id="feed-health-list" style="margin-top:8px;max-height:220px;overflow-y:auto"></div>
     </div>
   </div>
 </div>
 
-<!-- ROW 16: SCOREBOARD -->
-<div id="scoreboard">
-  <div class="row-title">🦂 XRPRADAR SCOREBOARD</div>
-  <div class="score-grid">
-    <div class="score-card">
-      <div class="score-num" id="sc-total">--</div>
-      <div class="score-lbl">Stories Today</div>
-      <div class="score-sub" id="sc-feeds">-- sources active</div>
+<!-- ANALYTICS ROW -->
+<div id="analytics-row" class="analytics-section">
+  <div class="analytics-title">🔬 ANALYTICS LAB</div>
+  <div class="analytics-grid">
+    <div class="analytics-card">
+      <div class="analytics-val" id="an-total">--</div>
+      <div class="analytics-lbl">Stories Today</div>
+      <div class="analytics-sub" id="an-sources">-- of -- sources</div>
     </div>
-    <div class="score-card" style="border-top:2px solid var(--grn)">
-      <div class="score-num" style="color:var(--grn)" id="sc-bull">--</div>
+    <div class="analytics-card">
+      <div class="analytics-val lime" id="an-bull">--</div>
+      <div class="analytics-lbl">🟢 Bullish</div>
+      <div class="analytics-sub" id="an-bull-pct">--%</div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-val" style="color:var(--red)" id="an-bear">--</div>
+      <div class="analytics-lbl">🔴 Bearish</div>
+      <div class="analytics-sub" id="an-bear-pct">--%</div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-val heather" id="an-neut">--</div>
+      <div class="analytics-lbl">⚪ Neutral</div>
+      <div class="analytics-sub" id="an-net">Net: --</div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-val" id="an-fear" style="color:var(--ylw)">--</div>
+      <div class="analytics-lbl">Fear &amp; Greed</div>
+      <div class="analytics-sub" id="an-fear-lbl">--</div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-val tc" id="an-rank">--</div>
+      <div class="analytics-lbl">Global Rank</div>
+      <div class="analytics-sub">CoinGecko</div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-val lime" id="an-vol-ratio">--</div>
+      <div class="analytics-lbl">Vol / MCap %</div>
+      <div class="analytics-sub">Trading activity</div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-val" id="an-ath-pct" style="color:var(--org)">--</div>
+      <div class="analytics-lbl">% Below ATH</div>
+      <div class="analytics-sub">ATH recovery</div>
+    </div>
+  </div>
+</div>
+
+<!-- SCOREBOARD -->
+<div id="scoreboard">
+  <div class="score-title">🦂 XRPRADAR SCOREBOARD</div>
+  <div class="score-grid">
+    <div class="score-card tc">
+      <div class="score-num tc" id="sc-total">--</div>
+      <div class="score-lbl">Stories Today</div>
+      <div class="score-sub" id="sc-sources">-- of -- sources</div>
+    </div>
+    <div class="score-card" style="border-top:3px solid var(--lime)">
+      <div class="score-num lime" id="sc-bull">--</div>
       <div class="score-lbl">🟢 Bullish</div>
       <div class="score-sub" id="sc-bull-pct">--%</div>
     </div>
-    <div class="score-card" style="border-top:2px solid var(--red)">
-      <div class="score-num" style="color:var(--red)" id="sc-bear">--</div>
+    <div class="score-card" style="border-top:3px solid var(--red)">
+      <div class="score-num red" id="sc-bear">--</div>
       <div class="score-lbl">🔴 Bearish</div>
       <div class="score-sub" id="sc-bear-pct">--%</div>
     </div>
     <div class="score-card">
-      <div class="score-num" style="color:var(--gray)" id="sc-neut">--</div>
+      <div class="score-num heather" id="sc-neut">--</div>
       <div class="score-lbl">⚪ Neutral</div>
       <div class="score-sub" id="sc-net">Net: --</div>
     </div>
   </div>
 </div>
 
-<!-- ROW 17: FOOTER -->
+<!-- FOOTER -->
 <div id="footer">
-  <div class="footer-section">
-    <div>🛰️ <strong>XRPRadar.com</strong></div>
-    <div>Version: <strong id="ft-ver">--</strong></div>
-    <div>Built on Railway + Flask</div>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">🛰️ XRPRadar</div>
+      <div class="footer-tagline">Signals Over Noise 24/7</div>
+      <div class="footer-txt">
+        Version: <strong id="ft-ver">--</strong><br>
+        Built on Railway + Flask + Claude AI<br>
+        Uptime: <span id="ft-uptime" style="color:var(--heather)">--</span>
+      </div>
+    </div>
+    <div class="footer-txt">
+      🔄 Auto-refresh<br>
+      Price: every 60s<br>
+      News &amp; AI: every 10m<br>
+      QA Check: every 4h
+    </div>
+    <div class="footer-txt footer-disclaimer">
+      ⚠️ <strong>Not Financial Advice</strong><br>
+      XRPRadar is for informational purposes only.<br>
+      DYOR before making any investment decisions.<br>
+      © 2026 XRPRadar.com
+    </div>
+    <div class="footer-txt">
+      <span style="color:var(--heather);font-size:11px" id="ft-updated">--</span>
+    </div>
   </div>
-  <div class="footer-section footer-disclaimer">
-    <strong>⚠️ Not Financial Advice</strong><br>
-    XRPRadar is for informational<br>
-    purposes only. DYOR.
-  </div>
-  <div class="footer-section">
-    🔄 All data refreshes automatically<br>
-    Price: every 60 seconds<br>
-    News &amp; AI: every 10 minutes
-  </div>
-  <div class="footer-section">
-    © 2026 XRPRadar.com<br>
-    Powered by Flask + Claude API<br>
-    <span id="ft-uptime" style="color:#1A4030">--</span>
+  <div class="footer-upgrade">
+    <div class="footer-upgrade-title">📋 Upgrade Log</div>
+    <div class="footer-upgrade-log" id="upgrade-log"></div>
   </div>
 </div>
 
-<!-- ROW 18: SYSTEM HEALTH BAR -->
+<!-- SYSTEM HEALTH BAR -->
 <div id="sys-health">
   <div class="sys-zone">
-    <div class="sys-title">📦 VERSION / LAST UPDATED</div>
-    <div class="sys-val" id="sh-version">--</div>
-    <div class="sys-sub" id="sh-updated">--</div>
+    <div class="sys-title">📦 Version / Last Updated</div>
+    <div class="sys-val heather" id="sh-version">--</div>
+    <div class="sys-sub heather" id="sh-updated">--</div>
   </div>
   <div class="sys-zone">
-    <div class="sys-title">✅ PREFLIGHT / QA CHECK (every 4h)</div>
+    <div class="sys-title">✅ Preflight / QA Check (4h)</div>
     <div class="sys-val" id="sh-qa-status">--</div>
     <div class="sys-sub" id="sh-qa-last">Last run: --</div>
     <div id="sh-qa-detail" class="sys-sub" style="margin-top:4px"></div>
   </div>
   <div class="sys-zone">
-    <div class="sys-title">🔴 DEBUG / FEED INTEGRITY</div>
-    <div class="sys-val" id="sh-feeds">--/25 feeds active</div>
+    <div class="sys-title">📡 Feed Integrity</div>
+    <div class="sys-val" id="sh-feeds">-- feeds active</div>
     <div class="sys-sub" id="sh-error">No errors</div>
-    <div class="sys-sub" id="sh-error-ts"></div>
+    <div class="sys-sub" id="sh-error-ts" style="color:#333"></div>
   </div>
   <div class="sys-zone">
-    <div class="sys-title">🔧 MAINTENANCE REQUEST</div>
+    <div class="sys-title">🔧 Maintenance</div>
     <div class="sys-val pass" id="sh-maint">✅ OK</div>
-    <div class="sys-sub">Start: <span id="sh-start">--</span></div>
+    <div class="sys-sub">Start: <span id="sh-start" class="heather">--</span></div>
   </div>
 </div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────────────────────
 let allStories   = [];
 let activeCat    = "all";
 let activeSearch = "";
-let lastDataHash = "";
 
-// ── Data Fetch ──────────────────────────────────────────────────────────
-async function fetchData() {
-  try {
+// ── Helpers ────────────────────────────────────────────────────────────────
+function c(id, val){ const el=document.getElementById(id); if(el&&val!==undefined) el.textContent=val; }
+function fmtUSD(v){
+  if(!v) return "--";
+  v=parseFloat(v);
+  if(v>=1e12) return `$${(v/1e12).toFixed(2)}T`;
+  if(v>=1e9)  return `$${(v/1e9).toFixed(2)}B`;
+  if(v>=1e6)  return `$${(v/1e6).toFixed(2)}M`;
+  if(v>=1e3)  return `$${(v/1e3).toFixed(2)}K`;
+  return `$${v.toFixed(2)}`;
+}
+function col(id, v, pos, neg){
+  const el=document.getElementById(id);
+  if(el) el.style.color = parseFloat(v||0)>=0 ? pos : neg;
+}
+
+// ── Fetch Data ─────────────────────────────────────────────────────────────
+async function fetchData(){
+  try{
     const r = await fetch("/api/data");
     const d = await r.json();
     updatePrice(d);
     updateAI(d);
     updateScoreboard(d);
+    updateAnalytics(d);
+    updateRegions(d);
     updateSystemHealth(d);
-    updateSidePanels(d);
-    if (d.last_updated) {
-      document.getElementById("nav-updated").textContent = d.last_updated.replace(" UTC","") + " UTC";
-    }
-    if (d.upgrade_log) {
-      document.getElementById("upgrade-log").innerHTML =
-        d.upgrade_log.map(u => `<div style="margin-bottom:4px"><span style="color:var(--gold)">${u.ts}</span><br>${u.note}</div>`).join("");
-    }
-    if (d.version) {
-      document.getElementById("ft-ver").textContent = d.version;
-    }
-    if (d.start_time) {
-      const st = new Date(d.start_time);
-      const now = new Date();
-      const hrs = Math.floor((now - st) / 3600000);
-      document.getElementById("ft-uptime").textContent = `Uptime: ${hrs}h`;
-    }
-  } catch(e) { console.error("fetchData:", e); }
+    updateFooter(d);
+    if(d.last_updated) c("nav-updated", d.last_updated);
+  }catch(e){ console.error("fetchData:",e); }
 }
 
-async function fetchNews() {
-  try {
+async function fetchNews(){
+  try{
     const r = await fetch("/api/news");
     const d = await r.json();
-    allStories = d.stories || [];
-    renderNews();
-  } catch(e) { console.error("fetchNews:", e); }
+    allStories = d.stories||[];
+    renderNews(d.total_all||0);
+  }catch(e){ console.error("fetchNews:",e); }
 }
 
-// ── Price Update ────────────────────────────────────────────────────────
-function updatePrice(d) {
-  const p  = d.price || {};
-  const fg = d.fear_greed || {};
-  const ex = d.escrow || {};
+// ── Price ──────────────────────────────────────────────────────────────────
+function updatePrice(d){
+  const p  = d.price||{};
+  const fg = d.fear_greed||{};
+  const oc = d.onchain||{};
 
-  function c(id, val) { const el = document.getElementById(id); if(el) el.textContent = val; }
-  function col(id, v) { const el = document.getElementById(id); if(el) el.style.color = v >= 0 ? "var(--grn)" : "var(--red)"; }
-
-  const price = p.usd || 0;
-  c("p-price",   `$${price.toFixed(4)}`);
-
-  const ch24 = p.change_24h || 0;
-  const el24 = document.getElementById("p-change24");
-  if (el24) { el24.textContent = `${ch24 >= 0 ? "▲" : "▼"} ${Math.abs(ch24).toFixed(2)}% (24h)`; el24.style.color = ch24 >= 0 ? "var(--grn)" : "var(--red)"; }
-
-  const ch7 = p.change_7d || 0;
-  c("p-change7", `7D: ${ch7 >= 0 ? "+" : ""}${ch7.toFixed(2)}%`);
-  col("p-change7", ch7);
+  // Main price card
+  c("p-price", p.usd ? `$${parseFloat(p.usd).toFixed(4)}` : "--");
+  const ch24 = parseFloat(p.change_24h||0);
+  const p24  = document.getElementById("p-change24");
+  if(p24){ p24.textContent=`${ch24>=0?"▲":"▼"} ${Math.abs(ch24).toFixed(2)}% (24h)`; p24.style.color=ch24>=0?"var(--lime)":"var(--red)"; }
+  const ch7=parseFloat(p.change_7d||0);
+  const p7=document.getElementById("p-change7");
+  if(p7){ p7.textContent=`7D: ${ch7>=0?"+":""}${ch7.toFixed(2)}%`; p7.style.color=ch7>=0?"var(--lime)":"var(--red)"; }
 
   c("p-mcap",    fmtUSD(p.mcap));
-  c("p-rank",    `Rank #${p.rank || "--"}`);
+  c("p-rank",    `Rank #${p.rank||"--"}`);
   c("p-supply",  p.supply_circ ? `${(p.supply_circ/1e9).toFixed(1)}B circulating` : "--");
   c("p-vol",     fmtUSD(p.volume_24h));
   c("p-volratio",p.vol_mcap_ratio ? `Vol/MCap: ${p.vol_mcap_ratio}%` : "Vol/MCap: --");
-  c("p-btc",     p.btc ? `BTC: ${p.btc.toFixed(8)}` : "BTC: --");
+  c("p-btc",     p.btc ? `BTC: ${parseFloat(p.btc).toFixed(8)}` : "BTC: --");
+  c("fg-score",  fg.score!==undefined ? fg.score : "--");
+  c("fg-label",  fg.label||"--");
+  const fgEl=document.getElementById("fg-score");
+  if(fgEl&&fg.score!==undefined) fgEl.style.color=fg.score<30?"var(--red)":fg.score>70?"var(--lime)":"var(--ylw)";
 
-  c("fg-score",  fg.score !== undefined ? fg.score : "--");
-  c("fg-label",  fg.label || "--");
-  const fgEl = document.getElementById("fg-score");
-  if (fgEl && fg.score !== undefined) {
-    fgEl.style.color = fg.score < 30 ? "var(--red)" : fg.score > 70 ? "var(--grn)" : "var(--ylw)";
-  }
+  // Secondary row
+  const ch30=parseFloat(p.change_30d||0);
+  const s7=document.getElementById("s-7d"); if(s7){s7.textContent=`${ch7>=0?"+":""}${ch7.toFixed(2)}%`;s7.style.color=ch7>=0?"var(--lime)":"var(--red)";}
+  const s30=document.getElementById("s-30d"); if(s30){s30.textContent=`${ch30>=0?"+":""}${ch30.toFixed(2)}%`;s30.style.color=ch30>=0?"var(--lime)":"var(--red)";}
+  c("s-ath", p.ath ? `$${parseFloat(p.ath).toFixed(4)}` : "--");
+  const athPct=parseFloat(p.ath_pct||0);
+  const athEl=document.getElementById("s-ath-pct"); if(athEl){athEl.textContent=`${athPct.toFixed(1)}% below ATH`;athEl.style.color="var(--org)";}
+  c("s-btc", p.btc ? `₿ ${parseFloat(p.btc).toFixed(8)}` : "--");
+  c("p-high", p.high_24h ? `$${parseFloat(p.high_24h).toFixed(4)}` : "--");
+  c("p-low",  p.low_24h  ? `$${parseFloat(p.low_24h).toFixed(4)}`  : "--");
+  c("esc-date", (d.escrow||{}).next_date || "1st of next month");
 
-  const ch7b  = p.change_7d || 0;
-  const ch30  = p.change_30d || 0;
-  const el7   = document.getElementById("s-7d");
-  const el30  = document.getElementById("s-30d");
-  if (el7)  { el7.textContent  = `${ch7b >= 0 ? "+" : ""}${ch7b.toFixed(2)}%`;  el7.style.color  = ch7b >= 0 ? "var(--grn)" : "var(--red)"; }
-  if (el30) { el30.textContent = `${ch30 >= 0 ? "+" : ""}${ch30.toFixed(2)}%`; el30.style.color = ch30 >= 0 ? "var(--grn)" : "var(--red)"; }
+  // Right panel mirrors
+  c("rc-supply",  p.supply_circ ? `${(p.supply_circ/1e9).toFixed(1)}B XRP` : "--");
+  c("rm-rank",    `#${p.rank||"--"}`);
+  c("rm-mcap",    fmtUSD(p.mcap));
+  c("rm-vol",     fmtUSD(p.volume_24h));
+  c("rm-ratio",   p.vol_mcap_ratio ? `${p.vol_mcap_ratio}%` : "--");
+  c("rm-ath",     p.ath ? `$${parseFloat(p.ath).toFixed(4)}` : "--");
+  c("rm-ath-pct", athPct ? `${Math.abs(athPct).toFixed(1)}% below` : "--");
+  c("rm-high",    p.high_24h ? `$${parseFloat(p.high_24h).toFixed(4)}` : "--");
+  c("rm-low",     p.low_24h  ? `$${parseFloat(p.low_24h).toFixed(4)}`  : "--");
 
-  c("s-ath",    p.ath ? `$${p.ath.toFixed(4)}` : "--");
-  const athPct = p.ath_pct || 0;
-  const athEl  = document.getElementById("s-ath-pct");
-  if (athEl) { athEl.textContent = `${athPct.toFixed(1)}% below ATH`; athEl.style.color = "var(--org)"; }
-
-  c("s-btc",    p.btc ? `₿ ${p.btc.toFixed(8)}` : "--");
-  c("esc-date", ex.next_date || "--");
-  c("esc-note", ex.note || "1B XRP monthly release");
-
-  // Side panel mirrors
-  c("rc-supply", p.supply_circ ? `${(p.supply_circ/1e9).toFixed(1)}B XRP` : "--");
-  c("rm-rank",   `#${p.rank || "--"}`);
-  c("rm-mcap",   fmtUSD(p.mcap));
-  c("rm-vol",    fmtUSD(p.volume_24h));
-  c("rm-ratio",  p.vol_mcap_ratio ? `${p.vol_mcap_ratio}%` : "--");
-  c("rm-ath",    p.ath ? `$${p.ath.toFixed(4)}` : "--");
-  c("rm-ath-pct",athPct ? `${Math.abs(athPct).toFixed(1)}% below` : "--");
+  // On-chain
+  c("oc-tps",    oc.tps ? `${oc.tps} TPS` : "--");
+  c("oc-ledger", oc.ledger_index||"--");
 
   // Breaking news
-  if (d.breaking) {
-    const bb = document.getElementById("breaking");
-    const bt = document.getElementById("breaking-text");
-    if (bb && bt) {
-      bt.textContent = `${d.breaking.title} — via ${d.breaking.source}`;
-      bb.style.display = "flex";
-    }
+  if(d.breaking){
+    const bb=document.getElementById("breaking");
+    const bt=document.getElementById("breaking-text");
+    if(bb&&bt){ bt.textContent=`${d.breaking.title} — ${d.breaking.source} — ${d.breaking.age||""}`; bb.style.display="flex"; }
   } else {
-    const bb = document.getElementById("breaking");
-    if (bb) bb.style.display = "none";
+    const bb=document.getElementById("breaking"); if(bb) bb.style.display="none";
   }
 }
 
-// ── AI Update ────────────────────────────────────────────────────────────
-function updateAI(d) {
-  const us = d.ai_us || {};
-  const gl = d.ai_global || {};
-
-  function c(id, val) { const el = document.getElementById(id); if(el && val) el.textContent = val; }
-
-  c("ai-us-pulse",         us.pulse || "");
-  c("ai-us-regulatory",    us.regulatory || "");
-  c("ai-us-institutional", us.institutional || "");
-  if (us.ts) {
-    const m = document.getElementById("ai-us-meta");
-    if (m) m.innerHTML = `Last analysis: <strong style="color:var(--sgrn)">${us.ts}</strong><br>US sources monitored`;
+// ── AI ─────────────────────────────────────────────────────────────────────
+function updateAI(d){
+  const us=d.ai_us||{};
+  const gl=d.ai_global||{};
+  if(us.pulse) c("ai-us-pulse", us.pulse);
+  if(us.regulatory) c("ai-us-regulatory", us.regulatory);
+  if(us.institutional) c("ai-us-institutional", us.institutional);
+  if(us.ts){
+    const m=document.getElementById("ai-us-meta");
+    if(m) m.innerHTML=`Last analysis: <strong style="color:var(--tc)">${us.ts}</strong><br>Sources monitored: US/Institutional/Legal<br>Feeds: Major crypto + Google News`;
   }
-
-  c("ai-gl-pulse",  gl.pulse || "");
-  c("ai-gl-thesis", gl.thesis || "");
-
-  // Regional signals
-  const sg = gl.signals || {};
-  const sigContainer = document.getElementById("ai-signals");
-  if (sigContainer && Object.keys(sg).length) {
-    const dotClass = {"bullish":"sig-bull","bearish":"sig-bear","neutral":"sig-neut","quiet":"sig-quiet"};
-    const flags    = {"Japan":"🇯🇵","Korea":"🇰🇷","UAE":"🇦🇪","Europe":"🇪🇺","LatAm":"🌎","Africa":"🌍","India":"🇮🇳"};
-    sigContainer.innerHTML = Object.entries(sg).map(([region, status]) =>
-      `<div class="signal-chip">
-        <div class="sig-dot ${dotClass[status]||"sig-quiet"}"></div>
-        <span>${flags[region]||""} ${region}</span>
-       </div>`
+  if(gl.pulse) c("ai-gl-pulse", gl.pulse);
+  if(gl.thesis) c("ai-gl-thesis", gl.thesis);
+  const sg=gl.signals||{};
+  const sigEl=document.getElementById("ai-signals");
+  if(sigEl&&Object.keys(sg).length){
+    const dc={"bullish":"sig-bull","bearish":"sig-bear","neutral":"sig-neut","quiet":"sig-quiet"};
+    const fl={"Japan":"🇯🇵","Korea":"🇰🇷","UAE":"🇦🇪","Europe":"🇪🇺","LatAm":"🌎","Africa":"🌍","India":"🇮🇳","SEA":"🌏"};
+    sigEl.innerHTML=Object.entries(sg).map(([r,s])=>
+      `<div class="signal-chip"><div class="sig-dot ${dc[s]||"sig-quiet"}"></div><span>${fl[r]||""}  ${r}</span></div>`
     ).join("");
   }
-
-  if (gl.ts) {
-    const m = document.getElementById("ai-gl-meta");
-    if (m) m.innerHTML = `Last analysis: <strong style="color:var(--sgrn)">${gl.ts}</strong><br>217 sources monitored<br>All regions active`;
+  if(gl.ts){
+    const m=document.getElementById("ai-gl-meta");
+    if(m) m.innerHTML=`Last analysis: <strong style="color:var(--lime)">${gl.ts}</strong><br>${Object.keys(sg).length} regions monitored<br>${(d.feeds_active||0)}/${(d.feeds_total||0)} sources active`;
   }
 }
 
-// ── Scoreboard ────────────────────────────────────────────────────────────
-function updateScoreboard(d) {
-  const st = d.story_stats || {};
-  function c(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
-  c("sc-total",  st.today || 0);
-  c("sc-feeds",  `${d.feeds_active||0}/${d.feeds_total||25} sources active`);
-  c("sc-bull",   st.bullish || 0);
-  c("sc-bear",   st.bearish || 0);
-  c("sc-neut",   st.neutral || 0);
-  const t = st.today || 1;
-  c("sc-bull-pct", `${Math.round((st.bullish||0)/t*100)}%`);
-  c("sc-bear-pct", `${Math.round((st.bearish||0)/t*100)}%`);
-  const net = (st.bullish||0)-(st.bearish||0);
-  const netEl = document.getElementById("sc-net");
-  if (netEl) { netEl.textContent = `Net: ${net>=0?"+":""}${net}`; netEl.style.color = net>=0?"var(--grn)":"var(--red)"; }
+// ── Regional Rows ──────────────────────────────────────────────────────────
+const REGION_FLAGS={"Japan":"🇯🇵","Korea":"🇰🇷","UAE":"🇦🇪","Europe":"🇪🇺","India":"🇮🇳","LatAm":"🌎","Africa":"🌍","SEA":"🌏"};
+const SIG_COLORS={"bullish":"var(--lime)","bearish":"var(--red)","neutral":"var(--ylw)","quiet":"var(--gray)"};
+
+function updateRegions(d){
+  const regions=d.ai_regions||{};
+  const signals=(d.ai_global||{}).signals||{};
+  ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"].forEach(reg=>{
+    const ri=regions[reg]||{};
+    const sig=signals[reg]||"quiet";
+    const sigEl=document.getElementById(`region-sig-${reg}`);
+    if(sigEl){sigEl.textContent=`● ${sig.toUpperCase()}`;sigEl.style.color=SIG_COLORS[sig]||"var(--gray)";}
+    if(ri.pulse){const pel=document.getElementById(`region-pulse-${reg}`);if(pel)pel.textContent=ri.pulse;}
+  });
 }
 
-// ── System Health ─────────────────────────────────────────────────────────
-function updateSystemHealth(d) {
-  function c(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+async function fetchRegionNews(reg){
+  try{
+    const r=await fetch(`/api/news?region=${reg}`);
+    const d=await r.json();
+    const stories=(d.stories||[]).slice(0,5);
+    const el=document.getElementById(`region-stories-${reg}`);
+    if(!el) return;
+    if(!stories.length){el.innerHTML='<div style="font-size:12px;color:#333;padding:4px 0">No regional stories found yet...</div>';return;}
+    el.innerHTML=stories.map(s=>{
+      const isForeign=s.lang==="non-english";
+      const trans=s.translated_title ? `<div class="region-story-translation">🌐 ${s.translated_title}</div>` : "";
+      const fb=isForeign ? `<span class="foreign-badge">🌐 Translated</span>` : "";
+      return `<div class="region-story" onclick="window.open('${s.link}','_blank')">
+        <div class="region-story-title ${isForeign?"foreign":""}">${s.title}</div>
+        ${trans}
+        <div class="region-story-meta">
+          <span class="region-sent ${s.sentiment}">${s.sentiment}</span>
+          <span class="region-src">${s.source}</span>
+          ${fb}
+          <span class="region-age">${s.age||""}</span>
+        </div>
+      </div>`;
+    }).join("");
+  }catch(e){}
+}
 
-  c("sh-version",  d.version || "--");
-  c("sh-updated",  d.last_updated || "--");
-  c("sh-feeds",    `${d.feeds_active||0}/${d.feeds_total||25} feeds active`);
+// ── Scoreboard & Analytics ─────────────────────────────────────────────────
+function updateScoreboard(d){
+  const st=d.story_stats||{};
+  c("sc-total",   st.today||0);
+  c("sc-sources", `${d.feeds_active||0} of ${d.feeds_total||0} sources`);
+  c("sc-bull",    st.bullish||0);
+  c("sc-bear",    st.bearish||0);
+  c("sc-neut",    st.neutral||0);
+  const t=(st.today)||1;
+  c("sc-bull-pct",`${Math.round((st.bullish||0)/t*100)}%`);
+  c("sc-bear-pct",`${Math.round((st.bearish||0)/t*100)}%`);
+  const net=(st.bullish||0)-(st.bearish||0);
+  const netEl=document.getElementById("sc-net");
+  if(netEl){netEl.textContent=`Net: ${net>=0?"+":""}${net}`;netEl.style.color=net>=0?"var(--lime)":"var(--red)";}
+}
 
-  const qaEl = document.getElementById("sh-qa-status");
-  if (qaEl) {
-    qaEl.textContent  = d.qa_status || "PENDING";
-    qaEl.className    = "sys-val " + (d.qa_status==="PASS"?"pass":d.qa_status==="FAIL"?"fail":"warn");
-  }
+function updateAnalytics(d){
+  const st=d.story_stats||{};
+  const p=d.price||{};
+  const fg=d.fear_greed||{};
+  const t=(st.today)||1;
+  c("an-total",     st.today||0);
+  c("an-sources",   `${d.feeds_active||0} of ${d.feeds_total||0} sources`);
+  c("an-bull",      st.bullish||0);
+  c("an-bear",      st.bearish||0);
+  c("an-neut",      st.neutral||0);
+  c("an-bull-pct",  `${Math.round((st.bullish||0)/t*100)}%`);
+  c("an-bear-pct",  `${Math.round((st.bearish||0)/t*100)}%`);
+  const net=(st.bullish||0)-(st.bearish||0);
+  const netEl=document.getElementById("an-net");
+  if(netEl){netEl.textContent=`Net: ${net>=0?"+":""}${net}`;netEl.style.color=net>=0?"var(--lime)":"var(--red)";}
+  c("an-fear",     fg.score!==undefined?fg.score:"--");
+  c("an-fear-lbl", fg.label||"--");
+  c("an-rank",     p.rank?`#${p.rank}`:"--");
+  c("an-vol-ratio",p.vol_mcap_ratio?`${p.vol_mcap_ratio}%`:"--");
+  const athPct=parseFloat(p.ath_pct||0);
+  c("an-ath-pct",  athPct?`${Math.abs(athPct).toFixed(1)}%`:"--");
+}
+
+// ── System Health ──────────────────────────────────────────────────────────
+function updateSystemHealth(d){
+  c("sh-version",  d.version||"--");
+  c("sh-updated",  d.last_updated||"--");
+  c("sh-feeds",    `${d.feeds_active||0}/${d.feeds_total||0} feeds active`);
+  const qaEl=document.getElementById("sh-qa-status");
+  if(qaEl){qaEl.textContent=d.qa_status||"PENDING";qaEl.className="sys-val "+(d.qa_status==="PASS"?"pass":d.qa_status==="FAIL"?"fail":"warn");}
   c("sh-qa-last", `Last run: ${d.qa_last||"Not yet run"}`);
-
-  if (d.qa_details && d.qa_details.length) {
-    const detail = document.getElementById("sh-qa-detail");
-    if (detail) detail.innerHTML = d.qa_details.map(chk =>
-      `<span style="color:${chk.ok?"var(--grn)":"var(--red)"}">${chk.ok?"✓":"✗"} ${chk.name}</span>`
-    ).join(" &nbsp;");
+  if(d.qa_details&&d.qa_details.length){
+    const det=document.getElementById("sh-qa-detail");
+    if(det) det.innerHTML=d.qa_details.map(chk=>`<span style="color:${chk.ok?"var(--lime)":"var(--red)"}">${chk.ok?"✓":"✗"} ${chk.name}</span>`).join(" ");
   }
-
-  if (d.last_error) {
-    c("sh-error",    `Last error: ${d.last_error}`);
-    c("sh-error-ts", d.last_error_ts || "");
-    const errEl = document.getElementById("sh-error");
-    if (errEl) errEl.style.color = "var(--red)";
+  const errEl=document.getElementById("sh-error");
+  if(d.last_error){
+    if(errEl){errEl.textContent=`Last error: ${d.last_error}`;errEl.style.color="var(--red)";}
+    c("sh-error-ts", d.last_error_ts||"");
   } else {
-    c("sh-error", "No errors logged");
+    if(errEl){errEl.textContent="No errors logged";errEl.style.color="var(--gray)";}
   }
-
-  const maintEl = document.getElementById("sh-maint");
-  if (maintEl) {
-    const m = d.maintenance || "OK";
-    maintEl.textContent = m === "OK" ? "✅ OK" : m === "ACTIVE" ? "🔧 ACTIVE" : "⏳ PENDING";
-    maintEl.className   = "sys-val " + (m==="OK"?"pass":m==="ACTIVE"?"warn":"warn");
-  }
-
-  if (d.start_time) {
-    const st = new Date(d.start_time);
-    c("sh-start", st.toISOString().replace("T"," ").substring(0,16)+" UTC");
-  }
-
-  // Feed health list
-  const fhl = document.getElementById("feed-health-list");
-  const fha = document.getElementById("feed-active");
-  if (fhl && d.feed_health) {
-    const entries = Object.entries(d.feed_health);
-    const upCount = entries.filter(([,v])=>v==="UP").length;
-    if (fha) fha.textContent = `${upCount}/${entries.length}`;
-    fhl.innerHTML = entries.map(([name, status]) =>
-      `<div class="stat-row">
-        <span class="stat-label" style="font-size:10px">${name}</span>
-        <span style="font-size:10px;color:${status==="UP"?"var(--grn)":"var(--red)"}">${status==="UP"?"●":"✗"}</span>
-       </div>`
+  const maintEl=document.getElementById("sh-maint");
+  if(maintEl){const m=d.maintenance||"OK";maintEl.textContent=m==="OK"?"✅ OK":m==="ACTIVE"?"🔧 ACTIVE":"⏳ PENDING";maintEl.className="sys-val "+(m==="OK"?"pass":"warn");}
+  if(d.start_time) c("sh-start", new Date(d.start_time).toISOString().replace("T"," ").substring(0,16)+" UTC");
+  const fhl=document.getElementById("feed-health-list");
+  const fha=document.getElementById("feed-active");
+  if(fhl&&d.feed_health){
+    const entries=Object.entries(d.feed_health);
+    const up=entries.filter(([,v])=>v==="UP").length;
+    if(fha) fha.textContent=`${up}/${entries.length}`;
+    fhl.innerHTML=entries.map(([name,status])=>
+      `<div class="stat-row"><span class="stat-label" style="font-size:11px">${name}</span><span style="font-size:11px;color:${status==="UP"?"var(--lime)":"var(--red)"}">${status==="UP"?"●":"✗"}</span></div>`
     ).join("");
   }
 }
 
-function updateSidePanels(d) {
-  // Already handled in updatePrice
+function updateFooter(d){
+  c("ft-ver",     d.version||"--");
+  c("ft-updated", `Last updated: ${d.last_updated||"--"}`);
+  if(d.start_time){
+    const hrs=Math.floor((Date.now()-new Date(d.start_time))/3600000);
+    c("ft-uptime", `Uptime: ${hrs}h`);
+  }
+  if(d.upgrade_log){
+    document.getElementById("upgrade-log").innerHTML=
+      d.upgrade_log.map(u=>`<div style="margin-bottom:4px"><span style="color:var(--heather)">${u.ts}</span> — ${u.note}</div>`).join("");
+  }
 }
 
-// ── News Render ───────────────────────────────────────────────────────────
-const srcColors = {
-  official:"src-official", major:"src-major", xrp:"src-xrp",
-  community:"src-community", international:"src-international",
-  aggregator:"src-aggregator", legal:"src-legal",
-  mainstream:"src-mainstream", institutional:"src-institutional"
+// ── News Render ────────────────────────────────────────────────────────────
+const SRC_COLORS={
+  official:"src-official",major:"src-major",xrp:"src-xrp",
+  community:"src-community",international:"src-international",
+  aggregator:"src-aggregator",legal:"src-legal",mainstream:"src-mainstream",
+  institutional:"src-institutional",whale:"src-whale",ecosystem:"src-ecosystem",technical:"src-technical"
 };
 
-function renderNews() {
-  let stories = allStories;
-  if (activeCat !== "all")   stories = stories.filter(s => s.category === activeCat);
-  if (activeSearch)          stories = stories.filter(s => s.title.toLowerCase().includes(activeSearch));
+function renderNews(totalAll){
+  let stories=allStories;
+  if(activeCat!=="all") stories=stories.filter(s=>s.category===activeCat);
+  if(activeSearch)      stories=stories.filter(s=>s.title.toLowerCase().includes(activeSearch));
 
-  const feed = document.getElementById("news-feed");
-  const cnt  = document.getElementById("news-count");
-  if (!feed) return;
+  const feed=document.getElementById("news-feed");
+  const cnt=document.getElementById("news-count");
+  if(!feed) return;
 
-  if (cnt) cnt.textContent = `${stories.length} stories — click to open`;
+  const total=totalAll||allStories.length;
+  if(cnt) cnt.textContent=`${stories.length} stories shown — ${total} total from ${document.getElementById("feed-active")?.textContent||"--"} sources`;
 
-  if (!stories.length) {
-    feed.innerHTML = `<div class="loading" style="padding:20px 0">No stories match your filter. Feeds refresh every 10 minutes.</div>`;
+  if(!stories.length){
+    feed.innerHTML=`<div class="loading" style="padding:20px 0">No stories match your filter. Feeds refresh every 10 minutes.</div>`;
     return;
   }
 
-  feed.innerHTML = stories.slice(0,80).map(s => {
-    const srcClass = srcColors[s.type] || "src-major";
-    const sentClass = `sent-${s.sentiment}`;
-    const sentLabel = s.sentiment === "bullish" ? "🟢 Bullish" : s.sentiment === "bearish" ? "🔴 Bearish" : "⚪ Neutral";
-    const summary   = s.summary ? `<div class="story-summary">${s.summary.substring(0,180)}${s.summary.length>180?"...":""}</div>` : "";
+  feed.innerHTML=stories.slice(0,100).map(s=>{
+    const srcClass=SRC_COLORS[s.type]||"src-major";
+    const sentClass=`sent-${s.sentiment}`;
+    const sentLabel=s.sentiment==="bullish"?"🟢 Bullish":s.sentiment==="bearish"?"🔴 Bearish":"⚪ Neutral";
+    const summary=s.summary?`<div class="story-summary">${s.summary.substring(0,200)}${s.summary.length>200?"...":""}</div>`:"";
+    const isForeign=s.lang==="non-english";
+    const titleClass=isForeign?"story-title foreign-title":"story-title";
+    const trans=s.translated_title?`<div class="story-translation">🌐 ${s.translated_title}</div>`:"";
+    const fb=isForeign&&!s.translated_title?`<span style="font-size:10px;color:var(--tc);margin-left:4px">🌐</span>`:"";
     return `<div class="story-card" onclick="window.open('${s.link}','_blank')">
       <div class="story-header">
         <span class="src-badge ${srcClass}">${s.source}</span>
         <span class="cat-tag">${s.category}</span>
-        ${s.breaking ? '<span style="color:var(--red);font-size:10px;font-weight:bold">⚡ BREAKING</span>' : ""}
+        ${s.breaking?'<span style="color:var(--org);font-size:11px;font-weight:700">⚡ BREAKING</span>':""}
+        ${fb}
       </div>
-      <div class="story-title">${s.title}</div>
+      <div class="${titleClass}">${s.title}</div>
+      ${trans}
       ${summary}
       <div class="story-footer">
         <span class="sentiment-tag ${sentClass}">${sentLabel}</span>
-        <span class="story-age">${s.age || ""}</span>
+        <span class="story-age">${s.age||""}</span>
       </div>
     </div>`;
   }).join("");
 }
 
-function setFilter(btn, cat) {
-  activeCat = cat;
-  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+function setFilter(btn,cat){
+  activeCat=cat;
+  document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   renderNews();
 }
-
-function filterNews() {
-  activeSearch = document.getElementById("search-box").value.toLowerCase();
+function filterNews(){
+  activeSearch=document.getElementById("search-box").value.toLowerCase();
   renderNews();
 }
 
-// ── Utilities ─────────────────────────────────────────────────────────────
-function fmtUSD(v) {
-  if (!v) return "--";
-  v = parseFloat(v);
-  if (v >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
-  if (v >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
-  if (v >= 1e6)  return `$${(v/1e6).toFixed(2)}M`;
-  if (v >= 1e3)  return `$${(v/1e3).toFixed(2)}K`;
-  return `$${v.toFixed(2)}`;
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init(){
+  await fetchData();
+  await fetchNews();
+  // Load regional stories
+  ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"].forEach(reg=>{
+    fetchRegionNews(reg);
+  });
 }
 
-// ── Init & Timers ──────────────────────────────────────────────────────────
-fetchData();
-fetchNews();
-setInterval(fetchData,  60000);   // price + system every 60s
-setInterval(fetchNews,  600000);  // news every 10 min
+init();
+setInterval(fetchData,  60000);
+setInterval(fetchNews,  600000);
+setInterval(()=>{ ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"].forEach(r=>fetchRegionNews(r)); }, 600000);
 </script>
 </body>
 </html>"""
