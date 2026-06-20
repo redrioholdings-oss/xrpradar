@@ -1010,10 +1010,10 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .nbtn:hover,.nbtn.on{background:var(--bld);border-color:var(--bl);color:var(--bl)}
 /* RIGHT PANEL */
 .rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
-.rcard{padding:10px 14px;border-bottom:1px solid var(--b)}
+.rcard{padding:10px 14px;border-bottom:1px solid var(--b);font-size:13px;font-family:var(--mn)}
 .rtitle{font-size:12px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:700}
-.rrow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;align-items:center}
-.rk{color:#ffffff;font-family:var(--mn);font-size:13px}.rv{color:var(--br);font-weight:700;font-family:var(--mn);font-size:13px}
+.rrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;align-items:center;min-height:24px}
+.rk{color:#ffffff;font-family:var(--mn);font-size:13px;white-space:nowrap}.rv{color:var(--br);font-weight:700;font-family:var(--mn);font-size:13px;text-align:right}
 .rv.g{color:var(--gr)}.rv.b{color:var(--bl)}.rv.r{color:var(--rd)}.rv.y{color:var(--yl)}
 /* LEADERBOARDS */
 .lbpair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
@@ -1247,7 +1247,7 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
     </div>
     <div class="rcard"><div class="rtitle">📡 Feed Status</div>
       <div class="rrow"><span class="rk">Active Sources</span><span class="rv g" id="feed-active">--/230</span></div>
-      <div id="feed-list" style="max-height:200px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--b) transparent"></div>
+      <div id="feed-list"></div>
     </div>
   </div>
 </div>
@@ -1573,9 +1573,9 @@ function updateRight(d){
   const fl=document.getElementById("feed-list");
   if(fl&&d.feed_health){
     const entries=Object.entries(d.feed_health);
-    fl.innerHTML=entries.map(([name,status])=>
-      `<div class="rrow"><span class="rk">${name}</span><span style="color:${status==="UP"?"var(--gr)":"var(--rd)"};">${status==="UP"?"●":"✗"}</span></div>`
-    ).join("");
+    fl.innerHTML=entries.slice(0,25).map(([name,status])=>
+      `<div class="rrow"><span class="rk">${name}</span><span style="color:${status==="UP"?"var(--gr)":"var(--rd)"}">${status==="UP"?"●":"✗"}</span></div>`
+    ).join("")+`<div style="font-size:12px;color:var(--tx);font-family:var(--mn);padding:4px 0">&mdash; ${entries.length} sources total</div>`;
   }
 }
 
