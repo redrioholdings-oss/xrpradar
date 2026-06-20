@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v1.5"
+BOT_FILE          = "XRPRadar_v1.6"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -1516,30 +1516,56 @@ a:hover{color:var(--lime)}
 </div>
 
 <!-- FOOTER -->
-<div id="footer" style="background:#020505;padding:12px 20px;border-top:2px solid #111;font-size:11px;color:var(--heather)">
-  <!-- Row a: Brand + version + runtime -->
-  <div style="display:flex;align-items:center;gap:20px;padding:4px 0;border-bottom:1px solid #111">
-    <span style="color:var(--tc);font-weight:700;font-size:13px">🛰️ <em>XRPRadar</em></span>
+<div id="footer" style="background:var(--mid);border-top:1px solid var(--border);font-size:11px;color:var(--heather);padding:12px 18px 0 18px">
+
+  <!-- Line 1: XRPRadar / Version / Updated / Uptime -->
+  <div style="display:flex;align-items:center;gap:18px;padding:6px 0;border-bottom:1px solid var(--border)">
+    <span style="color:var(--tc);font-weight:700;font-style:italic;font-size:12px">🛰️ XRPRadar</span>
     <span>Version: <strong id="ft-ver" style="color:#fff">--</strong></span>
-    <span>Uptime: <span id="ft-uptime" style="color:#fff">--</span></span>
-    <span id="ft-updated" style="margin-left:auto">--</span>
+    <span>Updated: <span id="ft-last" style="color:#fff">--</span></span>
+    <span style="margin-left:auto">Uptime: <span id="ft-uptime" style="color:#fff">--</span></span>
   </div>
-  <!-- Row d: Not financial advice in yellow -->
-  <div style="padding:4px 0;border-bottom:1px solid #111;color:var(--ylw)">
+
+  <!-- Line 2: Not financial advice in yellow -->
+  <div style="padding:6px 0;border-bottom:1px solid var(--border);color:var(--ylw)">
     ⚠️ Not Financial Advice — XRPRadar is for informational purposes only. DYOR.
   </div>
-  <!-- Row e: Last updated + precheck -->
-  <div style="display:flex;gap:20px;padding:4px 0;border-bottom:1px solid #111">
-    <span>Last Updated: <span id="ft-last" style="color:#fff">--</span></span>
-    <span>System Precheck: <span id="ft-qa" style="color:#fff">--</span></span>
+
+  <!-- Line 3: System Precheck / Maintenance / Feeds -->
+  <div style="display:flex;align-items:center;gap:18px;padding:6px 0;border-bottom:1px solid var(--border)">
+    <span>System Precheck: <span id="ft-qa" style="color:#fff;font-weight:700">--</span></span>
+    <span>Maintenance: <span id="ft-maint" style="color:#fff;font-weight:700">--</span></span>
+    <span style="margin-left:auto">Feeds: <span id="ft-feeds" style="color:#fff;font-weight:700">--</span></span>
   </div>
-  <!-- Row f: Preflight details -->
-  <div style="padding:4px 0;border-bottom:1px solid #111" id="footer-precheck"></div>
-  <!-- Row g: Maintenance -->
-  <div style="padding:4px 0">
-    Maintenance: <span id="ft-maint" style="color:#fff">--</span>
-    &nbsp;|&nbsp; Feeds: <span id="ft-feeds" style="color:#fff">--</span>
+
+  <!-- Line 4: Preflight / pass-fail / last run / checks in green or red -->
+  <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+    <span style="color:var(--heather);margin-right:10px">Preflight:</span>
+    <span id="ft-qa-status" style="font-weight:700;margin-right:14px">--</span>
+    <span style="color:var(--heather);margin-right:6px">Last run:</span>
+    <span id="ft-qa-last" style="color:#fff;margin-right:14px">--</span>
+    <span id="footer-precheck"></span>
   </div>
+
+  <!-- Line 5: Feed integrity / timestamp -->
+  <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+    <span style="color:var(--heather);margin-right:10px">Feed Integrity:</span>
+    <span id="ft-feed-detail" style="color:#fff">--</span>
+    <span style="margin-left:14px;color:var(--heather)">As of:</span>
+    <span id="ft-feed-ts" style="color:#fff;margin-left:6px">--</span>
+  </div>
+
+  <!-- Line 6: Maintenance -->
+  <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+    <span style="color:var(--heather);margin-right:10px">Maintenance Status:</span>
+    <span id="ft-maint-detail" style="color:#fff;font-weight:700">--</span>
+  </div>
+
+  <!-- Line 7: Space at bottom -->
+  <div style="padding:14px 0;color:var(--gray);font-size:10px">
+    © 2026 XRPRadar.com &nbsp;|&nbsp; Signals Over Noise 24/7
+  </div>
+
 </div>
 
 <!-- SYSTEM HEALTH BAR -->
@@ -1845,7 +1871,7 @@ function updateFooter(d){
   c("ft-updated", `Last updated: ${d.last_updated||"--"}`);
   if(d.start_time){
     const hrs=Math.floor((Date.now()-new Date(d.start_time))/3600000);
-    c("ft-uptime", `Uptime: ${hrs}h`);
+    const mins=Math.floor(((Date.now()-new Date(d.start_time))%3600000)/60000); c("ft-uptime", hrs+"h "+mins+"m");
   }
   if(d.upgrade_log){
     document.getElementById("upgrade-log").innerHTML=
