@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v1.3"
+BOT_FILE          = "XRPRadar_v1.5"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -632,19 +632,26 @@ def fetch_ai_briefing():
     if foreign and ANTHROPIC_API_KEY:
         try:
             titles_to_translate = "\n".join([f"{i+1}. {s['title']} (source: {s['source']})" for i,s in enumerate(foreign)])
-            trans_prompt = (f"Translate these news headlines to English. "
-                           f"Reply ONLY with a JSON object mapping numbers to translated text:\n{titles_to_translate}")
-            raw = call_claude(trans_prompt, "You are a translator. Reply only with valid JSON.", 300)
+            titles_to_translate = "\n".join([
+                f"{i+1}. TITLE: {s['title']}\n   SUMMARY: {s.get('summary','')[:200]}"
+                for i,s in enumerate(foreign)])
+            trans_prompt = (f"Translate these non-English XRP news items to English. "
+                           f"Reply ONLY with a JSON object like: {{\"1\": {{\"title\": \"...\", \"summary\": \"...\"}}, ...}}\n\n{titles_to_translate}")
+            raw = call_claude(trans_prompt, "You are a professional translator. Reply only with valid JSON. Translate both title and summary accurately.", 600)
             raw = raw.strip().lstrip("```json").rstrip("```").strip()
             trans_map = json.loads(raw)
             for i, s in enumerate(foreign):
                 key = str(i+1)
                 if key in trans_map:
-                    translations[s["id"]] = trans_map[key]
-                    # Update story with translation
+                    val = trans_map[key]
+                    translations[s["id"]] = val
                     for story in STATE["stories"]:
                         if story["id"] == s["id"]:
-                            story["translated_title"] = trans_map[key]
+                            if isinstance(val, dict):
+                                story["translated_title"]   = val.get("title", "")
+                                story["translated_summary"] = val.get("summary", "")
+                            else:
+                                story["translated_title"] = str(val)
                             break
         except Exception as e:
             log_error(f"Translation: {e}")
@@ -838,303 +845,279 @@ DASHBOARD = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>XRPRadar — Signals Over Noise 24/7</title>
 <style>
+/* ── RESET & ROOT ─────────────────────────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#000000;
-  --dark:#050505;
-  --mid:#0A0A0A;
-  --panel:#0D0D0D;
-  --card:#111111;
+  --bg:#06060A;
+  --mid:#0A0A14;
+  --panel:#0D0D1A;
+  --card:#111120;
   --tc:#75BCFF;
-  --tcd:#5AA8FF;
+  --tc2:#5AABFF;
   --lime:#48FF82;
-  --org:#FF8C00;
-  --gold:#C9A84C;
   --wht:#FFFFFF;
   --heather:#9FA8B3;
   --gray:#6B7280;
   --red:#FF4444;
   --ylw:#FFD700;
-  --border:#1A2A1A;
+  --org:#FF8C00;
+  --border:#1A1A2E;
+  --border2:#222235;
 }
-body{background:var(--bg);color:var(--wht);font-family:Arial,sans-serif;font-size:14px;letter-spacing:.01em;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--wht);font-family:Arial,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased}
 a{color:var(--tc);text-decoration:none}
-a:hover{text-decoration:underline;color:var(--lime)}
+a:hover{color:var(--lime)}
 
-/* ── NAV ──────────────────────────────────────────────────────────── */
+/* ── NAV ─────────────────────────────────────────────────────────────────── */
 #nav{
   position:sticky;top:0;z-index:100;
-  background:#000;border-bottom:2px solid var(--tc);
+  background:var(--bg);border-bottom:1px solid var(--border2);
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 24px;height:68px;
+  padding:0 20px;height:62px;
 }
-.nav-logo{display:flex;align-items:center;gap:14px}
-.nav-sat{font-size:42px;filter:drop-shadow(0 0 10px var(--tc));line-height:1}
-.nav-brand{}
-.nav-name{font-size:28px;font-weight:900;color:var(--tc);letter-spacing:.06em;line-height:1}
-.nav-tagline{font-size:13px;color:var(--lime);font-style:italic;margin-top:1px}
-.nav-links{display:flex;gap:8px}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.nav-sat{font-size:36px;filter:drop-shadow(0 0 8px var(--tc));line-height:1}
+.nav-name{font-size:24px;font-weight:900;color:var(--tc);font-style:italic;letter-spacing:.04em;line-height:1}
+.nav-tagline{font-size:11px;color:var(--wht);margin-top:2px;letter-spacing:.04em}
+.nav-links{display:flex;gap:6px}
 .nav-links a{
-  background:#0A0A0A;border:1px solid #333;color:var(--heather);
-  padding:6px 14px;border-radius:5px;cursor:pointer;
-  font-size:12px;font-weight:700;letter-spacing:.04em;
-  text-transform:uppercase;transition:all .2s;text-decoration:none;
+  background:var(--panel);border:1px solid var(--border2);color:var(--heather);
+  padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;transition:all .2s;
 }
-.nav-links a:hover,.nav-links a.active{background:var(--tc);color:#000;border-color:var(--tc)}
-.nav-live{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--heather)}
-.live-dot{width:9px;height:9px;border-radius:50%;background:var(--lime);animation:pulse 2s infinite}
+.nav-links a:hover{background:var(--tc);color:#000;border-color:var(--tc)}
+.nav-live{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--heather)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 4px var(--lime)}50%{opacity:.4;box-shadow:none}}
 
-/* ── BREAKING NEWS ────────────────────────────────────────────────── */
+/* ── BREAKING NEWS ─────────────────────────────────────────────────────────── */
 #breaking{
-  background:#4B5563;
-  border-top:1px solid #6B7280;border-bottom:1px solid #6B7280;
-  padding:5px 20px;display:none;
-  align-items:center;gap:0;overflow:hidden;
+  background:#2A2A35;border-bottom:1px solid #3A3A4A;
+  padding:5px 20px;display:none;align-items:center;overflow:hidden;
 }
-.breaking-label{
-  color:#FFFFFF;font-weight:900;font-size:13px;
-  flex-shrink:0;padding-right:14px;border-right:1px solid #9CA3AF;
-  margin-right:14px;white-space:nowrap;letter-spacing:.04em;
-}
-.breaking-scroll{flex:1;overflow:hidden;position:relative;height:22px}
-.breaking-text{
-  color:#FFD0A0;font-size:13px;white-space:nowrap;
-  position:absolute;top:0;left:0;
-  animation:marquee 40s linear infinite;
-}
+.breaking-label{color:var(--wht);font-weight:700;font-size:11px;flex-shrink:0;
+  padding-right:12px;border-right:1px solid #4A4A5A;margin-right:12px;letter-spacing:.06em}
+.breaking-scroll{flex:1;overflow:hidden;height:20px;position:relative}
+.breaking-text{color:var(--heather);font-size:11px;white-space:nowrap;position:absolute;
+  animation:marquee 40s linear infinite}
 @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 
-/* ── SECTION TITLES ───────────────────────────────────────────────── */
-.row-title{
-  font-size:16px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.08em;
-  margin-bottom:12px;color:var(--tc);
-}
-.section-wrap{padding:16px 20px;border-bottom:1px solid #111}
+/* ── SECTION ROWS ──────────────────────────────────────────────────────────── */
+.section-wrap{padding:14px 18px;background:var(--mid);border-bottom:1px solid var(--border)}
+.row-title{font-size:10px;font-weight:700;color:var(--tc);text-transform:uppercase;
+  letter-spacing:1.5px;margin-bottom:12px}
 
-/* ── CARDS ────────────────────────────────────────────────────────── */
-.card-grid{display:grid;gap:14px}
+/* ── CARDS ─────────────────────────────────────────────────────────────────── */
+.card-grid{display:grid;gap:12px}
 .g4{grid-template-columns:repeat(4,1fr)}
 .g3{grid-template-columns:repeat(3,1fr)}
 .g2{grid-template-columns:repeat(2,1fr)}
 .card{
-  background:var(--panel);border:1px solid #1E1E1E;
-  border-radius:10px;padding:18px;
-  position:relative;overflow:hidden;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;padding:14px;position:relative;overflow:hidden;
 }
-.card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--tc)}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--tc)}
 .card.lime::before{background:var(--lime)}
-.card.org::before{background:var(--org)}
-.card-label{
-  font-size:12px;color:var(--tc);font-weight:700;
-  text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;
-}
+.card.red::before{background:var(--red)}
+.card-label{font-size:10px;color:var(--tc);font-weight:700;text-transform:uppercase;
+  letter-spacing:1.5px;margin-bottom:8px}
 .card-label.lime{color:var(--lime)}
-.card-label.heather{color:var(--heather)}
-.card-value{font-size:32px;font-weight:900;color:var(--wht);line-height:1.1}
-.card-sub{font-size:14px;color:var(--gray);margin-top:6px}
-.card-change{font-size:18px;font-weight:700;margin-top:6px}
-.card-sm .card-value{font-size:28px}
-.price-hero .card-value{font-size:38px}
+.card-value{font-size:28px;font-weight:900;color:var(--wht);line-height:1.1}
+.card-sub{font-size:12px;color:var(--heather);margin-top:5px}
+.card-change{font-size:16px;font-weight:700;margin-top:5px}
+.card-sm .card-value{font-size:22px}
+.price-hero .card-value{font-size:52px}
 
-/* ── CHART ────────────────────────────────────────────────────────── */
-#chart-row{background:var(--dark);padding:16px 20px}
-#tv-chart{width:100%;height:500px;border-radius:10px;overflow:hidden;border:1px solid #1E2E1E}
+/* ── CHART ──────────────────────────────────────────────────────────────────── */
+#chart-row{background:var(--bg);padding:14px 18px;border-bottom:1px solid var(--border)}
+#tv-chart{width:100%;height:480px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)}
 .tradingview-widget-container{width:100%;height:100%}
 
-/* ── AI ROWS ──────────────────────────────────────────────────────── */
-.ai-section{background:#070F0A;border-bottom:1px solid #111;padding:16px 20px}
+/* ── AI SECTIONS ─────────────────────────────────────────────────────────────── */
+.ai-section{background:var(--mid);border-bottom:1px solid var(--border);padding:14px 18px}
 .ai-badge{
-  display:inline-block;padding:5px 14px;border-radius:5px;
-  font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:10px;
+  display:inline-block;padding:3px 10px;border-radius:3px;
+  font-size:10px;font-weight:700;letter-spacing:.06em;margin-bottom:8px;
+  text-transform:uppercase;
 }
-.ai-badge-tc{background:rgba(0,229,204,.15);color:var(--tc);border:1px solid var(--tc)}
-.ai-badge-lime{background:rgba(57,255,20,.12);color:var(--lime);border:1px solid var(--lime)}
-.ai-text{font-size:14px;color:#C8E8D8;line-height:1.7}
-.ai-thesis{font-size:14px;color:var(--lime);line-height:1.7}
-.ai-meta{font-size:12px;color:var(--gray);line-height:1.9}
-.signal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
-.signal-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--wht);background:#0A1A0A;padding:5px 8px;border-radius:5px}
-.sig-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ai-badge-tc{background:rgba(117,188,255,.12);color:var(--tc);border:1px solid rgba(117,188,255,.3)}
+.ai-badge-lime{background:rgba(72,255,130,.1);color:var(--lime);border:1px solid rgba(72,255,130,.25)}
+.ai-text{font-size:12px;color:var(--wht);line-height:1.7}
+.ai-thesis{font-size:12px;color:var(--lime);line-height:1.7}
+.ai-meta{font-size:11px;color:var(--gray);line-height:1.9}
+.signal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-top:6px}
+.signal-chip{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--wht);
+  background:var(--card);padding:4px 7px;border-radius:4px;border:1px solid var(--border)}
+.sig-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .sig-bull{background:var(--lime)}.sig-bear{background:var(--red)}
 .sig-neut{background:var(--ylw)}.sig-quiet{background:#333}
 
-/* ── REGIONAL ROWS ────────────────────────────────────────────────── */
-.region-section{padding:14px 20px;border-bottom:1px solid #0A0A0A;background:var(--bg)}
-.region-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.region-flag{font-size:22px}
-.region-name{font-size:17px;font-weight:700;color:var(--tc)}
-.region-pulse{font-size:13px;color:#A0C8A0;line-height:1.6;margin-bottom:8px}
-.region-stories{display:flex;flex-direction:column;gap:6px}
+/* ── REGIONAL ROWS ─────────────────────────────────────────────────────────── */
+.region-section{padding:12px 18px;border-bottom:1px solid var(--border);background:var(--bg)}
+.region-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.region-flag{font-size:18px}
+.region-name{font-size:11px;font-weight:700;color:var(--tc);text-transform:uppercase;letter-spacing:1.5px}
+.region-pulse{font-size:12px;color:var(--heather);line-height:1.6;margin-bottom:8px}
+.region-stories{display:flex;flex-direction:column;gap:5px}
 .region-story{
-  background:var(--panel);border:1px solid #161616;border-radius:6px;
-  padding:8px 12px;cursor:pointer;transition:border-color .2s;
+  background:var(--panel);border:1px solid var(--border);border-radius:5px;
+  padding:7px 10px;cursor:pointer;transition:border-color .2s;
 }
 .region-story:hover{border-color:var(--tc)}
-.region-story-title{font-size:13px;font-weight:600;color:var(--wht);line-height:1.4}
-.region-story-title.foreign{color:#D0E8D0}
-.region-story-translation{font-size:11px;color:var(--tc);margin-top:3px;font-style:italic}
-.region-story-meta{display:flex;gap:8px;margin-top:5px;font-size:11px;align-items:center}
-.region-sent{padding:2px 7px;border-radius:3px;font-weight:700}
-.region-sent.bullish{background:#0A2A0A;color:var(--lime)}
-.region-sent.bearish{background:#2A0A0A;color:var(--red)}
-.region-sent.neutral{background:#1A1A1A;color:var(--gray)}
-.region-age{color:#333;margin-left:auto}
-.region-src{color:#444;font-size:10px}
-.foreign-badge{
-  font-size:10px;padding:1px 6px;border-radius:3px;
-  background:rgba(0,229,204,.1);color:var(--tc);border:1px solid rgba(0,229,204,.3);
-}
+.region-story-title{font-size:12px;font-weight:600;color:var(--tc);line-height:1.4}
+.region-story-translation{font-size:11px;color:var(--lime);margin-top:2px;font-style:italic}
+.region-story-meta{display:flex;gap:7px;margin-top:4px;font-size:10px;align-items:center;color:var(--gray)}
+.region-sent{padding:1px 6px;border-radius:3px;font-weight:700}
+.region-sent.bullish{background:rgba(72,255,130,.1);color:var(--lime)}
+.region-sent.bearish{background:rgba(255,68,68,.1);color:var(--red)}
+.region-sent.neutral{background:var(--card);color:var(--gray)}
+.region-age{color:var(--border2);margin-left:auto}
 
-/* ── NEWS FEED ────────────────────────────────────────────────────── */
+/* ── INSIGHTS HEADER ────────────────────────────────────────────────────────── */
 #insights-hdr{
-  background:#050F05;padding:10px 20px;
-  border-bottom:1px solid #111;
-  display:flex;gap:20px;align-items:center;
+  background:var(--mid);padding:8px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;gap:16px;align-items:center;
 }
-.insights-label{font-size:14px;font-weight:700;color:var(--tc);text-transform:uppercase;letter-spacing:1px}
-#main-content{display:grid;grid-template-columns:1fr 360px;gap:0;background:var(--bg)}
-#news-panel{background:var(--bg);border-right:1px solid #111;padding:14px}
-.news-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.insights-label{font-size:10px;font-weight:700;color:var(--tc);text-transform:uppercase;letter-spacing:1.5px}
+
+/* ── MAIN CONTENT ────────────────────────────────────────────────────────────── */
+#main-content{display:grid;grid-template-columns:1fr 340px;background:var(--bg)}
+#news-panel{background:var(--bg);border-right:1px solid var(--border);padding:12px}
+.news-controls{display:flex;flex-direction:column;gap:7px;margin-bottom:10px}
 .search-box{
-  flex:1;min-width:220px;
-  background:#0A0A0A;border:2px solid var(--tc);
-  color:var(--wht);padding:10px 16px;border-radius:6px;
-  font-size:15px;outline:none;
+  width:100%;background:var(--panel);border:1px solid var(--border2);
+  color:var(--wht);padding:8px 14px;border-radius:5px;font-size:13px;outline:none;
+  transition:border-color .2s;
 }
 .search-box:focus{border-color:var(--tc)}
+.filter-btns{display:flex;gap:5px;flex-wrap:nowrap}
 .filter-btn{
-  background:#0A0A0A;border:1px solid #222;color:var(--heather);
-  padding:7px 14px;border-radius:5px;cursor:pointer;
-  font-size:12px;font-weight:700;transition:all .2s;
+  background:var(--panel);border:1px solid var(--border2);color:var(--heather);
+  padding:5px 10px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;transition:all .2s;white-space:nowrap;
 }
 .filter-btn:hover,.filter-btn.active{background:var(--tc);color:#000;border-color:var(--tc)}
-#news-count{font-size:13px;color:var(--heather);padding:4px 0 10px}
+#news-count{font-size:11px;color:var(--heather);padding:3px 0 8px}
 .story-card{
-  background:var(--panel);border:1px solid #1A1A1A;border-radius:8px;
-  padding:12px;margin-bottom:10px;cursor:pointer;transition:border-color .2s;
+  background:var(--panel);border:1px solid var(--border);border-radius:6px;
+  padding:10px;margin-bottom:8px;cursor:pointer;transition:border-color .2s;
 }
 .story-card:hover{border-color:var(--tc)}
-.story-header{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
-.src-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
-.src-official{background:#003366;color:#6699FF}
-.src-major{background:#0A1A0A;color:var(--lime)}
-.src-xrp{background:#001A18;color:var(--tc)}
-.src-community{background:#1A1000;color:#FFA500}
-.src-international{background:#0A001A;color:#CC99FF}
+.story-header{display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
+.src-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px}
+.src-official{background:#001A3A;color:var(--tc)}
+.src-major{background:#0A0A1A;color:var(--tc2)}
+.src-xrp{background:#001828;color:var(--tc)}
+.src-community{background:#1A0E00;color:#FFA500}
+.src-international{background:#0A001A;color:#BB99FF}
 .src-aggregator{background:#0A0A00;color:#FFFF88}
 .src-legal{background:#1A0000;color:#FF9999}
-.src-mainstream{background:#000A1A;color:#88AAFF}
-.src-institutional{background:#0A0A00;color:var(--gold)}
+.src-mainstream{background:#00081A;color:var(--tc2)}
+.src-institutional{background:#0A0A00;color:var(--ylw)}
 .src-whale{background:#001A00;color:var(--lime)}
 .src-ecosystem{background:#001818;color:var(--tc)}
 .src-technical{background:#0A001A;color:#BB88FF}
-.story-title{font-size:15px;font-weight:700;color:var(--tc);line-height:1.5;margin-bottom:5px}
-.story-title.foreign-title{color:#C8E8C8}
-.story-translation{font-size:12px;color:var(--tc);font-style:italic;margin-bottom:5px}
-.story-summary{font-size:13px;color:var(--wht);line-height:1.6;margin-bottom:6px}
-.story-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.sentiment-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
-.sent-bullish{background:#051A05;color:var(--lime)}
-.sent-bearish{background:#1A0505;color:var(--red)}
-.sent-neutral{background:#111;color:var(--gray)}
-.cat-tag{font-size:11px;color:#444;background:#0A0A0A;padding:2px 6px;border-radius:3px}
-.story-age{font-size:12px;color:var(--heather);margin-left:auto}
+.story-title{font-size:13px;font-weight:700;color:var(--tc);line-height:1.4;margin-bottom:4px}
+.story-translation{font-size:11px;color:var(--lime);font-style:italic;margin-bottom:4px}
+.story-summary{font-size:11px;color:var(--heather);line-height:1.6;margin-bottom:5px}
+.story-footer{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.sentiment-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px}
+.sent-bullish{background:rgba(72,255,130,.1);color:var(--lime)}
+.sent-bearish{background:rgba(255,68,68,.1);color:var(--red)}
+.sent-neutral{background:var(--card);color:var(--gray)}
+.cat-tag{font-size:10px;color:var(--gray);background:var(--card);padding:2px 5px;border-radius:3px}
+.story-age{font-size:10px;color:#333;margin-left:auto}
 
-/* ── RIGHT PANEL ──────────────────────────────────────────────────── */
+/* ── RIGHT PANEL ─────────────────────────────────────────────────────────────── */
 #right-panel{background:var(--mid)}
-.right-card{padding:14px;border-bottom:1px solid #111}
-.right-title{font-size:13px;font-weight:700;color:var(--tc);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
-.stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #0A0A0A;font-size:13px}
+.right-card{padding:12px;border-bottom:1px solid var(--border)}
+.right-title{font-size:10px;font-weight:700;color:var(--tc);text-transform:uppercase;
+  letter-spacing:1.5px;margin-bottom:8px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;
+  padding:4px 0;border-bottom:1px solid var(--border);font-size:12px}
 .stat-label{color:var(--heather)}
 .stat-val{color:var(--wht);font-weight:700}
 .stat-val.tc{color:var(--tc)}
 .stat-val.lime{color:var(--lime)}
 
-/* ── SCOREBOARD ───────────────────────────────────────────────────── */
-#scoreboard{background:var(--dark);padding:16px 20px;border-top:2px solid var(--tc)}
-.score-title{font-size:18px;font-weight:700;color:var(--tc);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
-.score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.score-card{background:var(--panel);border:1px solid #1E1E1E;border-radius:8px;padding:14px;text-align:center}
-.score-card.tc{border-top:3px solid var(--tc)}
+/* ── SCOREBOARD ──────────────────────────────────────────────────────────────── */
+#scoreboard{background:var(--mid);padding:14px 18px;border-top:2px solid var(--tc)}
+.score-title{font-size:10px;font-weight:700;color:var(--tc);text-transform:uppercase;
+  letter-spacing:1.5px;margin-bottom:12px}
+.score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.score-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;
+  padding:12px;text-align:center;position:relative;overflow:hidden}
+.score-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--tc)}
+.score-card.lime::before{background:var(--lime)}
+.score-card.red::before{background:var(--red)}
 .score-num{font-size:28px;font-weight:900;color:var(--wht)}
 .score-num.tc{color:var(--tc)}
 .score-num.lime{color:var(--lime)}
 .score-num.red{color:var(--red)}
-.score-lbl{font-size:12px;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
-.score-sub{font-size:12px;color:var(--gray);margin-top:4px}
+.score-lbl{font-size:10px;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+.score-sub{font-size:11px;color:var(--gray);margin-top:3px}
 
-/* ── ANALYTICS ────────────────────────────────────────────────────── */
-.analytics-section{padding:16px 20px;background:var(--bg);border-top:1px solid #111}
-.analytics-title{font-size:16px;font-weight:700;color:var(--lime);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
-.analytics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.analytics-card{background:var(--panel);border:1px solid #1A2A1A;border-radius:8px;padding:14px;text-align:center}
-.analytics-card::before{content:"";display:block;height:2px;background:var(--lime);margin-bottom:10px;border-radius:1px}
-.analytics-val{font-size:24px;font-weight:700;color:var(--wht)}
-.analytics-lbl{font-size:11px;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
-.analytics-sub{font-size:11px;color:var(--gray);margin-top:3px}
+/* ── ANALYTICS ────────────────────────────────────────────────────────────────── */
+.analytics-section{padding:14px 18px;background:var(--bg);border-top:1px solid var(--border)}
+.analytics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.analytics-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;
+  padding:12px;text-align:center;position:relative;overflow:hidden}
+.analytics-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--lime)}
+.analytics-val{font-size:22px;font-weight:700;color:var(--wht)}
+.analytics-lbl{font-size:10px;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+.analytics-sub{font-size:10px;color:var(--gray);margin-top:2px}
 
-/* ── FOOTER ───────────────────────────────────────────────────────── */
-#footer{background:#020505;padding:16px 20px;border-top:2px solid #111}
-.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:16px;margin-bottom:14px}
-.footer-brand{font-size:22px;font-weight:900;color:var(--tc);margin-bottom:6px}
-.footer-tagline{font-size:13px;color:var(--lime);font-style:italic;margin-bottom:8px}
-.footer-txt{font-size:12px;color:var(--heather);line-height:1.9}
-.footer-txt strong{color:var(--tc)}
-.footer-disclaimer{font-size:11px;color:#444;line-height:1.8}
-.footer-upgrade{margin-top:10px;border-top:1px solid #111;padding-top:10px}
-.footer-upgrade-title{font-size:12px;font-weight:700;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.footer-upgrade-log{font-size:11px;color:#444;line-height:1.9}
-
-/* ── SYSTEM HEALTH ────────────────────────────────────────────────── */
-#sys-health{background:#020202;border-top:2px solid #1A2A00;display:grid;grid-template-columns:repeat(4,1fr)}
-.sys-zone{padding:12px 16px;border-right:1px solid #0A1A00}
-.sys-zone:last-child{border-right:none}
-.sys-title{font-size:10px;font-weight:700;color:var(--heather);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
-.sys-val{font-size:14px;color:var(--wht);font-weight:700}
-.sys-sub{font-size:11px;color:var(--gray);margin-top:3px;line-height:1.6}
-.pass{color:var(--lime)}.fail{color:var(--red)}.warn{color:var(--ylw)}
-
-
-/* ── STORY POPUP OVERLAY ──────────────────────────────────────────────────── */
+/* ── STORY POPUP ─────────────────────────────────────────────────────────────── */
 #story-modal{
   display:none;position:fixed;top:0;left:0;right:0;bottom:0;
-  background:rgba(0,0,0,.95);z-index:9999;flex-direction:column;
+  background:rgba(0,0,0,.92);z-index:9999;
+  align-items:center;justify-content:center;padding:20px;
+}
+.modal-box{
+  background:var(--panel);border:1px solid var(--tc);border-radius:10px;
+  max-width:680px;width:100%;max-height:85vh;overflow-y:auto;
+  display:flex;flex-direction:column;
 }
 .modal-header{
-  background:#050505;padding:12px 20px;
-  display:flex;align-items:center;gap:14px;
-  border-bottom:2px solid var(--tc);flex-shrink:0;
+  padding:14px 18px;display:flex;align-items:flex-start;gap:10px;
+  border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);
 }
 .modal-close{
-  color:var(--tc);font-size:26px;cursor:pointer;font-weight:900;
-  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
-  border:2px solid var(--tc);border-radius:6px;flex-shrink:0;
-  transition:all .2s;
+  color:var(--tc);font-size:20px;cursor:pointer;font-weight:900;
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--tc);border-radius:4px;flex-shrink:0;transition:all .2s;
 }
 .modal-close:hover{background:var(--tc);color:#000}
-.modal-title{color:var(--wht);font-size:14px;font-weight:700;flex:1;line-height:1.4}
-.modal-src{color:var(--tc);font-size:12px;flex-shrink:0}
-.modal-open-btn{
-  background:var(--tc);color:#000;font-size:12px;font-weight:700;
-  padding:6px 14px;border-radius:5px;cursor:pointer;border:none;flex-shrink:0;
+.modal-title{color:var(--tc);font-size:14px;font-weight:700;flex:1;line-height:1.5}
+.modal-body{padding:14px 18px;flex:1}
+.modal-translation{
+  color:var(--lime);font-size:13px;line-height:1.6;margin-bottom:12px;
+  padding:8px 12px;background:rgba(72,255,130,.05);
+  border-left:2px solid var(--lime);border-radius:3px;
 }
-.modal-open-btn:hover{background:var(--lime)}
-#story-iframe{flex:1;border:none;width:100%;background:#fff}
-.modal-blocked{
-  flex:1;display:none;align-items:center;justify-content:center;
-  flex-direction:column;gap:16px;background:#050505;
+.modal-translation-label{font-size:10px;color:var(--heather);margin-bottom:3px;
+  text-transform:uppercase;letter-spacing:.05em}
+.modal-summary{color:var(--wht);font-size:13px;line-height:1.8;margin-bottom:14px}
+.modal-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:11px}
+.modal-read-btn{
+  display:block;width:100%;background:var(--tc);color:#000;
+  font-weight:700;font-size:13px;padding:10px;border-radius:6px;
+  cursor:pointer;border:none;text-align:center;transition:all .2s;text-decoration:none;
 }
-.modal-blocked-msg{color:var(--heather);font-size:15px;text-align:center;line-height:1.8}
-.modal-blocked-btn{
-  background:var(--tc);color:#000;font-weight:700;
-  padding:12px 28px;border-radius:8px;cursor:pointer;border:none;font-size:15px;
-}
-.modal-blocked-btn:hover{background:var(--lime)}
+.modal-read-btn:hover{background:var(--lime);color:#000}
 
-/* ── MISC ─────────────────────────────────────────────────────────── */
-.loading{color:#222;font-size:13px;font-style:italic}
+/* ── SYSTEM HEALTH ───────────────────────────────────────────────────────────── */
+#sys-health{background:var(--bg);border-top:1px solid var(--border2);
+  display:grid;grid-template-columns:repeat(4,1fr)}
+.sys-zone{padding:10px 14px;border-right:1px solid var(--border)}
+.sys-zone:last-child{border-right:none}
+.sys-title{font-size:9px;font-weight:700;color:var(--heather);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:4px}
+.sys-val{font-size:12px;color:var(--wht);font-weight:700}
+.sys-sub{font-size:10px;color:var(--gray);margin-top:2px;line-height:1.6}
+.pass{color:var(--lime)}.fail{color:var(--red)}.warn{color:var(--ylw)}
+.loading{color:#222;font-size:12px;font-style:italic}
 .heather{color:var(--heather)}
 </style>
 </head>
@@ -1398,7 +1381,7 @@ a:hover{text-decoration:underline;color:var(--lime)}
   <div id="news-panel">
     <div class="news-controls" style="flex-direction:column;gap:8px">
       <input class="search-box" id="search-box" placeholder="🔍 Search XRP news..." oninput="filterNews()" style="width:100%">
-      <div style="display:flex;gap:6px;flex-wrap:nowrap">
+      <div class="filter-btns">
         <button class="filter-btn active" onclick="setFilter(this,'all')">ALL</button>
         <button class="filter-btn" onclick="setFilter(this,'Price')">PRICE</button>
         <button class="filter-btn" onclick="setFilter(this,'Legal')">LEGAL</button>
@@ -1460,7 +1443,7 @@ a:hover{text-decoration:underline;color:var(--lime)}
 
 <!-- ANALYTICS ROW -->
 <div id="analytics-row" class="analytics-section">
-  <div class="analytics-title">🔬 ANALYTICS LAB</div>
+  <div class="row-title">🔬 ANALYTICS LAB</div>
   <div class="analytics-grid">
     <div class="analytics-card">
       <div class="analytics-val" id="an-total">--</div>
@@ -1507,14 +1490,14 @@ a:hover{text-decoration:underline;color:var(--lime)}
 
 <!-- SCOREBOARD -->
 <div id="scoreboard">
-  <div class="score-title">🦂 XRPRADAR SCOREBOARD</div>
+  <div class="row-title" style="color:var(--tc)">🛰️ XRPRADAR SCOREBOARD</div>
   <div class="score-grid">
-    <div class="score-card tc">
+    <div class="score-card">
       <div class="score-num tc" id="sc-total">--</div>
       <div class="score-lbl">Stories Today</div>
       <div class="score-sub" id="sc-sources">-- of -- sources</div>
     </div>
-    <div class="score-card" style="border-top:3px solid var(--lime)">
+    <div class="score-card" >
       <div class="score-num lime" id="sc-bull">--</div>
       <div class="score-lbl">🟢 Bullish</div>
       <div class="score-sub" id="sc-bull-pct">--%</div>
@@ -1586,17 +1569,21 @@ a:hover{text-decoration:underline;color:var(--lime)}
 </div>
 
 <!-- STORY POPUP OVERLAY -->
-<div id="story-modal">
-  <div class="modal-header">
-    <div class="modal-close" onclick="closeStoryModal()">✕</div>
-    <div class="modal-title" id="modal-title">Loading story...</div>
-    <div class="modal-src" id="modal-src"></div>
-    <button class="modal-open-btn" id="modal-open-btn" onclick="openInNewTab()">Open in New Tab ↗</button>
-  </div>
-  <iframe id="story-iframe" onload="iframeLoaded()" onerror="iframeBlocked()"></iframe>
-  <div class="modal-blocked" id="modal-blocked">
-    <div class="modal-blocked-msg">This site doesn't allow embedding.<br>Click below to read the full story.</div>
-    <button class="modal-blocked-btn" onclick="openInNewTab()">Read Full Story ↗</button>
+<div id="story-modal" onclick="closeStoryModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-close" onclick="closeStoryModal()">✕</div>
+      <div class="modal-title" id="modal-title"></div>
+    </div>
+    <div class="modal-body">
+      <div id="modal-translation" class="modal-translation" style="display:none">
+        <div class="modal-translation-label">🌐 Translated to English</div>
+        <div id="modal-translation-text"></div>
+      </div>
+      <div class="modal-summary" id="modal-summary"></div>
+      <div class="modal-meta" id="modal-meta"></div>
+      <a class="modal-read-btn" id="modal-read-btn" target="_blank">Read Full Story ↗</a>
+    </div>
   </div>
 </div>
 
@@ -1885,6 +1872,8 @@ function renderNews(totalAll){
   let stories=allStories;
   if(activeCat!=="all") stories=stories.filter(s=>s.category===activeCat);
   if(activeSearch)      stories=stories.filter(s=>s.title.toLowerCase().includes(activeSearch));
+  // Index all stories for modal lookup
+  allStories.forEach(s=>{ storyData[s.id]=s; });
 
   const feed=document.getElementById("news-feed");
   const cnt=document.getElementById("news-count");
@@ -1906,9 +1895,9 @@ function renderNews(totalAll){
     const summary=s.summary?`<div class="story-summary">${s.summary.substring(0,200)}${s.summary.length>200?"...":""}</div>`:"";
     const isForeign=s.lang==="non-english";
     const titleClass=isForeign?"story-title foreign-title":"story-title";
-    const trans=s.translated_title?`<div class="story-translation">🌐 ${s.translated_title}</div>`:"";
-    const fb=isForeign&&!s.translated_title?`<span style="font-size:10px;color:var(--tc);margin-left:4px">🌐</span>`:"";
-    return `<div class="story-card" onclick="openStoryModal('${s.link}','${s.title.replace(/'/g,\"\\'\")}','${s.source}')">
+    const trans=s.translated_title?`<div class="story-translation">🌐 ${s.translated_title}</div>`:(isForeign?`<div class="story-translation" style="color:var(--heather)">🌐 Translation loading...</div>`:"");
+    const fb="";
+    return `<div class="story-card" onclick="openStoryModal('${s.id}')">
       <div class="story-header">
         <span class="src-badge ${srcClass}">${s.source}</span>
         <span class="cat-tag">${s.category}</span>
@@ -1938,48 +1927,61 @@ function filterNews(){
 }
 
 // ── Story Modal ────────────────────────────────────────────────────────────
-let currentStoryUrl = "";
+// storyData holds all stories for modal lookup
+let storyData = {};
 
-function openStoryModal(url, title, source) {
-  currentStoryUrl = url;
-  document.getElementById("modal-title").textContent = title;
-  document.getElementById("modal-src").textContent = source;
-  document.getElementById("story-iframe").src = url;
-  document.getElementById("story-iframe").style.display = "block";
-  document.getElementById("modal-blocked").style.display = "none";
+function openStoryModal(sid) {
+  const s = storyData[sid];
+  if(!s) return;
+  
+  // Title
+  document.getElementById("modal-title").textContent = s.title;
+  
+  // Translation block
+  const transEl = document.getElementById("modal-translation");
+  const transText = document.getElementById("modal-translation-text");
+  if(s.translated_title || s.translated_summary) {
+    transEl.style.display = "block";
+    transText.innerHTML = (s.translated_title ? `<strong>${s.translated_title}</strong><br>` : "") +
+                          (s.translated_summary || "");
+  } else if(s.lang === "non-english") {
+    transEl.style.display = "block";
+    transText.textContent = "Translation pending — check back after next AI refresh cycle.";
+  } else {
+    transEl.style.display = "none";
+  }
+  
+  // Summary
+  const sumEl = document.getElementById("modal-summary");
+  sumEl.textContent = s.summary || "Click Read Full Story for the complete article.";
+  
+  // Meta
+  const metaEl = document.getElementById("modal-meta");
+  const sentColor = s.sentiment==="bullish"?"var(--lime)":s.sentiment==="bearish"?"var(--red)":"var(--heather)";
+  metaEl.innerHTML = `
+    <span style="color:var(--tc);font-weight:700">${s.source}</span>
+    <span style="color:${sentColor};font-weight:700">${s.sentiment?.toUpperCase()||""}</span>
+    <span style="color:var(--heather)">${s.category||""}</span>
+    <span style="color:var(--heather);margin-left:auto">${s.age||""}</span>
+  `;
+  
+  // Read button
+  document.getElementById("modal-read-btn").href = s.link;
+  
   document.getElementById("story-modal").style.display = "flex";
   document.body.style.overflow = "hidden";
 }
 
-function closeStoryModal() {
+function closeStoryModal(e) {
+  if(e && e.target !== document.getElementById("story-modal")) return;
   document.getElementById("story-modal").style.display = "none";
-  document.getElementById("story-iframe").src = "";
   document.body.style.overflow = "";
 }
 
-function openInNewTab() {
-  window.open(currentStoryUrl, "_blank");
-}
-
-function iframeLoaded() {
-  // Try to detect blocked frames
-  try {
-    const iframe = document.getElementById("story-iframe");
-    if (!iframe.contentDocument && !iframe.contentWindow.location.href) {
-      iframeBlocked();
-    }
-  } catch(e) {
-    iframeBlocked();
-  }
-}
-
-function iframeBlocked() {
-  document.getElementById("story-iframe").style.display = "none";
-  document.getElementById("modal-blocked").style.display = "flex";
-}
-
-// Close modal on background click
-document.addEventListener("keydown", e => { if(e.key === "Escape") closeStoryModal(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape") {
+  document.getElementById("story-modal").style.display = "none";
+  document.body.style.overflow = "";
+}});
 
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init(){
