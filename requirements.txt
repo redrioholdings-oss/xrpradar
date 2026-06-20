@@ -1,4 +1,6 @@
 flask
-feedparser
-requests
 gunicorn
+requests
+pandas
+numpy
+alpaca-py

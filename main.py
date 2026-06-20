@@ -1012,8 +1012,8 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
 .rcard{padding:10px 14px;border-bottom:1px solid var(--b)}
 .rtitle{font-size:12px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:700}
-.rrow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px}
-.rk{color:#ffffff;font-family:var(--mn)}.rv{color:var(--br);font-weight:700;font-family:var(--mn);font-size:13px}
+.rrow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;align-items:center}
+.rk{color:#ffffff;font-family:var(--mn);font-size:13px}.rv{color:var(--br);font-weight:700;font-family:var(--mn);font-size:13px}
 .rv.g{color:var(--gr)}.rv.b{color:var(--bl)}.rv.r{color:var(--rd)}.rv.y{color:var(--yl)}
 /* LEADERBOARDS */
 .lbpair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
@@ -1247,7 +1247,7 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
     </div>
     <div class="rcard"><div class="rtitle">📡 Feed Status</div>
       <div class="rrow"><span class="rk">Active Sources</span><span class="rv g" id="feed-active">--/230</span></div>
-      <div id="feed-list" style="max-height:180px;overflow-y:auto"></div>
+      <div id="feed-list" style="max-height:200px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--b) transparent"></div>
     </div>
   </div>
 </div>
@@ -1574,7 +1574,7 @@ function updateRight(d){
   if(fl&&d.feed_health){
     const entries=Object.entries(d.feed_health);
     fl.innerHTML=entries.map(([name,status])=>
-      `<div class="rrow"><span class="rk" style="font-size:10px">${name}</span><span style="font-size:10px;color:${status==="UP"?"var(--gr)":"var(--rd)"}">${status==="UP"?"●":"✗"}</span></div>`
+      `<div class="rrow"><span class="rk">${name}</span><span style="color:${status==="UP"?"var(--gr)":"var(--rd)"};">${status==="UP"?"●":"✗"}</span></div>`
     ).join("");
   }
 }
@@ -1647,7 +1647,14 @@ function renderNews(totalAll){
   const fa=document.getElementById("feed-active");
   const faText=fa?fa.textContent:"--";
   if(cnt) cnt.innerHTML=`<span style="color:var(--bl);font-weight:700">${stories.length}</span> stories shown &nbsp;|&nbsp; <span style="color:var(--gr);font-weight:700">${tot}</span> total &nbsp;|&nbsp; <span style="color:var(--bl);font-weight:700">${faText}</span> of <span style="color:var(--gr);font-weight:700">230</span> sources online`;
-  if(!stories.length){feed.innerHTML='<div class="empty">No stories match filter.</div>';return;}
+  if(!stories.length){
+    if(allStories.length===0){
+      feed.innerHTML='<div class="empty" style="padding:20px;line-height:2">📡 Scanning 230 sources...<br>Stories will appear shortly after first feed scan completes.</div>';
+    } else {
+      feed.innerHTML='<div class="empty">No stories match your filter. Try ALL to see all stories.</div>';
+    }
+    return;
+  }
   feed.innerHTML=stories.slice(0,100).map(s=>{
     const sc=SRC_COLORS[s.type]||"major";
     const sent=s.sentiment==="bullish"?"bull":s.sentiment==="bearish"?"bear":"neut";
@@ -1720,6 +1727,9 @@ fetchNews();
 setInterval(fetchData,  60000);
 setInterval(fetchNews, 600000);
 setInterval(()=>REGIONS.forEach(({k})=>fetchRegionStories(k)), 600000);
+// Retry news if still empty after 20 seconds (first scan takes time)
+setTimeout(()=>{ if(allStories.length===0) fetchNews(); }, 20000);
+setTimeout(()=>{ if(allStories.length===0) fetchNews(); }, 60000);
 </script>
 </body>
 </html>
