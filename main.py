@@ -14,7 +14,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v1.1"
+BOT_FILE          = "XRPRadar_v1.2"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -181,6 +181,158 @@ RSS_FEEDS = [
     {"name": "GN XRP Treasury",       "url": "https://news.google.com/rss/search?q=XRP+%22US+Treasury%22+FinCEN+crypto",           "type": "legal",        "region": "US",    "filter": False},
     {"name": "GN XRP ISO20022",       "url": "https://news.google.com/rss/search?q=XRP+ISO20022+SWIFT+%22cross-border%22",         "type": "ecosystem",    "region": "US",    "filter": False},
     {"name": "GN XRP CBDC",           "url": "https://news.google.com/rss/search?q=XRP+CBDC+%22central+bank%22+digital",          "type": "ecosystem",    "region": "US",    "filter": False},
+    # ── Additional US Crypto News ─────────────────────────────────────────────
+    {"name": "CoinGecko Blog",        "url": "https://blog.coingecko.com/feed/",                                               "type": "major",        "region": "US",    "filter": True},
+    {"name": "Coinbase Blog",          "url": "https://www.coinbase.com/blog/landing/rss",                                      "type": "institutional","region": "US",    "filter": True},
+    {"name": "Crypto Potato XRP",      "url": "https://cryptopotato.com/tag/xrp/feed",                                         "type": "xrp",          "region": "US",    "filter": False},
+    {"name": "CoinJournal XRP",        "url": "https://coinjournal.net/feed/",                                                  "type": "major",        "region": "US",    "filter": True},
+    {"name": "99Bitcoins",             "url": "https://99bitcoins.com/feed/",                                                   "type": "major",        "region": "US",    "filter": True},
+    {"name": "UseTheBitcoin",          "url": "https://usethebitcoin.com/feed/",                                                "type": "major",        "region": "US",    "filter": True},
+    {"name": "BitcoinExchangeGuide",   "url": "https://bitcoinexchangeguide.com/feed/",                                         "type": "major",        "region": "US",    "filter": True},
+    {"name": "Crypto Slate SEC",       "url": "https://cryptoslate.com/tag/sec/feed/",                                         "type": "legal",        "region": "US",    "filter": False},
+    {"name": "Crypto Slate Ripple",    "url": "https://cryptoslate.com/tag/ripple/feed/",                                      "type": "xrp",          "region": "US",    "filter": False},
+    # ── US Google News — XRP Deep Dives ───────────────────────────────────────
+    {"name": "GN: XRP Futures",        "url": "https://news.google.com/rss/search?q=XRP+futures+derivatives+options",          "type": "major",        "region": "US",    "filter": False},
+    {"name": "GN: XRP Partnership",    "url": "https://news.google.com/rss/search?q=Ripple+XRP+partnership+announcement",      "type": "ecosystem",    "region": "US",    "filter": False},
+    {"name": "GN: XRP Reserve",        "url": "https://news.google.com/rss/search?q=XRP+reserve+asset+treasury+corporate",     "type": "institutional","region": "US",    "filter": False},
+    {"name": "GN: XRP Payment",        "url": "https://news.google.com/rss/search?q=XRP+cross-border+payment+remittance",      "type": "ecosystem",    "region": "US",    "filter": False},
+    {"name": "GN: XRP Fintech",        "url": "https://news.google.com/rss/search?q=XRP+fintech+bank+payment+corridor",        "type": "ecosystem",    "region": "US",    "filter": False},
+    {"name": "GN: XRP Web3 DeFi",      "url": "https://news.google.com/rss/search?q=XRP+XRPL+DeFi+AMM+DEX+Web3",             "type": "technical",    "region": "US",    "filter": False},
+    {"name": "GN: XRP NFT Gaming",     "url": "https://news.google.com/rss/search?q=XRP+NFT+gaming+metaverse+ledger",         "type": "technical",    "region": "US",    "filter": False},
+    {"name": "GN: XRP Validator",      "url": "https://news.google.com/rss/search?q=XRP+validator+ledger+amendment+protocol", "type": "technical",    "region": "US",    "filter": False},
+    {"name": "GN: Ripple CBDC",        "url": "https://news.google.com/rss/search?q=Ripple+CBDC+%22central+bank%22+digital+currency+partner","type": "ecosystem","region": "US","filter": False},
+    {"name": "GN: XRP Custody Bank",   "url": "https://news.google.com/rss/search?q=XRP+custody+bank+trust+%22digital+asset%22","type": "institutional","region": "US","filter": False},
+    {"name": "GN: Brad Interview",     "url": "https://news.google.com/rss/search?q=%22Brad+Garlinghouse%22+interview+XRP",   "type": "official",     "region": "US",    "filter": False},
+    {"name": "GN: David Schwartz",     "url": "https://news.google.com/rss/search?q=%22David+Schwartz%22+XRP+XRPL+joelkatz",  "type": "official",     "region": "US",    "filter": False},
+    {"name": "GN: Monica Long",        "url": "https://news.google.com/rss/search?q=%22Monica+Long%22+Ripple+XRP+president",  "type": "official",     "region": "US",    "filter": False},
+    {"name": "GN: XRP Spot ETF",       "url": "https://news.google.com/rss/search?q=XRP+%22spot+ETF%22+SEC+approval+filed",   "type": "institutional","region": "US",    "filter": False},
+    {"name": "GN: XRP Futures ETF",    "url": "https://news.google.com/rss/search?q=XRP+%22futures+ETF%22+ProShares+Bitwise", "type": "institutional","region": "US",    "filter": False},
+    {"name": "GN: XRP Blackrock",      "url": "https://news.google.com/rss/search?q=XRP+BlackRock+Fidelity+Vanguard+fund",    "type": "institutional","region": "US",    "filter": False},
+    {"name": "GN: XRP Stablecoin",     "url": "https://news.google.com/rss/search?q=XRP+stablecoin+RLUSD+stable+dollar",      "type": "xrp",          "region": "US",    "filter": False},
+    {"name": "GN: XRP RippleNet",      "url": "https://news.google.com/rss/search?q=RippleNet+%22on-demand+liquidity%22+ODL+corridor","type": "ecosystem","region": "US","filter": False},
+    {"name": "GN: Crypto Act",         "url": "https://news.google.com/rss/search?q=crypto+%22market+structure%22+act+bill+Congress+2026","type": "legal","region": "US","filter": False},
+    {"name": "GN: XRP SEC Update",     "url": "https://news.google.com/rss/search?q=XRP+SEC+%22securities+law%22+Ripple+ruling+update","type": "legal","region": "US","filter": False},
+    {"name": "GN: Crypto Tax US",      "url": "https://news.google.com/rss/search?q=XRP+crypto+tax+IRS+%22capital+gains%22", "type": "legal",        "region": "US",    "filter": False},
+    {"name": "GN: XRP Coinbase2",      "url": "https://news.google.com/rss/search?q=XRP+Coinbase+Kraken+Gemini+exchange",     "type": "major",        "region": "US",    "filter": False},
+    {"name": "GN: XRP Binance2",       "url": "https://news.google.com/rss/search?q=XRP+Binance+Bybit+OKX+exchange+trading",  "type": "major",        "region": "US",    "filter": False},
+    {"name": "GN: XRP Price Target",   "url": "https://news.google.com/rss/search?q=XRP+%22price+target%22+analyst+prediction+2026","type": "major","region": "US","filter": False},
+    {"name": "GN: XRP Technical2",     "url": "https://news.google.com/rss/search?q=XRP+%22technical+analysis%22+support+resistance+chart","type": "major","region": "US","filter": False},
+    {"name": "GN: XRP Liquidity",      "url": "https://news.google.com/rss/search?q=XRP+liquidity+%22market+maker%22+depth+volume","type": "major","region": "US","filter": False},
+    {"name": "GN: Ripple Labs",        "url": "https://news.google.com/rss/search?q=%22Ripple+Labs%22+XRP+announcement+news", "type": "official",     "region": "US",    "filter": False},
+    {"name": "GN: XRPLF",             "url": "https://news.google.com/rss/search?q=%22XRP+Ledger+Foundation%22+XRPLF+grant",  "type": "official",     "region": "US",    "filter": False},
+    {"name": "GN: XRP ISO 20022",      "url": "https://news.google.com/rss/search?q=XRP+ISO+20022+SWIFT+interoperability+banking","type": "ecosystem","region": "US","filter": False},
+    {"name": "GN: XRP Forbes2",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:forbes.com",             "type": "mainstream",   "region": "US",    "filter": False},
+    {"name": "GN: XRP Fortune",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:fortune.com",            "type": "mainstream",   "region": "US",    "filter": False},
+    {"name": "GN: XRP AP News",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:apnews.com",             "type": "mainstream",   "region": "US",    "filter": False},
+    {"name": "GN: XRP Seeking Alpha",  "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:seekingalpha.com",       "type": "institutional","region": "US",    "filter": False},
+    {"name": "GN: XRP CoinDesk2",      "url": "https://news.google.com/rss/search?q=XRP+site:coindesk.com",                  "type": "major",        "region": "US",    "filter": False},
+    {"name": "GN: XRP TheBlock2",      "url": "https://news.google.com/rss/search?q=XRP+site:theblock.co",                   "type": "major",        "region": "US",    "filter": False},
+    {"name": "GN: XRP Messari",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:messari.io",             "type": "institutional","region": "US",    "filter": False},
+    {"name": "GN: XRP Decrypt2",       "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:decrypt.co",             "type": "major",        "region": "US",    "filter": False},
+    {"name": "GN: XRP Market Cap",     "url": "https://news.google.com/rss/search?q=XRP+%22market+cap%22+ranking+crypto+2026","type": "major",       "region": "US",    "filter": False},
+    {"name": "GN: XRP OCC Reg",        "url": "https://news.google.com/rss/search?q=XRP+OCC+%22national+bank%22+crypto+custody","type": "legal",     "region": "US",    "filter": False},
+    {"name": "GN: XRP Treasury",       "url": "https://news.google.com/rss/search?q=XRP+%22US+Treasury%22+FinCEN+crypto",    "type": "legal",        "region": "US",    "filter": False},
+    # ── Europe ────────────────────────────────────────────────────────────────
+    {"name": "GN: XRP MiCA EU",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+MiCA+%22European+Union%22+regulation","type": "legal","region": "Europe","filter": False},
+    {"name": "GN: XRP UK FCA",         "url": "https://news.google.com/rss/search?q=XRP+%22Financial+Conduct+Authority%22+FCA+UK+crypto","type": "legal","region": "Europe","filter": False},
+    {"name": "GN: XRP Germany",        "url": "https://news.google.com/rss/search?q=XRP+BaFin+Germany+%22digital+asset%22+crypto","type": "legal","region": "Europe","filter": False},
+    {"name": "GN: XRP France",         "url": "https://news.google.com/rss/search?q=XRP+Ripple+France+AMF+crypto+%22digital+asset%22","type": "legal","region": "Europe","filter": False},
+    {"name": "GN: XRP Switzerland",    "url": "https://news.google.com/rss/search?q=XRP+Ripple+Switzerland+FINMA+Zug+crypto","type": "ecosystem",    "region": "Europe","filter": False},
+    {"name": "GN: XRP ECB",            "url": "https://news.google.com/rss/search?q=XRP+%22European+Central+Bank%22+ECB+digital+euro","type": "ecosystem","region": "Europe","filter": False},
+    {"name": "GN: XRP Bitstamp",       "url": "https://news.google.com/rss/search?q=XRP+Bitstamp+Kraken+Europe+exchange",    "type": "major",        "region": "Europe","filter": False},
+    {"name": "GN: XRP EU Inst",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+Europe+%22asset+manager%22+institutional","type": "institutional","region": "Europe","filter": False},
+    {"name": "CoinTelegraph IT",        "url": "https://it.cointelegraph.com/rss",                                             "type": "international","region": "Europe","filter": True},
+    {"name": "CoinTelegraph FR",        "url": "https://fr.cointelegraph.com/rss",                                             "type": "international","region": "Europe","filter": True},
+    {"name": "GN: XRP Netherlands",    "url": "https://news.google.com/rss/search?q=XRP+Ripple+Netherlands+DNB+AFM+crypto",  "type": "legal",        "region": "Europe","filter": False},
+    {"name": "GN: XRP Scandinavia",    "url": "https://news.google.com/rss/search?q=XRP+Ripple+Sweden+Norway+Denmark+crypto","type": "ecosystem",    "region": "Europe","filter": False},
+    {"name": "GN: XRP Blockworks EU",  "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:blockworks.co+Europe",   "type": "major",        "region": "Europe","filter": False},
+    # ── Additional Global ─────────────────────────────────────────────────────
+    {"name": "GN: XRP Australia",      "url": "https://news.google.com/rss/search?q=XRP+Ripple+Australia+ASIC+crypto&hl=en-AU&gl=AU","type": "international","region": "SEA","filter": False},
+    {"name": "GN: XRP Hong Kong",      "url": "https://news.google.com/rss/search?q=XRP+Ripple+%22Hong+Kong%22+SFC+crypto+exchange","type": "international","region": "SEA","filter": False},
+    {"name": "GN: XRP Taiwan",         "url": "https://news.google.com/rss/search?q=XRP+Ripple+Taiwan+crypto+exchange",      "type": "international","region": "SEA","filter": False},
+    {"name": "GN: XRP Brazil",         "url": "https://news.google.com/rss/search?q=XRP+Ripple+Brazil+Banco+Central+real+digital","type": "international","region": "LatAm","filter": False},
+    {"name": "GN: XRP Mexico",         "url": "https://news.google.com/rss/search?q=XRP+Ripple+Mexico+Banxico+%22cross-border%22","type": "international","region": "LatAm","filter": False},
+    {"name": "GN: XRP Argentina",      "url": "https://news.google.com/rss/search?q=XRP+Ripple+Argentina+peso+crypto+inflation","type": "international","region": "LatAm","filter": False},
+    {"name": "GN: XRP Colombia",       "url": "https://news.google.com/rss/search?q=XRP+Ripple+Colombia+crypto+regulation+payment","type": "international","region": "LatAm","filter": False},
+    {"name": "GN: XRP Nigeria",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+Nigeria+naira+crypto+payment","type": "international","region": "Africa","filter": False},
+    {"name": "GN: XRP Kenya",          "url": "https://news.google.com/rss/search?q=XRP+Ripple+Kenya+%22M-Pesa%22+payment+crypto","type": "international","region": "Africa","filter": False},
+    {"name": "GN: XRP South Africa",   "url": "https://news.google.com/rss/search?q=XRP+Ripple+%22South+Africa%22+FSCA+crypto","type": "international","region": "Africa","filter": False},
+    {"name": "GN: XRP Ghana",          "url": "https://news.google.com/rss/search?q=XRP+Ripple+Ghana+%22Bank+of+Ghana%22+crypto","type": "international","region": "Africa","filter": False},
+    {"name": "GN: XRP Saudi",          "url": "https://news.google.com/rss/search?q=XRP+Ripple+%22Saudi+Arabia%22+SAMA+crypto+payment","type": "international","region": "UAE","filter": False},
+    {"name": "GN: XRP Bahrain",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+Bahrain+%22Central+Bank%22+fintech","type": "international","region": "UAE","filter": False},
+    {"name": "GN: XRP Pakistan",       "url": "https://news.google.com/rss/search?q=XRP+Ripple+Pakistan+remittance+payment+crypto","type": "international","region": "India","filter": False},
+    {"name": "GN: XRP Bangladesh",     "url": "https://news.google.com/rss/search?q=XRP+Ripple+Bangladesh+remittance+%22foreign+exchange%22","type": "international","region": "India","filter": False},
+    {"name": "GN: XRP Indonesia",      "url": "https://news.google.com/rss/search?q=XRP+Ripple+Indonesia+OJK+crypto+exchange","type": "international","region": "SEA","filter": False},
+    {"name": "GN: XRP Vietnam",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+Vietnam+crypto+payment+regulation","type": "international","region": "SEA","filter": False},
+    {"name": "GN: XRP Malaysia",       "url": "https://news.google.com/rss/search?q=XRP+Ripple+Malaysia+%22Bank+Negara%22+crypto","type": "international","region": "SEA","filter": False},
+    {"name": "GN: XRP Korea Reg",      "url": "https://news.google.com/rss/search?q=XRP+%22Financial+Services+Commission%22+Korea+crypto","type": "legal","region": "Korea","filter": False},
+    {"name": "GN: XRP Japan FSA",      "url": "https://news.google.com/rss/search?q=XRP+Japan+FSA+%22Financial+Services+Agency%22+crypto","type": "legal","region": "Japan","filter": False},
+    {"name": "GN: XRP Japan Bank",     "url": "https://news.google.com/rss/search?q=XRP+%22Bank+of+Japan%22+SBI+MoneyTap+payment","type": "ecosystem","region": "Japan","filter": False},
+    {"name": "CoinPost JP XRP",        "url": "https://coinpost.jp/?s=XRP&feed=rss2",                                         "type": "international","region": "Japan","filter": False},
+
+    {"name": "GN: XRP Grayscale",     "url": "https://news.google.com/rss/search?q=XRP+Grayscale+trust+%22digital+asset%22+fund","type": "institutional","region": "US","filter": False},
+    {"name": "GN: XRP Galaxy",        "url": "https://news.google.com/rss/search?q=XRP+%22Galaxy+Digital%22+%22digital+asset%22","type": "institutional","region": "US","filter": False},
+    {"name": "GN: XRP Pantera",       "url": "https://news.google.com/rss/search?q=XRP+Pantera+%22venture+capital%22+crypto+fund","type": "institutional","region": "US","filter": False},
+    {"name": "GN: XRP a16z",          "url": "https://news.google.com/rss/search?q=XRP+%22Andreessen+Horowitz%22+a16z+crypto","type": "institutional","region": "US","filter": False},
+    {"name": "GN: XRP Nasdaq",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+Nasdaq+NYSE+%22stock+market%22","type": "mainstream","region": "US","filter": False},
+    {"name": "GN: XRP Fed Policy",    "url": "https://news.google.com/rss/search?q=XRP+crypto+%22Federal+Reserve%22+%22interest+rate%22+policy","type": "mainstream","region": "US","filter": False},
+    {"name": "GN: XRP Inflation",     "url": "https://news.google.com/rss/search?q=XRP+crypto+inflation+%22safe+haven%22+hedge","type": "mainstream","region": "US","filter": False},
+    {"name": "GN: XRP Altcoin",       "url": "https://news.google.com/rss/search?q=XRP+%22altcoin%22+season+rally+%22market+cycle%22","type": "major","region": "US","filter": False},
+    {"name": "GN: XRP Halving",       "url": "https://news.google.com/rss/search?q=XRP+%22bitcoin+halving%22+%22bull+market%22+cycle","type": "major","region": "US","filter": False},
+    {"name": "GN: XRP Dominance",     "url": "https://news.google.com/rss/search?q=XRP+%22crypto+dominance%22+%22market+share%22+ranking","type": "major","region": "US","filter": False},
+    {"name": "GN: XRP Volume",        "url": "https://news.google.com/rss/search?q=XRP+%22trading+volume%22+record+exchange+24h","type": "major","region": "US","filter": False},
+    {"name": "GN: XRP Chart",         "url": "https://news.google.com/rss/search?q=XRP+chart+%22all+time+high%22+%22price+prediction%22","type": "major","region": "US","filter": False},
+    {"name": "GN: XRP Sentiment",     "url": "https://news.google.com/rss/search?q=XRP+sentiment+%22fear+and+greed%22+bullish+bearish","type": "major","region": "US","filter": False},
+    {"name": "GN: XRP ProShares",     "url": "https://news.google.com/rss/search?q=XRP+ProShares+%22Teucrium%22+%22Bitwise%22+ETF","type": "institutional","region": "US","filter": False},
+    {"name": "GN: XRP Franklin",      "url": "https://news.google.com/rss/search?q=XRP+%22Franklin+Templeton%22+%22WisdomTree%22+digital","type": "institutional","region": "US","filter": False},
+    {"name": "GN: XRP Ripple IPO",    "url": "https://news.google.com/rss/search?q=Ripple+IPO+%22initial+public+offering%22+stock+listing","type": "institutional","region": "US","filter": False},
+    {"name": "GN: XRP Congress2",     "url": "https://news.google.com/rss/search?q=XRP+crypto+%22Senate%22+%22House%22+hearing+2026","type": "legal","region": "US","filter": False},
+    {"name": "GN: XRP Gensler",       "url": "https://news.google.com/rss/search?q=XRP+%22SEC+chairman%22+crypto+%22securities%22","type": "legal","region": "US","filter": False},
+    {"name": "GN: XRP FDIC",          "url": "https://news.google.com/rss/search?q=XRP+crypto+FDIC+%22bank+regulator%22+%22digital+asset%22","type": "legal","region": "US","filter": False},
+    {"name": "GN: XRP White House",   "url": "https://news.google.com/rss/search?q=XRP+crypto+%22White+House%22+executive+order","type": "legal","region": "US","filter": False},
+    {"name": "GN: XRP EU Banking",    "url": "https://news.google.com/rss/search?q=XRP+Ripple+%22European+banking%22+%22SEPA%22+payment","type": "ecosystem","region": "Europe","filter": False},
+    {"name": "GN: XRP UK Adoption",   "url": "https://news.google.com/rss/search?q=XRP+Ripple+UK+%22Bank+of+England%22+adoption+payment","type": "ecosystem","region": "Europe","filter": False},
+    {"name": "GN: XRP Poland",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+Poland+crypto+NBP+%22digital+zloty%22","type": "international","region": "Europe","filter": False},
+    {"name": "GN: XRP Spain",         "url": "https://news.google.com/rss/search?q=XRP+Ripple+Spain+CNMV+crypto+%22digital+asset%22","type": "international","region": "Europe","filter": False},
+    {"name": "GN: XRP Thailand",      "url": "https://news.google.com/rss/search?q=XRP+Ripple+Thailand+SEC+%22Bank+of+Thailand%22+crypto","type": "international","region": "SEA","filter": False},
+    {"name": "GN: XRP Philippines",   "url": "https://news.google.com/rss/search?q=XRP+Ripple+Philippines+BSP+remittance+OFW+crypto","type": "international","region": "SEA","filter": False},
+    {"name": "GN: XRP Ethiopia",      "url": "https://news.google.com/rss/search?q=XRP+Ripple+Ethiopia+Africa+%22National+Bank%22+crypto","type": "international","region": "Africa","filter": False},
+    {"name": "GN: XRP Morocco",       "url": "https://news.google.com/rss/search?q=XRP+Ripple+Morocco+Egypt+%22North+Africa%22+crypto","type": "international","region": "Africa","filter": False},
+    {"name": "GN: XRP Israel",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+Israel+%22Bank+of+Israel%22+fintech+crypto","type": "international","region": "UAE","filter": False},
+    {"name": "GN: XRP Turkey",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+Turkey+lira+crypto+inflation+exchange","type": "international","region": "UAE","filter": False},
+
+    # ── From 200-Source Master List — Global Hubs ─────────────────────────────
+    {"name": "CoinDesk Japan",         "url": "https://www.coindeskjapan.com/feed/",                                           "type": "international","region": "Japan", "filter": True},
+    {"name": "HashKey Exchange",       "url": "https://news.google.com/rss/search?q=HashKey+%22Hong+Kong%22+XRP+crypto+regulated","type": "international","region": "SEA","filter": False},
+    {"name": "VARA Dubai Reg",         "url": "https://news.google.com/rss/search?q=VARA+Dubai+%22virtual+asset%22+XRP+Ripple+regulation","type": "legal","region": "UAE","filter": False},
+    {"name": "ADGM Abu Dhabi",         "url": "https://news.google.com/rss/search?q=ADGM+%22Abu+Dhabi%22+XRP+crypto+fintech","type": "legal","region": "UAE","filter": False},
+    {"name": "Rain Financial ME",       "url": "https://news.google.com/rss/search?q=Rain+%22Middle+East%22+XRP+crypto+GCC+Bahrain","type": "international","region": "UAE","filter": False},
+    {"name": "CoinDCX India",          "url": "https://blog.coindcx.com/feed/",                                               "type": "international","region": "India","filter": True},
+    {"name": "Indodax Indonesia",      "url": "https://indodax.com/blog/feed/",                                               "type": "international","region": "SEA","filter": True},
+    {"name": "Tokocrypto Indonesia",   "url": "https://www.tokocrypto.com/blog/feed/",                                        "type": "international","region": "SEA","filter": True},
+    {"name": "CoinJar News",           "url": "https://blog.coinjar.com/feed/",                                               "type": "international","region": "SEA","filter": True},
+    {"name": "BTC Markets Australia",  "url": "https://www.btcmarkets.net/blog/feed/",                                        "type": "international","region": "SEA","filter": True},
+    {"name": "Bitso Blog LatAm",       "url": "https://blog.bitso.com/feed/",                                                 "type": "international","region": "LatAm","filter": True},
+    {"name": "Bitmama Africa",         "url": "https://bitmama.io/blog/feed/",                                                "type": "international","region": "Africa","filter": True},
+    {"name": "Yellow Card Africa",     "url": "https://yellowcard.io/blog/feed/",                                             "type": "international","region": "Africa","filter": False},
+    {"name": "ForkLog Eastern EU",     "url": "https://forklog.com/feed/",                                                    "type": "international","region": "Europe","filter": True},
+    {"name": "BlockTempo Taiwan",      "url": "https://www.blocktempo.com/feed/",                                             "type": "international","region": "SEA","filter": True},
+    {"name": "CryptoCompare Global",   "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:cryptocompare.com",      "type": "major",        "region": "US",    "filter": False},
+    {"name": "Santiment Analytics",    "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:santiment.net",          "type": "institutional","region": "US",    "filter": False},
+    {"name": "Glassnode On-Chain",     "url": "https://news.google.com/rss/search?q=XRP+on-chain+%22glassnode%22+analytics", "type": "institutional","region": "US",    "filter": False},
+    {"name": "Messari XRP",            "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:messari.io+research",    "type": "institutional","region": "US",    "filter": False},
+    {"name": "Coinglass Derivatives",  "url": "https://news.google.com/rss/search?q=XRP+derivatives+%22open+interest%22+futures","type": "major","region": "US","filter": False},
+    {"name": "GN: XRP CryptoQuant",   "url": "https://news.google.com/rss/search?q=XRP+%22cryptoquant%22+exchange+reserve+flow","type": "institutional","region": "US","filter": False},
+    {"name": "GN: XRP IntoTheBlock",  "url": "https://news.google.com/rss/search?q=XRP+%22IntoTheBlock%22+whale+large+holders","type": "institutional","region": "US","filter": False},
+    {"name": "GN: XRP LunarCrush",    "url": "https://news.google.com/rss/search?q=XRP+%22LunarCrush%22+social+sentiment",  "type": "major",        "region": "US",    "filter": False},
+    {"name": "Ledger Insights",        "url": "https://www.ledgerinsights.com/feed/",                                         "type": "major",        "region": "Europe","filter": True},
+    {"name": "Finextra Finance",       "url": "https://www.finextra.com/rss/channel.aspx?channel=news",                       "type": "major",        "region": "Europe","filter": True},
+    {"name": "PYMNTS Blockchain",      "url": "https://www.pymnts.com/feed/",                                                 "type": "major",        "region": "US",    "filter": True},
+    {"name": "The Fintech Times",      "url": "https://thefintechtimes.com/feed/",                                            "type": "major",        "region": "Europe","filter": True},
+    {"name": "SEC Press Releases",     "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=&dateb=&owner=include&count=20&search_text=&action=getcompany",  "type": "legal","region": "US","filter": True},
+    {"name": "GN: SEC Crypto XRP",    "url": "https://news.google.com/rss/search?q=SEC+XRP+%22digital+asset%22+enforcement+2026","type": "legal","region": "US","filter": False},
+    {"name": "GN: BIS XRP Research",  "url": "https://news.google.com/rss/search?q=XRP+%22Bank+for+International+Settlements%22+BIS+settlement","type": "institutional","region": "Europe","filter": False},
+
 ]
 
 REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
@@ -694,9 +846,9 @@ DASHBOARD = """<!DOCTYPE html>
   --mid:#0A0A0A;
   --panel:#0D0D0D;
   --card:#111111;
-  --tc:#00E5CC;
-  --tcd:#00B8A3;
-  --lime:#39FF14;
+  --tc:#75BCFF;
+  --tcd:#5AA8FF;
+  --lime:#48FF82;
   --org:#FF8C00;
   --gold:#C9A84C;
   --wht:#FFFFFF;
@@ -722,13 +874,15 @@ a:hover{text-decoration:underline;color:var(--lime)}
 .nav-brand{}
 .nav-name{font-size:28px;font-weight:900;color:var(--tc);letter-spacing:.06em;line-height:1}
 .nav-tagline{font-size:13px;color:var(--lime);font-style:italic;margin-top:1px}
-.nav-links{display:flex;gap:28px}
+.nav-links{display:flex;gap:8px}
 .nav-links a{
-  color:var(--tc);font-size:15px;font-weight:700;
-  letter-spacing:.05em;text-transform:uppercase;
-  transition:color .2s;text-decoration:none;
+  color:#000;font-size:13px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;
+  transition:all .2s;text-decoration:none;
+  background:var(--tc);padding:6px 14px;border-radius:5px;
+  border:1px solid var(--tc);
 }
-.nav-links a:hover{color:var(--lime)}
+.nav-links a:hover{background:var(--lime);color:#000;border-color:var(--lime)}
 .nav-live{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--heather)}
 .live-dot{width:9px;height:9px;border-radius:50%;background:var(--lime);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 4px var(--lime)}50%{opacity:.4;box-shadow:none}}
@@ -846,10 +1000,10 @@ a:hover{text-decoration:underline;color:var(--lime)}
 #news-panel{background:var(--bg);border-right:1px solid #111;padding:14px}
 .news-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
 .search-box{
-  flex:1;min-width:200px;
-  background:#0A0A0A;border:1px solid #222;
-  color:var(--wht);padding:9px 14px;border-radius:6px;
-  font-size:14px;outline:none;
+  flex:1;min-width:220px;
+  background:#0A0A0A;border:2px solid var(--tc);
+  color:var(--wht);padding:10px 16px;border-radius:6px;
+  font-size:15px;outline:none;
 }
 .search-box:focus{border-color:var(--tc)}
 .filter-btn{
@@ -878,17 +1032,17 @@ a:hover{text-decoration:underline;color:var(--lime)}
 .src-whale{background:#001A00;color:var(--lime)}
 .src-ecosystem{background:#001818;color:var(--tc)}
 .src-technical{background:#0A001A;color:#BB88FF}
-.story-title{font-size:14px;font-weight:700;color:var(--wht);line-height:1.5;margin-bottom:5px}
+.story-title{font-size:15px;font-weight:700;color:var(--tc);line-height:1.5;margin-bottom:5px}
 .story-title.foreign-title{color:#C8E8C8}
 .story-translation{font-size:12px;color:var(--tc);font-style:italic;margin-bottom:5px}
-.story-summary{font-size:12px;color:var(--gray);line-height:1.6;margin-bottom:6px}
+.story-summary{font-size:13px;color:var(--wht);line-height:1.6;margin-bottom:6px}
 .story-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sentiment-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
 .sent-bullish{background:#051A05;color:var(--lime)}
 .sent-bearish{background:#1A0505;color:var(--red)}
 .sent-neutral{background:#111;color:var(--gray)}
 .cat-tag{font-size:11px;color:#444;background:#0A0A0A;padding:2px 6px;border-radius:3px}
-.story-age{font-size:11px;color:#2A3A2A;margin-left:auto}
+.story-age{font-size:12px;color:var(--heather);margin-left:auto}
 
 /* ── RIGHT PANEL ──────────────────────────────────────────────────── */
 #right-panel{background:var(--mid)}
@@ -944,6 +1098,43 @@ a:hover{text-decoration:underline;color:var(--lime)}
 .sys-sub{font-size:11px;color:var(--gray);margin-top:3px;line-height:1.6}
 .pass{color:var(--lime)}.fail{color:var(--red)}.warn{color:var(--ylw)}
 
+
+/* ── STORY POPUP OVERLAY ──────────────────────────────────────────────────── */
+#story-modal{
+  display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,.95);z-index:9999;flex-direction:column;
+}
+.modal-header{
+  background:#050505;padding:12px 20px;
+  display:flex;align-items:center;gap:14px;
+  border-bottom:2px solid var(--tc);flex-shrink:0;
+}
+.modal-close{
+  color:var(--tc);font-size:26px;cursor:pointer;font-weight:900;
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--tc);border-radius:6px;flex-shrink:0;
+  transition:all .2s;
+}
+.modal-close:hover{background:var(--tc);color:#000}
+.modal-title{color:var(--wht);font-size:14px;font-weight:700;flex:1;line-height:1.4}
+.modal-src{color:var(--tc);font-size:12px;flex-shrink:0}
+.modal-open-btn{
+  background:var(--tc);color:#000;font-size:12px;font-weight:700;
+  padding:6px 14px;border-radius:5px;cursor:pointer;border:none;flex-shrink:0;
+}
+.modal-open-btn:hover{background:var(--lime)}
+#story-iframe{flex:1;border:none;width:100%;background:#fff}
+.modal-blocked{
+  flex:1;display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:16px;background:#050505;
+}
+.modal-blocked-msg{color:var(--heather);font-size:15px;text-align:center;line-height:1.8}
+.modal-blocked-btn{
+  background:var(--tc);color:#000;font-weight:700;
+  padding:12px 28px;border-radius:8px;cursor:pointer;border:none;font-size:15px;
+}
+.modal-blocked-btn:hover{background:var(--lime)}
+
 /* ── MISC ─────────────────────────────────────────────────────────── */
 .loading{color:#222;font-size:13px;font-style:italic}
 .heather{color:var(--heather)}
@@ -956,8 +1147,8 @@ a:hover{text-decoration:underline;color:var(--lime)}
   <div class="nav-logo">
     <span class="nav-sat">🛰️</span>
     <div class="nav-brand">
-      <div class="nav-name">XRPRadar</div>
-      <div class="nav-tagline">Signals Over Noise 24/7</div>
+      <div class="nav-name"><em>XRPRadar</em></div>
+      <div class="nav-tagline" style="color:#FFFFFF">Signals Over Noise 24/7</div>
     </div>
   </div>
   <div class="nav-links">
@@ -976,7 +1167,7 @@ a:hover{text-decoration:underline;color:var(--lime)}
 </div>
 
 <!-- BREAKING NEWS BANNER -->
-<div id="breaking">
+<div id="breaking" style="display:flex">
   <span class="breaking-label">⚡ BREAKING NEWS</span>
   <div class="breaking-scroll">
     <div class="breaking-text" id="breaking-text"></div>
@@ -1370,8 +1561,16 @@ a:hover{text-decoration:underline;color:var(--lime)}
     </div>
   </div>
   <div class="footer-upgrade">
-    <div class="footer-upgrade-title">📋 Upgrade Log</div>
-    <div class="footer-upgrade-log" id="upgrade-log"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:10px">
+      <div>
+        <div class="footer-upgrade-title">📋 Upgrade Log</div>
+        <div class="footer-upgrade-log" id="upgrade-log"></div>
+      </div>
+      <div>
+        <div class="footer-upgrade-title">✅ System Precheck</div>
+        <div id="footer-precheck" style="font-size:11px;line-height:2.0"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1398,6 +1597,21 @@ a:hover{text-decoration:underline;color:var(--lime)}
     <div class="sys-title">🔧 Maintenance</div>
     <div class="sys-val pass" id="sh-maint">✅ OK</div>
     <div class="sys-sub">Start: <span id="sh-start" class="heather">--</span></div>
+  </div>
+</div>
+
+<!-- STORY POPUP OVERLAY -->
+<div id="story-modal">
+  <div class="modal-header">
+    <div class="modal-close" onclick="closeStoryModal()">✕</div>
+    <div class="modal-title" id="modal-title">Loading story...</div>
+    <div class="modal-src" id="modal-src"></div>
+    <button class="modal-open-btn" id="modal-open-btn" onclick="openInNewTab()">Open in New Tab ↗</button>
+  </div>
+  <iframe id="story-iframe" onload="iframeLoaded()" onerror="iframeBlocked()"></iframe>
+  <div class="modal-blocked" id="modal-blocked">
+    <div class="modal-blocked-msg">This site doesn't allow embedding.<br>Click below to read the full story.</div>
+    <button class="modal-blocked-btn" onclick="openInNewTab()">Read Full Story ↗</button>
   </div>
 </div>
 
@@ -1507,7 +1721,7 @@ function updatePrice(d){
     const bt=document.getElementById("breaking-text");
     if(bb&&bt){ bt.textContent=`${d.breaking.title} — ${d.breaking.source} — ${d.breaking.age||""}`; bb.style.display="flex"; }
   } else {
-    const bb=document.getElementById("breaking"); if(bb) bb.style.display="none";
+    const bt2=document.getElementById("breaking-text"); if(bt2) bt2.textContent="Monitoring XRP global news feeds — no breaking alerts at this time.";
   }
 }
 
@@ -1567,7 +1781,7 @@ async function fetchRegionNews(reg){
       const isForeign=s.lang==="non-english";
       const trans=s.translated_title ? `<div class="region-story-translation">🌐 ${s.translated_title}</div>` : "";
       const fb=isForeign ? `<span class="foreign-badge">🌐 Translated</span>` : "";
-      return `<div class="region-story" onclick="window.open('${s.link}','_blank')">
+      return `<div class="region-story" onclick="openStoryModal('${s.link}','${s.title.replace(/'/g,\"\\'\")}','${s.source}')">
         <div class="region-story-title ${isForeign?"foreign":""}">${s.title}</div>
         ${trans}
         <div class="region-story-meta">
@@ -1664,6 +1878,13 @@ function updateFooter(d){
   if(d.upgrade_log){
     document.getElementById("upgrade-log").innerHTML=
       d.upgrade_log.map(u=>`<div style="margin-bottom:4px"><span style="color:var(--heather)">${u.ts}</span> — ${u.note}</div>`).join("");
+  // Color-coded precheck results
+  if(d.qa_details && d.qa_details.length) {
+    const precheckEl = document.getElementById("footer-precheck");
+    if(precheckEl) precheckEl.innerHTML = d.qa_details.map(chk=>
+      `<span style="color:${chk.ok?"#FFFFFF":"var(--heather)"};margin-right:12px">${chk.ok?"✓":"✗"} ${chk.name}</span>`
+    ).join("");
+  }
   }
 }
 
@@ -1685,7 +1906,8 @@ function renderNews(totalAll){
   if(!feed) return;
 
   const total=totalAll||allStories.length;
-  if(cnt) cnt.textContent=`${stories.length} stories shown — ${total} total from ${document.getElementById("feed-active")?.textContent||"--"} sources`;
+  const activeFeeds = document.getElementById("feed-active")?.textContent || "--";
+  if(cnt) cnt.innerHTML = `<span style="color:var(--tc);font-weight:700">${stories.length}</span> stories shown &nbsp;|&nbsp; <span style="color:var(--lime);font-weight:700">${total}</span> total collected &nbsp;|&nbsp; <span style="color:var(--tc);font-weight:700">${activeFeeds}</span> of <span style="color:var(--lime);font-weight:700">230</span> sources online`;
 
   if(!stories.length){
     feed.innerHTML=`<div class="loading" style="padding:20px 0">No stories match your filter. Feeds refresh every 10 minutes.</div>`;
@@ -1701,7 +1923,7 @@ function renderNews(totalAll){
     const titleClass=isForeign?"story-title foreign-title":"story-title";
     const trans=s.translated_title?`<div class="story-translation">🌐 ${s.translated_title}</div>`:"";
     const fb=isForeign&&!s.translated_title?`<span style="font-size:10px;color:var(--tc);margin-left:4px">🌐</span>`:"";
-    return `<div class="story-card" onclick="window.open('${s.link}','_blank')">
+    return `<div class="story-card" onclick="openStoryModal('${s.link}','${s.title.replace(/'/g,\"\\'\")}','${s.source}')">
       <div class="story-header">
         <span class="src-badge ${srcClass}">${s.source}</span>
         <span class="cat-tag">${s.category}</span>
@@ -1729,6 +1951,50 @@ function filterNews(){
   activeSearch=document.getElementById("search-box").value.toLowerCase();
   renderNews();
 }
+
+// ── Story Modal ────────────────────────────────────────────────────────────
+let currentStoryUrl = "";
+
+function openStoryModal(url, title, source) {
+  currentStoryUrl = url;
+  document.getElementById("modal-title").textContent = title;
+  document.getElementById("modal-src").textContent = source;
+  document.getElementById("story-iframe").src = url;
+  document.getElementById("story-iframe").style.display = "block";
+  document.getElementById("modal-blocked").style.display = "none";
+  document.getElementById("story-modal").style.display = "flex";
+  document.body.style.overflow = "hidden";
+}
+
+function closeStoryModal() {
+  document.getElementById("story-modal").style.display = "none";
+  document.getElementById("story-iframe").src = "";
+  document.body.style.overflow = "";
+}
+
+function openInNewTab() {
+  window.open(currentStoryUrl, "_blank");
+}
+
+function iframeLoaded() {
+  // Try to detect blocked frames
+  try {
+    const iframe = document.getElementById("story-iframe");
+    if (!iframe.contentDocument && !iframe.contentWindow.location.href) {
+      iframeBlocked();
+    }
+  } catch(e) {
+    iframeBlocked();
+  }
+}
+
+function iframeBlocked() {
+  document.getElementById("story-iframe").style.display = "none";
+  document.getElementById("modal-blocked").style.display = "flex";
+}
+
+// Close modal on background click
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeStoryModal(); });
 
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init(){
