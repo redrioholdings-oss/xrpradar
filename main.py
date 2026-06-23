@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.0a"
+BOT_FILE          = "XRPRadar_v3.0b"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -356,6 +356,23 @@ STATE = {
     "fear_greed":    {},
     "escrow":        {},
     "onchain":       {},
+    "onchain_intel": {
+        "whale_alerts":      [],
+        "exchange_flow":     "unknown",
+        "exchange_flow_note":"",
+        "rlusd_supply":      0.0,
+        "rlusd_price":       0.0,
+        "rlusd_vol_24h":     0.0,
+        "dex_vol_24h":       0.0,
+        "dex_trades_24h":    0,
+        "accounts_total":    0,
+        "accounts_new_24h":  0,
+        "escrow_days":       0,
+        "escrow_hours":      0,
+        "escrow_minutes":    0,
+        "escrow_next_date":  "",
+        "ts":                "",
+    },
     "stories":       [],
     "stories_by_region": {r: [] for r in REGIONS},
     "ai_us":         {"pulse":"Fetching US intelligence...","regulatory":"Loading...","institutional":"Loading...","ts":""},
@@ -611,6 +628,137 @@ def fetch_price_intel():
 
     pi["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
 
+
+# ── On-Chain Intelligence Fetch (v3.0b) ───────────────────────────────────
+def fetch_onchain_intel():
+    hdr = {"User-Agent": "XRPRadar/3.0"}
+    oc  = STATE["onchain_intel"]
+
+    # 7. Whale Alert Feed — large XRP payments via XRPScan
+    try:
+        # Known Ripple escrow wallet cluster releases & large payment tracker
+        whale_url = "https://api.xrpscan.com/api/v1/account/rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh/payments?limit=20"
+        resp = requests.get(whale_url, timeout=10).json()
+        payments = resp if isinstance(resp, list) else resp.get("payments", [])
+        whales = []
+        for p in payments[:20]:
+            amt = float(p.get("amount", 0)) / 1_000_000 if isinstance(p.get("amount"), str) else float(p.get("amount", 0))
+            if amt >= 1_000_000:
+                whales.append({
+                    "amount_xrp":  round(amt, 0),
+                    "amount_usd":  round(amt * float(STATE["price"].get("usd", 0) or 0), 0),
+                    "from":        p.get("source", "")[:20],
+                    "to":          p.get("destination", "")[:20],
+                    "ts":          p.get("date", "")[:16],
+                })
+        # Supplement with whale stories from our feed
+        whale_stories = [s for s in STATE["stories"][:100] if s.get("category") == "Whale"][:5]
+        for ws in whale_stories:
+            if not any(w.get("title") for w in whales):
+                whales.append({
+                    "title":      ws["title"][:80],
+                    "source":     ws["source"],
+                    "age":        ws.get("age",""),
+                    "sentiment":  ws.get("sentiment",""),
+                })
+        oc["whale_alerts"] = whales[:10]
+    except Exception as e:
+        log_error(f"whale_alerts: {e}")
+        # Fall back to whale stories from feed
+        try:
+            whale_stories = [s for s in STATE["stories"][:100] if s.get("category") == "Whale"][:8]
+            oc["whale_alerts"] = [{"title": s["title"][:80], "source": s["source"],
+                                   "age": s.get("age",""), "sentiment": s.get("sentiment","")}
+                                  for s in whale_stories]
+        except: pass
+
+    # 8. Exchange Flow Signal (derived from funding rate + OI direction)
+    try:
+        fr  = float(STATE["price_intel"].get("funding_rate", 0))
+        oi  = float(STATE["price_intel"].get("open_interest_usd", 0))
+        px  = float(STATE["price"].get("usd", 0) or 0)
+        ch  = float(STATE["price"].get("change_24h", 0) or 0)
+        if fr > 0.01 and ch > 0:
+            oc["exchange_flow"]      = "INFLOW"
+            oc["exchange_flow_note"] = "Price rising + positive funding — accumulation signal"
+        elif fr < -0.01 and ch < 0:
+            oc["exchange_flow"]      = "OUTFLOW"
+            oc["exchange_flow_note"] = "Price falling + negative funding — distribution signal"
+        elif fr > 0 and ch < 0:
+            oc["exchange_flow"]      = "MIXED"
+            oc["exchange_flow_note"] = "Divergence: longs paying but price declining"
+        else:
+            oc["exchange_flow"]      = "NEUTRAL"
+            oc["exchange_flow_note"] = "No clear directional bias"
+    except Exception as e:
+        log_error(f"exchange_flow: {e}")
+
+    # 9. RLUSD Circulation & Volume via CoinGecko
+    try:
+        rlusd = requests.get(
+            "https://api.coingecko.com/api/v3/coins/ripple-usd"
+            "?localization=false&tickers=false&community_data=false&developer_data=false",
+            headers=hdr, timeout=10).json()
+        md = rlusd.get("market_data", {})
+        oc["rlusd_price"]   = float(md.get("current_price", {}).get("usd", 1.0))
+        oc["rlusd_supply"]  = float(md.get("circulating_supply", 0) or 0)
+        oc["rlusd_vol_24h"] = float(md.get("total_volume", {}).get("usd", 0) or 0)
+    except Exception as e:
+        log_error(f"rlusd: {e}")
+        # Fallback: XRPScan RLUSD issuer
+        try:
+            rlusd_issuer = "rMH4UxPrbuMa1spCBR98hLLyNJp4d8p4tM"
+            ri = requests.get(
+                f"https://api.xrpscan.com/api/v1/account/{rlusd_issuer}",
+                timeout=8).json()
+            oc["rlusd_supply"] = float(ri.get("obligation", 0))
+        except: pass
+
+    # 10. XRPL DEX/AMM Volume via XRPScan market stats
+    try:
+        mkt = requests.get(
+            "https://api.xrpscan.com/api/v1/market/summary",
+            timeout=8).json()
+        oc["dex_vol_24h"]   = float(mkt.get("volume24h", 0) or 0)
+        oc["dex_trades_24h"]= int(mkt.get("trades24h", 0) or 0)
+    except Exception as e:
+        log_error(f"dex_vol: {e}")
+        # Try alternate endpoint
+        try:
+            stats = requests.get("https://api.xrpscan.com/api/v1/ledger/stats", timeout=8).json()
+            oc["dex_trades_24h"] = int(stats.get("offers", 0) or 0)
+        except: pass
+
+    # 11. New Account Creation Rate
+    try:
+        stats = requests.get("https://api.xrpscan.com/api/v1/ledger/stats", timeout=8).json()
+        total = int(stats.get("accounts", 0) or 0)
+        prev  = oc.get("accounts_total", 0)
+        if prev > 0 and total > prev:
+            oc["accounts_new_24h"] = total - prev
+        oc["accounts_total"] = total
+    except Exception as e:
+        log_error(f"accounts: {e}")
+
+    # 12. Escrow Countdown Timer — Ripple releases 1B XRP on 1st of each month
+    try:
+        now = datetime.now(timezone.utc)
+        if now.month == 12:
+            next_rel = now.replace(year=now.year+1, month=1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        else:
+            next_rel = now.replace(month=now.month+1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        delta               = next_rel - now
+        oc["escrow_days"]   = delta.days
+        oc["escrow_hours"]  = delta.seconds // 3600
+        oc["escrow_minutes"]= (delta.seconds % 3600) // 60
+        oc["escrow_next_date"] = next_rel.strftime("%b %d, %Y")
+    except Exception as e:
+        log_error(f"escrow_countdown: {e}")
+
+    oc["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
 # ── News Fetch ─────────────────────────────────────────────────────────────────
 def fetch_news():
     seen_ids    = {s["id"] for s in STATE["stories"]}
@@ -843,6 +991,7 @@ def price_loop():
         try:
             fetch_price()
             fetch_price_intel()
+            fetch_onchain_intel()
         except Exception as e: log_error(f"price_loop: {e}")
         time.sleep(PRICE_INTERVAL)
 
@@ -888,6 +1037,7 @@ def api_data():
         "fear_greed":       STATE["fear_greed"],
         "escrow":           STATE["escrow"],
         "onchain":          STATE["onchain"],
+        "onchain_intel":    STATE["onchain_intel"],
         "ai_us":            STATE["ai_us"],
         "ai_global":        STATE["ai_global"],
         "ai_regions":       STATE["ai_regions"],
@@ -1305,6 +1455,66 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   </div>
 </div>
 
+<!-- SECTION 3c: ON-CHAIN INTELLIGENCE (v3.0b) -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+
+  <!-- Left: Network Stats + RLUSD + DEX -->
+  <div class="acct" style="border-color:rgba(0,229,204,.2);margin-bottom:0">
+    <div class="sec-title" style="color:var(--tq)">⛓️ On-Chain Intelligence</div>
+    <div class="agrid" style="grid-template-columns:repeat(3,1fr);gap:8px">
+
+      <div class="abox" style="border-color:rgba(0,229,204,.3);background:var(--tqd)">
+        <div class="albl">RLUSD Supply</div>
+        <div class="aval" style="color:var(--tq);font-size:18px" id="oc-rlusd-supply">--</div>
+        <div class="asub">Vol: <span id="oc-rlusd-vol">--</span></div>
+      </div>
+
+      <div class="abox">
+        <div class="albl">XRPL DEX Volume</div>
+        <div class="aval b" style="font-size:18px" id="oc-dex-vol">--</div>
+        <div class="asub" id="oc-dex-trades">-- trades 24h</div>
+      </div>
+
+      <div class="abox">
+        <div class="albl">Network Accounts</div>
+        <div class="aval" style="color:var(--tq);font-size:18px" id="oc-accounts">--</div>
+        <div class="asub">New 24h: <span id="oc-accounts-new" style="color:var(--gr)">--</span></div>
+      </div>
+
+      <div class="abox" id="oc-flow-box">
+        <div class="albl">Exchange Flow</div>
+        <div class="aval" style="font-size:16px" id="oc-flow">--</div>
+        <div class="asub" id="oc-flow-note" style="font-size:10px;line-height:1.4">--</div>
+      </div>
+
+      <div class="abox pos" style="grid-column:span 2">
+        <div class="albl">⏳ Next Ripple Escrow Release</div>
+        <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;margin:4px 0">
+          <div><div class="aval g" id="oc-esc-days">--</div><div class="asub">days</div></div>
+          <div style="color:var(--tx);font-size:18px;font-family:var(--mn)">:</div>
+          <div><div class="aval g" id="oc-esc-hrs">--</div><div class="asub">hrs</div></div>
+          <div style="color:var(--tx);font-size:18px;font-family:var(--mn)">:</div>
+          <div><div class="aval g" id="oc-esc-min">--</div><div class="asub">min</div></div>
+        </div>
+        <div class="asub" id="oc-esc-date">1B XRP · Next release: --</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Right: Whale Alert Feed -->
+  <div class="panel" style="border-color:rgba(255,204,0,.25)">
+    <div class="ph">
+      <span class="pt" style="color:var(--yl);font-size:16px;font-weight:800;letter-spacing:2px">🐋 Whale Alert Feed</span>
+      <span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="oc-whale-ts">--</span>
+    </div>
+    <div id="oc-whale-feed" style="padding:8px 12px;max-height:220px;overflow-y:auto;overflow-x:hidden">
+      <div class="empty">Loading whale data...</div>
+    </div>
+  </div>
+
+</div>
+
 <!-- SECTION 4b: TOP 20 XRP STORIES -->
 <div class="score" style="margin-bottom:10px">
   <div class="sec-title" style="color:var(--bl)">📋 Top 20 XRP Stories</div>
@@ -1507,6 +1717,7 @@ async function fetchData(){
     updateStatus(d);
     updateMarket(d);
     updatePriceIntel(d);
+    updateOnchainIntel(d);
     updateAI(d);
     updateScoreboard(d);
     updateAnalytics(d);
@@ -1578,6 +1789,98 @@ function fmtUSD(v){
 }
 function c(id,v){const el=document.getElementById(id);if(el&&v!==undefined)el.textContent=v;}
 
+
+
+// ── On-Chain Intelligence (v3.0b) ─────────────────────────────────────────
+function updateOnchainIntel(d){
+  const oc = d.onchain_intel || {};
+
+  // RLUSD
+  if(oc.rlusd_supply)
+    c("oc-rlusd-supply", fmtNum(oc.rlusd_supply));
+  if(oc.rlusd_vol_24h)
+    c("oc-rlusd-vol",    fmtUSD(oc.rlusd_vol_24h));
+
+  // DEX Volume
+  if(oc.dex_vol_24h)
+    c("oc-dex-vol",    fmtUSD(oc.dex_vol_24h));
+  if(oc.dex_trades_24h)
+    c("oc-dex-trades", `${parseInt(oc.dex_trades_24h).toLocaleString()} trades 24h`);
+
+  // Accounts
+  if(oc.accounts_total)
+    c("oc-accounts",     parseInt(oc.accounts_total).toLocaleString());
+  if(oc.accounts_new_24h)
+    c("oc-accounts-new", `+${parseInt(oc.accounts_new_24h).toLocaleString()}`);
+
+  // Exchange Flow
+  const flowEl  = document.getElementById("oc-flow");
+  const flowBox = document.getElementById("oc-flow-box");
+  const flowMap = {
+    "INFLOW":  {color:"var(--gr)",  bg:"pos", icon:"📈"},
+    "OUTFLOW": {color:"var(--rd)",  bg:"neg", icon:"📉"},
+    "MIXED":   {color:"var(--yl)",  bg:"yl",  icon:"↕️"},
+    "NEUTRAL": {color:"var(--tx)",  bg:"",    icon:"➡️"},
+  };
+  if(flowEl && oc.exchange_flow){
+    const fm = flowMap[oc.exchange_flow] || flowMap["NEUTRAL"];
+    flowEl.textContent  = `${fm.icon} ${oc.exchange_flow}`;
+    flowEl.style.color  = fm.color;
+    if(flowBox) flowBox.className = `abox ${fm.bg}`;
+  }
+  if(oc.exchange_flow_note) c("oc-flow-note", oc.exchange_flow_note);
+
+  // Escrow Countdown
+  if(oc.escrow_days !== undefined){
+    c("oc-esc-days", String(oc.escrow_days).padStart(2,"0"));
+    c("oc-esc-hrs",  String(oc.escrow_hours).padStart(2,"0"));
+    c("oc-esc-min",  String(oc.escrow_minutes).padStart(2,"0"));
+    c("oc-esc-date", `1B XRP · Next release: ${oc.escrow_next_date||"--"}`);
+  }
+
+  // Whale Alert Feed
+  if(oc.ts) c("oc-whale-ts", oc.ts);
+  const wf = document.getElementById("oc-whale-feed");
+  if(wf && oc.whale_alerts){
+    if(!oc.whale_alerts.length){
+      wf.innerHTML='<div class="empty">No large transactions detected recently</div>';
+    } else {
+      wf.innerHTML = oc.whale_alerts.map(w=>{
+        if(w.amount_xrp){
+          // On-chain transaction
+          const usd = w.amount_usd ? ` ($${parseInt(w.amount_usd).toLocaleString()})` : "";
+          return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+            <div style="font-size:12px;font-weight:700;color:var(--yl);font-family:var(--mn)">
+              🐋 ${parseInt(w.amount_xrp).toLocaleString()} XRP${usd}
+            </div>
+            <div style="font-size:10px;color:var(--tx);font-family:var(--mn);margin-top:2px">
+              ${w.from||"unknown"} → ${w.to||"unknown"} · ${w.ts||""}
+            </div>
+          </div>`;
+        } else {
+          // News story fallback
+          const sc = w.sentiment==="bullish"?"var(--gr)":w.sentiment==="bearish"?"var(--rd)":"var(--tx)";
+          return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">
+            <div style="font-size:12px;font-weight:600;color:var(--yl);line-height:1.4">${w.title||""}</div>
+            <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+              <span style="color:${sc};font-weight:700">${w.sentiment||""}</span>
+              &nbsp;·&nbsp;${w.source||""}&nbsp;·&nbsp;${w.age||""}
+            </div>
+          </div>`;
+        }
+      }).join("");
+    }
+  }
+}
+
+function fmtNum(v){
+  if(!v) return "--";
+  v=parseFloat(v);
+  if(v>=1e9)  return `${(v/1e9).toFixed(2)}B`;
+  if(v>=1e6)  return `${(v/1e6).toFixed(2)}M`;
+  if(v>=1e3)  return `${(v/1e3).toFixed(2)}K`;
+  return v.toLocaleString();
+}
 
 // ── Price Intelligence (v3.0a) ─────────────────────────────────────────────
 function updatePriceIntel(d){
