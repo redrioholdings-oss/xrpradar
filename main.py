@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.1c"
+BOT_FILE          = "XRPRadar_v3.1d"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -2284,8 +2284,12 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 #pf-body{padding:16px;font-family:var(--mn);font-size:13px;line-height:2.2}
 
 /* FOOTER */
-footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
-  font-family:var(--mn);font-size:13px;color:var(--tx);line-height:2.2}
+footer{margin-top:30px;padding:18px 0 0 0;
+  border-top:3px solid var(--b);
+  font-family:var(--mn);font-size:13px;color:var(--tx);line-height:2.4;
+  position:relative}
+footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
+  height:1px;background:rgba(117,188,255,.15)}
 .warn{color:rgba(255,204,0,.4)}
 .empty{padding:14px;font-family:var(--mn);font-size:13px;color:var(--tx);text-align:center}
 .file-tag{display:inline-block;padding:2px 7px;border-radius:3px;
@@ -3140,6 +3144,96 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
           </div>
         </div>
 
+
+        <!-- 36b. XRP Remittance Savings Calculator -->
+        <div class="panel" style="border-color:rgba(0,229,204,.25)">
+          <div class="ph">
+            <span class="pt" style="color:var(--tq);font-size:14px;font-weight:800;letter-spacing:1.5px">
+              💸 Remittance Calculator
+            </span>
+            <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">SWIFT vs XRP</span>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
+                  text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Send Amount (USD)</div>
+                <input id="rm-amount" type="number" placeholder="e.g. 1000"
+                  oninput="calcRemittance()"
+                  style="width:100%;background:var(--s2);border:1px solid var(--b);
+                    color:var(--br);padding:8px 10px;border-radius:5px;
+                    font-size:14px;font-family:var(--mn);outline:none">
+              </div>
+              <div>
+                <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
+                  text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Corridor</div>
+                <select id="rm-corridor" onchange="calcRemittance()"
+                  style="width:100%;background:var(--s2);border:1px solid var(--b);
+                    color:var(--br);padding:8px 10px;border-radius:5px;
+                    font-size:13px;font-family:var(--mn);outline:none;cursor:pointer">
+                  <option value="6.0">🇺🇸→🇲🇽 USA to Mexico (6%)</option>
+                  <option value="7.5">🇺🇸→🇵🇭 USA to Philippines (7.5%)</option>
+                  <option value="8.0">🇬🇧→🇳🇬 UK to Nigeria (8%)</option>
+                  <option value="5.5">🇯🇵→🇵🇭 Japan to Philippines (5.5%)</option>
+                  <option value="6.5">🇦🇺→🇵🇭 Australia to Philippines (6.5%)</option>
+                  <option value="9.0">🇺🇸→🇮🇳 USA to India (9%)</option>
+                  <option value="7.0">🇪🇺→🇲🇽 Europe to Mexico (7%)</option>
+                  <option value="5.0">🇸🇬→🌏 Singapore to SE Asia (5%)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Results grid -->
+            <div id="rm-results" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+
+                <div style="background:var(--rdd);border:1px solid rgba(255,64,96,.3);
+                  border-radius:6px;padding:10px;text-align:center">
+                  <div style="font-size:13px;font-family:var(--mn);color:var(--rd);
+                    text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">SWIFT / Traditional</div>
+                  <div style="font-size:22px;font-weight:900;font-family:var(--mn);
+                    color:var(--rd)" id="rm-swift-fee">--</div>
+                  <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:3px">fee lost</div>
+                  <div style="font-size:13px;font-family:var(--mn);color:var(--br);
+                    margin-top:6px;font-weight:700" id="rm-swift-recv">-- received</div>
+                  <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
+                    margin-top:3px">⏱ 1-5 business days</div>
+                </div>
+
+                <div style="background:var(--grd);border:1px solid rgba(72,255,130,.3);
+                  border-radius:6px;padding:10px;text-align:center">
+                  <div style="font-size:13px;font-family:var(--mn);color:var(--gr);
+                    text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">XRP / XRPL ODL</div>
+                  <div style="font-size:22px;font-weight:900;font-family:var(--mn);
+                    color:var(--gr)">$0.0002</div>
+                  <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:3px">fee lost</div>
+                  <div style="font-size:13px;font-family:var(--mn);color:var(--br);
+                    margin-top:6px;font-weight:700" id="rm-xrp-recv">-- received</div>
+                  <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
+                    margin-top:3px">⚡ 3-5 seconds</div>
+                </div>
+
+              </div>
+
+              <!-- Savings banner -->
+              <div style="background:rgba(0,229,204,.08);border:1px solid rgba(0,229,204,.3);
+                border-radius:6px;padding:10px;text-align:center">
+                <div style="font-size:13px;font-family:var(--mn);color:var(--tq);
+                  text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">XRP Saves You</div>
+                <div style="font-size:28px;font-weight:900;font-family:var(--mn);
+                  color:var(--tq)" id="rm-savings">--</div>
+                <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
+                  margin-top:3px" id="rm-xrp-needed">-- XRP needed · at live price</div>
+              </div>
+            </div>
+
+            <div style="font-size:13px;font-family:var(--mn);color:var(--tx)">
+              ⚠️ Traditional fees are averages. Actual rates vary by provider.
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -3964,6 +4058,32 @@ function updateDispIntel(d){
 // ── Practical Tools (v3.0h) ────────────────────────────────────────────────
 let currentXRPPrice = 0;
 let portfolioEntries = [];
+
+
+// ── Remittance Savings Calculator ─────────────────────────────────────────
+function calcRemittance(){
+  const amount   = parseFloat(document.getElementById("rm-amount")?.value || 0);
+  const corridor = parseFloat(document.getElementById("rm-corridor")?.value || 6.0);
+  const res      = document.getElementById("rm-results");
+  if(!amount || amount <= 0 || !res) return;
+
+  const swiftFee  = amount * (corridor / 100);
+  const swiftRecv = amount - swiftFee;
+  const xrpFee    = 0.0002;
+  const xrpRecv   = amount - xrpFee;
+  const savings   = swiftFee - xrpFee;
+  const xrpNeeded = currentXRPPrice > 0 ? (amount / currentXRPPrice).toFixed(2) : "--";
+
+  const fmt = v => "$" + v.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  c("rm-swift-fee",  fmt(swiftFee));
+  c("rm-swift-recv", fmt(swiftRecv) + " received");
+  c("rm-xrp-recv",   fmt(xrpRecv)   + " received");
+  c("rm-savings",    fmt(savings));
+  c("rm-xrp-needed", `${xrpNeeded} XRP needed · at live price`);
+
+  res.style.display = "block";
+}
 
 // ── 32. P&L Calculator ────────────────────────────────────────────────────
 function calcPL(){
