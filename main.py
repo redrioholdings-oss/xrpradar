@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.1a"
+BOT_FILE          = "XRPRadar_v3.1b"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -2056,7 +2056,7 @@ DASHBOARD = """<!DOCTYPE html>
   --mn:'Courier New',monospace
 }
 body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-height:100vh}
-.w{max-width:1320px;margin:0 auto;padding:10px 16px}
+.w{max-width:1500px;margin:0 auto;padding:10px 16px}
 /* HEADER */
 .hdr{display:flex;align-items:center;justify-content:space-between;
   margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--bl);flex-wrap:wrap;gap:6px}
@@ -2066,7 +2066,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
   display:flex;align-items:center;justify-content:center;font-size:36px;
   box-shadow:0 0 16px rgba(117,188,255,.4)}
 .title{font-size:22px;font-weight:900;color:var(--br);font-style:italic}
-.sub{font-size:12px;font-family:var(--mn);color:var(--tx);margin-top:2px;letter-spacing:1px}
+.sub{font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:2px;letter-spacing:1px}
 .hright{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .dot{width:12px;height:12px;border-radius:50%;background:var(--gr);
   box-shadow:0 0 10px var(--gr);display:inline-block;animation:blink 2s infinite}
@@ -2076,7 +2076,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
   font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
 .plive{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.4)}
 .pbl{background:var(--bld);color:var(--bl);border:1px solid rgba(117,188,255,.4)}
-.upd{font-family:var(--mn);font-size:12px;color:var(--tx)}
+.upd{font-family:var(--mn);font-size:13px;color:var(--tx)}
 /* STATUS ROW */
 .srow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
 .si{background:var(--s1);border:1px solid var(--b);border-radius:8px;
@@ -2087,19 +2087,19 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 /* ACCOUNT / MARKET OVERVIEW */
 .acct{background:var(--s1);border:1px solid rgba(117,188,255,.25);
   border-radius:10px;padding:12px;margin-bottom:10px}
-.sec-title{font-size:16px;text-transform:uppercase;letter-spacing:2px;
+.sec-title{font-size:17px;text-transform:uppercase;letter-spacing:2px;
   font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:800}
 .agrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-.abox{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:10px;text-align:center}
+.abox{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px;text-align:center}
 .abox.hi{border-color:rgba(117,188,255,.4);background:var(--bld)}
 .abox.pos{border-color:rgba(72,255,130,.3);background:var(--grd)}
 .abox.neg{border-color:rgba(255,64,96,.3);background:var(--rdd)}
 .abox.yl{border-color:rgba(255,204,0,.3);background:var(--yld)}
-.albl{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;
+.albl{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;
   font-family:var(--mn);color:var(--tx);margin-bottom:5px}
-.aval{font-size:22px;font-weight:900;font-family:var(--mn);color:var(--br);line-height:1}
+.aval{font-size:24px;font-weight:900;font-family:var(--mn);color:var(--br);line-height:1}
 .aval.g{color:var(--gr)}.aval.r{color:var(--rd)}.aval.y{color:var(--yl)}.aval.b{color:var(--bl)}
-.asub{font-size:11px;font-family:var(--mn);color:var(--tx);margin-top:4px}
+.asub{font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:4px}
 /* SLOTS — Regional Intelligence Cards */
 .slots{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
 .slot{background:var(--s1);border:1px solid var(--b);border-radius:8px;padding:12px;transition:border-color .3s}
@@ -2118,22 +2118,22 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .tqdot.gneut{background:var(--yl)}
 .tqdot.gquiet{background:#333}
 .sname{font-size:17px;font-weight:900;color:var(--br);font-family:var(--mn)}
-.sbadge{font-size:11px;font-family:var(--mn);font-weight:700;padding:3px 7px;
+.sbadge{font-size:13px;font-family:var(--mn);font-weight:700;padding:3px 7px;
   border-radius:3px;text-transform:uppercase;margin-left:auto;white-space:nowrap}
 .sbadge.bull{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.4)}
 .sbadge.bear{background:var(--rdd);color:var(--rd);border:1px solid rgba(255,64,96,.3)}
 .sbadge.neut{background:rgba(128,153,179,.08);color:var(--tx);border:1px solid var(--b)}
 .sbadge.quiet{background:rgba(128,153,179,.05);color:var(--tx);border:1px solid var(--b)}
-.sstrat{font-size:12px;font-family:var(--mn);font-weight:800;text-transform:uppercase;margin-bottom:4px;letter-spacing:.5px;color:var(--bl)}
+.sstrat{font-size:13px;font-family:var(--mn);font-weight:800;text-transform:uppercase;margin-bottom:4px;letter-spacing:.5px;color:var(--bl)}
 .swl{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:4px 0}
 .swbox{background:var(--s2);border:1px solid var(--b);border-radius:4px;padding:4px;text-align:center}
 .swval{font-size:16px;font-weight:900;font-family:var(--mn);line-height:1;color:var(--br)}
-.swlbl{font-size:10px;text-transform:uppercase;font-family:var(--mn);color:var(--tx);font-weight:700}
+.swlbl{font-size:13px;text-transform:uppercase;font-family:var(--mn);color:var(--tx);font-weight:700}
 .sact{font-family:system-ui;font-size:13px;color:var(--br);
   word-break:break-word;line-height:1.4;min-height:18px;margin-top:4px}
 .sfoot{display:flex;justify-content:space-between;margin-top:4px;
   padding-top:4px;border-top:1px solid rgba(255,255,255,.05);
-  font-family:var(--mn);font-size:11px;font-weight:600;color:var(--tx)}
+  font-family:var(--mn);font-size:13px;font-weight:600;color:var(--tx)}
 /* SCOREBOARD */
 .score{background:var(--s1);border:1px solid var(--b);border-radius:10px;
   padding:12px;margin-bottom:10px;width:100%;box-sizing:border-box}
@@ -2143,10 +2143,10 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .sbox.lc{border-color:rgba(255,64,96,.3);background:var(--rdd)}
 .sbox.bc{border-color:rgba(117,188,255,.3);background:var(--bld)}
 .sbox.yc{border-color:rgba(255,204,0,.3);background:var(--yld)}
-.snum{font-size:22px;font-weight:900;font-family:var(--mn);line-height:1}
+.snum{font-size:24px;font-weight:900;font-family:var(--mn);line-height:1}
 .snum.g{color:var(--gr)}.snum.r{color:var(--rd)}.snum.b{color:var(--bl)}.snum.y{color:var(--yl)}
-.snlbl{font-size:10px;text-transform:uppercase;font-family:var(--mn);color:var(--tx);margin-top:4px}
-.snsub{font-size:9px;font-family:var(--mn);color:var(--tx);margin-top:3px}
+.snlbl{font-size:13px;text-transform:uppercase;font-family:var(--mn);color:var(--tx);margin-top:4px}
+.snsub{font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:3px}
 .sgrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
 .wrbar{height:6px;background:var(--rdd);border-radius:3px;overflow:hidden;margin-top:10px}
 .wrfill{height:100%;background:linear-gradient(90deg,var(--gr),#00ffcc);transition:width .8s}
@@ -2155,25 +2155,25 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .panel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
 .ph{padding:8px 14px;border-bottom:1px solid var(--b);
   display:flex;justify-content:space-between;align-items:center;background:var(--s2)}
-.pt{font-size:12px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:var(--tx)}
+.pt{font-size:13px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:var(--tx)}
 .pcard{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.03)}
-.prow{display:flex;justify-content:space-between;padding:3px 0;font-family:var(--mn);font-size:12px}
+.prow{display:flex;justify-content:space-between;padding:3px 0;font-family:var(--mn);font-size:13px}
 .pk{color:var(--tx)}.pv{font-weight:700;color:var(--br)}
 .pv.g{color:var(--gr)}.pv.r{color:var(--rd)}.pv.b{color:var(--bl)}.pv.y{color:var(--yl)}
-.alog{max-height:300px;overflow-y:auto;padding:6px 14px;font-family:var(--mn);font-size:12px}
+.alog{max-height:300px;overflow-y:auto;padding:6px 14px;font-family:var(--mn);font-size:13px}
 .lr{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.02)}
-.lt{color:var(--tx);opacity:.5;font-size:10px;white-space:nowrap}
+.lt{color:var(--tx);opacity:.5;font-size:13px;white-space:nowrap}
 .lm{flex:1;color:var(--br)}
 .lm.bull{color:var(--gr)}.lm.bear{color:var(--rd)}.lm.break{color:var(--yl)}
 /* NEWS FEED */
-.nrow{display:grid;grid-template-columns:1fr 380px;gap:12px;margin-bottom:10px}
+.nrow{display:grid;grid-template-columns:1fr 420px;gap:14px;margin-bottom:10px}
 .npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
 .nfeed{max-height:520px;overflow-y:auto;padding:8px 12px}
 .ncard{background:var(--s2);border:1px solid var(--b);border-radius:6px;
   padding:9px;margin-bottom:7px;cursor:pointer;transition:border-color .2s}
 .ncard:hover{border-color:var(--bl)}
 .ncard-hdr{display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
-.nsrc{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:var(--mn)}
+.nsrc{font-size:13px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:var(--mn)}
 .nsrc.major{background:var(--bld);color:var(--bl);border:1px solid rgba(117,188,255,.3)}
 .nsrc.xrp{background:var(--bld);color:var(--bl);border:1px solid rgba(117,188,255,.4)}
 .nsrc.official{background:rgba(61,158,255,.1);color:#88aaff;border:1px solid rgba(61,158,255,.25)}
@@ -2184,18 +2184,18 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .nsrc.mainstream{background:rgba(61,158,255,.08);color:#99bbff;border:1px solid rgba(61,158,255,.2)}
 .nsrc.institutional{background:var(--yld);color:var(--yl);border:1px solid rgba(255,204,0,.2)}
 .nsrc.whale{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.3)}
-.ncat{font-size:10px;color:var(--tx);background:var(--s1);padding:2px 5px;border-radius:3px;font-family:var(--mn)}
-.nbreak{font-size:10px;color:var(--yl);font-weight:700;font-family:var(--mn)}
+.ncat{font-size:13px;color:var(--tx);background:var(--s1);padding:2px 5px;border-radius:3px;font-family:var(--mn)}
+.nbreak{font-size:13px;color:var(--yl);font-weight:700;font-family:var(--mn)}
 .ntitle{font-size:14px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:5px}
-.ntrans{font-size:12px;color:var(--tq);font-family:system-ui;margin-bottom:5px;font-style:italic;padding:4px 8px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:3px}
-.nsum{font-size:12px;color:var(--br);line-height:1.7;margin-bottom:6px}
+.ntrans{font-size:13px;color:var(--tq);font-family:system-ui;margin-bottom:5px;font-style:italic;padding:4px 8px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:3px}
+.nsum{font-size:13px;color:var(--br);line-height:1.7;margin-bottom:6px}
 .nfoot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.nsent{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:var(--mn)}
+.nsent{font-size:13px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:var(--mn)}
 .nsent.bull{background:var(--grd);color:var(--gr);border:1px solid rgba(72,255,130,.3)}
 .nsent.bear{background:var(--rdd);color:var(--rd);border:1px solid rgba(255,64,96,.2)}
 .nsent.neut{background:rgba(128,153,179,.08);color:var(--tx);border:1px solid var(--b)}
-.nage{font-size:10px;color:var(--b);margin-left:auto;font-family:var(--mn)}
-.ncount{font-size:12px;color:var(--tx);padding:6px 12px 8px;font-family:var(--mn)}
+.nage{font-size:13px;color:var(--b);margin-left:auto;font-family:var(--mn)}
+.ncount{font-size:13px;color:var(--tx);padding:6px 12px 8px;font-family:var(--mn)}
 /* SEARCH + FILTERS */
 .nctrl{padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);display:flex;flex-direction:column;gap:6px}
 .nsearch{width:100%;background:var(--bg);border:1px solid var(--b);color:var(--br);
@@ -2203,13 +2203,13 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .nsearch:focus{border-color:var(--bl)}
 .nbtns{display:flex;gap:5px;flex-wrap:nowrap}
 .nbtn{background:var(--s2);border:1px solid var(--b);color:var(--br);
-  padding:7px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;
+  padding:7px 14px;border-radius:5px;cursor:pointer;font-size:13px;font-weight:700;
   font-family:var(--mn);letter-spacing:.05em;text-transform:uppercase;transition:all .2s;white-space:nowrap}
 .nbtn:hover,.nbtn.on{background:var(--bld);border-color:var(--bl);color:var(--bl)}
 /* RIGHT PANEL */
 .rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;min-width:0}
 .rcard{padding:10px 14px;border-bottom:1px solid var(--b);font-size:13px;font-family:var(--mn)}
-.rtitle{font-size:12px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:700}
+.rtitle{font-size:13px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:700}
 .rrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;align-items:center;min-height:24px}
 .rk{color:#ffffff;font-family:var(--mn);font-size:13px;white-space:nowrap}.rv{color:var(--br);font-weight:700;font-family:var(--mn);font-size:13px;text-align:right}
 .rv.g{color:var(--gr)}.rv.b{color:var(--bl)}.rv.r{color:var(--rd)}.rv.y{color:var(--yl)}
@@ -2217,10 +2217,10 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .lbpair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .lbrow{display:grid;grid-template-columns:24px 1fr 60px 60px;
   gap:6px;align-items:center;padding:5px 10px;
-  border-bottom:1px solid rgba(255,255,255,.03);font-family:var(--mn);font-size:11px}
-.lbrow.hdr{background:var(--s2);font-size:10px;color:var(--tx);
+  border-bottom:1px solid rgba(255,255,255,.03);font-family:var(--mn);font-size:13px}
+.lbrow.hdr{background:var(--s2);font-size:13px;color:var(--tx);
   text-transform:uppercase;border-bottom:1px solid var(--b)}
-.rank{font-weight:900;text-align:center;font-size:12px}
+.rank{font-weight:900;text-align:center;font-size:13px}
 .r1{color:#ffd700}.r2{color:#c0c0c0}.r3{color:#cd7f32}.rn{color:var(--or)}
 /* ANALYTICS LAB */
 .lab{background:var(--s1);border:1px solid rgba(0,229,204,.2);
@@ -2231,12 +2231,12 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
   text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;
   padding-bottom:6px;border-bottom:1px solid var(--b)}
 .bstat{display:flex;justify-content:space-between;padding:4px 0;
-  border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mn);font-size:12px}
+  border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mn);font-size:13px}
 .bk{color:var(--tx)}.bv{font-weight:700;color:var(--br)}
 .bv.g{color:var(--gr)}.bv.r{color:var(--rd)}.bv.b{color:var(--bl)}.bv.y{color:var(--yl)}
 /* SIGNAL CHIPS */
 .sig-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.sig-chip{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--br);
+.sig-chip{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--br);
   background:var(--s2);padding:4px 8px;border-radius:4px;border:1px solid var(--b);font-family:var(--mn)}
 .sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .sdot.g{background:var(--gr)}.sdot.r{background:var(--rd)}
@@ -2244,11 +2244,11 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 /* BREAKING NEWS */
 #breaking{background:var(--s1);border-bottom:1px solid var(--b);
   padding:5px 0;display:none;align-items:center;overflow:hidden}
-.bkinner{max-width:1100px;margin:0 auto;padding:0 12px;display:flex;align-items:center;width:100%}
-.bklbl{color:var(--br);font-weight:700;font-size:10px;font-family:var(--mn);
+.bkinner{max-width:1500px;margin:0 auto;padding:0 12px;display:flex;align-items:center;width:100%}
+.bklbl{color:var(--br);font-weight:700;font-size:13px;font-family:var(--mn);
   flex-shrink:0;padding-right:12px;border-right:1px solid var(--b);margin-right:12px;letter-spacing:.08em}
 .bkscroll{flex:1;overflow:hidden;height:18px;position:relative}
-.bktext{color:var(--tx);font-size:11px;font-family:var(--mn);white-space:nowrap;
+.bktext{color:var(--tx);font-size:13px;font-family:var(--mn);white-space:nowrap;
   position:absolute;animation:marquee 40s linear infinite}
 @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 /* STORY POPUP */
@@ -2264,13 +2264,13 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .modal-x:hover{background:var(--bl);color:#000}
 .modal-ttl{color:var(--bl);font-size:13px;font-weight:700;flex:1;line-height:1.5;font-family:var(--mn)}
 .modal-body{padding:14px 16px;flex:1}
-.modal-trans{color:var(--tq);font-size:12px;line-height:1.6;margin-bottom:12px;
+.modal-trans{color:var(--tq);font-size:13px;line-height:1.6;margin-bottom:12px;
   padding:8px 12px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:3px;font-family:var(--mn)}
-.modal-translbl{font-size:10px;color:var(--tx);margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mn)}
-.modal-sum{color:var(--br);font-size:12px;line-height:1.8;margin-bottom:12px}
-.modal-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;font-family:var(--mn)}
+.modal-translbl{font-size:13px;color:var(--tx);margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mn)}
+.modal-sum{color:var(--br);font-size:13px;line-height:1.8;margin-bottom:12px}
+.modal-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:13px;font-family:var(--mn)}
 .modal-btn{display:block;width:100%;background:var(--bld);color:var(--bl);
-  font-weight:700;font-size:12px;padding:10px;border-radius:6px;cursor:pointer;
+  font-weight:700;font-size:13px;padding:10px;border-radius:6px;cursor:pointer;
   border:1px solid var(--bl);text-align:center;transition:all .2s;text-decoration:none;font-family:var(--mn)}
 .modal-btn:hover{background:var(--bl);color:#000}
 
@@ -2281,13 +2281,13 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
   max-width:560px;width:100%;padding:0;overflow:hidden}
 #pf-hdr{padding:10px 16px;background:var(--s2);border-bottom:1px solid var(--b);
   display:flex;justify-content:space-between;align-items:center;font-family:var(--mn)}
-#pf-body{padding:16px;font-family:var(--mn);font-size:12px;line-height:2.2}
+#pf-body{padding:16px;font-family:var(--mn);font-size:13px;line-height:2.2}
 
 /* FOOTER */
 footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
-  font-family:var(--mn);font-size:11px;color:var(--tx);line-height:2.2}
+  font-family:var(--mn);font-size:13px;color:var(--tx);line-height:2.2}
 .warn{color:rgba(255,204,0,.4)}
-.empty{padding:14px;font-family:var(--mn);font-size:11px;color:var(--tx);text-align:center}
+.empty{padding:14px;font-family:var(--mn);font-size:13px;color:var(--tx);text-align:center}
 .file-tag{display:inline-block;padding:2px 7px;border-radius:3px;
   background:rgba(117,188,255,.08);color:var(--bl);font-weight:700;
   border:1px solid rgba(117,188,255,.3);margin-left:6px;font-family:var(--mn)}
@@ -2310,7 +2310,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
     <div>
       <div class="title">XRPRadar</div>
       <div class="sub" style="font-size:13px;color:#ffffff;letter-spacing:1.5px">Signals Over Noise 24/7</div>
-      <div class="sub" style="font-size:11px;color:var(--gr);letter-spacing:1px">● 230 Sources Live</div>
+      <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">● 230 Sources Live</div>
     </div>
   </div>
   <div class="hright">
@@ -2397,16 +2397,16 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
       <!-- 1H RSI -->
       <div style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-size:11px;font-family:var(--mn);color:var(--tx)">1H RSI</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">1H RSI</span>
           <span style="font-size:13px;font-weight:700;font-family:var(--mn)" id="rsi-1h-val">--</span>
-          <span style="font-size:11px;font-family:var(--mn)" id="rsi-1h-lbl" style="color:var(--tx)">--</span>
+          <span style="font-size:13px;font-family:var(--mn)" id="rsi-1h-lbl" style="color:var(--tx)">--</span>
         </div>
         <div style="height:10px;background:var(--s2);border-radius:5px;overflow:hidden;border:1px solid var(--b);position:relative">
           <div style="position:absolute;top:0;bottom:0;left:30%;width:1px;background:rgba(255,255,255,.1)"></div>
           <div style="position:absolute;top:0;bottom:0;left:70%;width:1px;background:rgba(255,255,255,.1)"></div>
           <div id="rsi-1h-bar" style="height:100%;width:50%;border-radius:5px;transition:all .6s;background:var(--tx)"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:2px">
           <span>0 — Oversold</span><span>30</span><span>50</span><span>70</span><span>Overbought — 100</span>
         </div>
       </div>
@@ -2414,16 +2414,16 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
       <!-- 1D RSI -->
       <div>
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-size:11px;font-family:var(--mn);color:var(--tx)">1D RSI</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">1D RSI</span>
           <span style="font-size:13px;font-weight:700;font-family:var(--mn)" id="rsi-1d-val">--</span>
-          <span style="font-size:11px;font-family:var(--mn)" id="rsi-1d-lbl">--</span>
+          <span style="font-size:13px;font-family:var(--mn)" id="rsi-1d-lbl">--</span>
         </div>
         <div style="height:10px;background:var(--s2);border-radius:5px;overflow:hidden;border:1px solid var(--b);position:relative">
           <div style="position:absolute;top:0;bottom:0;left:30%;width:1px;background:rgba(255,255,255,.1)"></div>
           <div style="position:absolute;top:0;bottom:0;left:70%;width:1px;background:rgba(255,255,255,.1)"></div>
           <div id="rsi-1d-bar" style="height:100%;width:50%;border-radius:5px;transition:all .6s;background:var(--tx)"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:2px">
           <span>0 — Oversold</span><span>30</span><span>50</span><span>70</span><span>Overbought — 100</span>
         </div>
       </div>
@@ -2432,7 +2432,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
     <!-- 52-Week Range Panel -->
     <div class="acct" style="border-color:rgba(255,204,0,.2);margin-bottom:0">
       <div class="sec-title" style="color:var(--yl)">📅 52-Week Range</div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-family:var(--mn);font-size:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-family:var(--mn);font-size:13px">
         <span>Low: <strong id="w52-low" style="color:var(--rd)">--</strong></span>
         <span style="color:var(--tx)">Current: <strong id="w52-cur" style="color:var(--br)">--</strong></span>
         <span>High: <strong id="w52-high" style="color:var(--gr)">--</strong></span>
@@ -2440,7 +2440,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
       <div style="height:14px;background:linear-gradient(90deg,var(--rd),var(--yl),var(--gr));border-radius:7px;position:relative;border:1px solid var(--b)">
         <div id="w52-needle" style="position:absolute;top:-4px;width:6px;height:22px;background:var(--br);border-radius:3px;border:2px solid var(--bg);transition:left .6s;transform:translateX(-50%)"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--mn);font-size:11px">
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--mn);font-size:13px">
         <span style="color:var(--tx)">From low: <strong id="w52-from-low" style="color:var(--gr)">--</strong></span>
         <span style="color:var(--tx)">Position: <strong id="w52-pos" style="color:var(--yl)">--%</strong></span>
         <span style="color:var(--tx)">From high: <strong id="w52-from-high" style="color:var(--rd)">--</strong></span>
@@ -2474,8 +2474,8 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         </div>
       </div>
       <div style="margin-top:10px;padding:8px 10px;background:var(--s2);border-radius:6px;border:1px solid var(--b)">
-        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Today vs 1 Year Ago</div>
-        <div id="pt-narrative" style="font-size:12px;color:var(--br);line-height:1.6;font-family:system-ui">Loading...</div>
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Today vs 1 Year Ago</div>
+        <div id="pt-narrative" style="font-size:13px;color:var(--br);line-height:1.6;font-family:system-ui">Loading...</div>
       </div>
     </div>
   </div>
@@ -2524,7 +2524,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
       <div class="abox" id="oc-flow-box">
         <div class="albl">Exchange Flow</div>
         <div class="aval" style="font-size:16px" id="oc-flow">--</div>
-        <div class="asub" id="oc-flow-note" style="font-size:10px;line-height:1.4">--</div>
+        <div class="asub" id="oc-flow-note" style="font-size:13px;line-height:1.4">--</div>
       </div>
 
       <div class="abox pos" style="grid-column:span 2">
@@ -2546,7 +2546,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
   <div class="panel" style="border-color:rgba(255,204,0,.25)">
     <div class="ph">
       <span class="pt" style="color:var(--yl);font-size:16px;font-weight:800;letter-spacing:2px">🐋 Whale Alert Feed</span>
-      <span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="oc-whale-ts">--</span>
+      <span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="oc-whale-ts">--</span>
     </div>
     <div id="oc-whale-feed" style="padding:8px 12px;max-height:220px;overflow-y:auto;overflow-x:hidden">
       <div class="empty">Loading whale data...</div>
@@ -2564,16 +2564,16 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 <!-- SECTION 5: US + GLOBAL INTELLIGENCE (2-column panel) -->
 <div class="two">
   <div class="panel" id="ai-briefing-us">
-    <div class="ph"><span class="pt" style="color:var(--bl);font-size:16px;font-weight:800;letter-spacing:2px">🇺🇸 US Intelligence</span><span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="ai-us-ts">--</span></div>
-    <div class="pcard"><div class="albl" style="margin-bottom:4px">US Pulse</div><div class="pv" id="ai-us-pulse" style="font-size:12px;line-height:1.7;font-family:system-ui">Fetching US intelligence...</div></div>
-    <div class="pcard"><div class="albl" style="margin-bottom:4px">Regulatory</div><div class="pv" id="ai-us-reg" style="font-size:12px;line-height:1.7;font-family:system-ui">Loading...</div></div>
-    <div class="pcard"><div class="albl" style="margin-bottom:4px">Institutional</div><div class="pv" id="ai-us-inst" style="font-size:12px;line-height:1.7;font-family:system-ui">Loading...</div></div>
+    <div class="ph"><span class="pt" style="color:var(--bl);font-size:16px;font-weight:800;letter-spacing:2px">🇺🇸 US Intelligence</span><span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="ai-us-ts">--</span></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">US Pulse</div><div class="pv" id="ai-us-pulse" style="font-size:13px;line-height:1.7;font-family:system-ui">Fetching US intelligence...</div></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">Regulatory</div><div class="pv" id="ai-us-reg" style="font-size:13px;line-height:1.7;font-family:system-ui">Loading...</div></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">Institutional</div><div class="pv" id="ai-us-inst" style="font-size:13px;line-height:1.7;font-family:system-ui">Loading...</div></div>
   </div>
   <div class="panel">
-    <div class="ph"><span class="pt" style="color:var(--gr);font-size:16px;font-weight:800;letter-spacing:2px">🌐 Global Pulse</span><span style="font-size:10px;font-family:var(--mn);color:var(--tx)" id="ai-gl-ts">--</span></div>
-    <div class="pcard"><div class="albl" style="margin-bottom:4px">Global Summary</div><div class="pv g" id="ai-gl-pulse" style="font-size:12px;line-height:1.7;font-family:system-ui">Synthesizing global signals...</div></div>
+    <div class="ph"><span class="pt" style="color:var(--gr);font-size:16px;font-weight:800;letter-spacing:2px">🌐 Global Pulse</span><span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="ai-gl-ts">--</span></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">Global Summary</div><div class="pv g" id="ai-gl-pulse" style="font-size:13px;line-height:1.7;font-family:system-ui">Synthesizing global signals...</div></div>
     <div class="pcard"><div class="albl" style="margin-bottom:4px">Regional Signals</div><div id="ai-signals" class="sig-chips"><span class="empty">Loading...</span></div></div>
-    <div class="pcard"><div class="albl" style="margin-bottom:4px">Cumulative Thesis</div><div style="font-size:12px;line-height:1.7;color:var(--gr);font-family:system-ui" id="ai-gl-thesis">Building analysis...</div></div>
+    <div class="pcard"><div class="albl" style="margin-bottom:4px">Cumulative Thesis</div><div style="font-size:13px;line-height:1.7;color:var(--gr);font-family:system-ui" id="ai-gl-thesis">Building analysis...</div></div>
   </div>
 </div>
 
@@ -2711,20 +2711,20 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         <div>
           <div style="font-size:18px;font-weight:900;color:#fff;font-family:var(--mn);
             text-transform:uppercase;letter-spacing:2px">XRP Intelligence Brief</div>
-          <div style="font-size:11px;font-family:var(--mn);color:var(--or);margin-top:2px">
+          <div style="font-size:13px;font-family:var(--mn);color:var(--or);margin-top:2px">
             AI-powered daily analysis · Cross-feed connection mapping · Domino effect projections
           </div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div id="pred-status-badge" style="font-size:10px;font-family:var(--mn);
+        <div id="pred-status-badge" style="font-size:13px;font-family:var(--mn);
           font-weight:700;padding:4px 12px;border-radius:4px;
           background:rgba(128,153,179,.1);color:var(--tx);
           border:1px solid var(--b)">PENDING</div>
         <button onclick="triggerBrief()"
           style="background:rgba(255,153,0,.12);border:1px solid rgba(255,153,0,.4);
             color:var(--or);padding:5px 14px;border-radius:5px;cursor:pointer;
-            font-family:var(--mn);font-size:10px;font-weight:700;
+            font-family:var(--mn);font-size:13px;font-weight:700;
             text-transform:uppercase;letter-spacing:.05em;transition:all .2s"
           onmouseover="this.style.background='rgba(255,153,0,.25)'"
           onmouseout="this.style.background='rgba(255,153,0,.12)'">
@@ -2735,7 +2735,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
     <!-- Meta row -->
     <div style="padding:8px 18px;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(255,255,255,.04);
-      display:flex;gap:20px;flex-wrap:wrap;font-family:var(--mn);font-size:10px;color:var(--tx)">
+      display:flex;gap:20px;flex-wrap:wrap;font-family:var(--mn);font-size:13px;color:var(--tx)">
       <span>📅 Generated: <span id="pred-generated" style="color:var(--br)">--</span></span>
       <span>📰 Stories analyzed: <span id="pred-story-count" style="color:var(--br)">--</span></span>
       <span>📡 Sources: <span id="pred-src-count" style="color:var(--br)">--</span></span>
@@ -2750,7 +2750,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         font-family:var(--mn);color:var(--tx)">
         <div style="font-size:32px;margin-bottom:10px">🔮</div>
         <div style="font-size:13px">Brief pending — generates daily at 11:50 AM CST</div>
-        <div style="font-size:11px;margin-top:6px;color:var(--tx)">
+        <div style="font-size:13px;margin-top:6px;color:var(--tx)">
           Or click <strong style="color:var(--or)">GENERATE NOW</strong> to run immediately
           (requires ANTHROPIC_API_KEY in Railway)
         </div>
@@ -2763,7 +2763,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         <!-- Market Pulse -->
         <div style="background:rgba(117,188,255,.04);border:1px solid rgba(117,188,255,.2);
           border-radius:8px;padding:14px">
-          <div style="font-size:11px;font-weight:700;color:var(--bl);font-family:var(--mn);
+          <div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn);
             text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
             📊 Market Pulse
           </div>
@@ -2774,7 +2774,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         <!-- Story Connections -->
         <div style="background:rgba(0,229,204,.04);border:1px solid rgba(0,229,204,.2);
           border-radius:8px;padding:14px">
-          <div style="font-size:11px;font-weight:700;color:var(--tq);font-family:var(--mn);
+          <div style="font-size:13px;font-weight:700;color:var(--tq);font-family:var(--mn);
             text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
             🔗 Story Connections
           </div>
@@ -2785,7 +2785,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         <!-- Domino Effect — full width -->
         <div style="grid-column:1/-1;background:rgba(255,153,0,.05);
           border:1px solid rgba(255,153,0,.25);border-radius:8px;padding:14px">
-          <div style="font-size:11px;font-weight:700;color:var(--or);font-family:var(--mn);
+          <div style="font-size:13px;font-weight:700;color:var(--or);font-family:var(--mn);
             text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
             🌊 Domino Effect — Cause &amp; Consequence Chains
           </div>
@@ -2796,7 +2796,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         <!-- Regional Flashpoints -->
         <div style="background:rgba(72,255,130,.04);border:1px solid rgba(72,255,130,.2);
           border-radius:8px;padding:14px">
-          <div style="font-size:11px;font-weight:700;color:var(--gr);font-family:var(--mn);
+          <div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);
             text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
             🌍 Regional Flashpoints
           </div>
@@ -2807,7 +2807,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         <!-- Watchlist -->
         <div style="background:rgba(255,204,0,.04);border:1px solid rgba(255,204,0,.2);
           border-radius:8px;padding:14px">
-          <div style="font-size:11px;font-weight:700;color:var(--yl);font-family:var(--mn);
+          <div style="font-size:13px;font-weight:700;color:var(--yl);font-family:var(--mn);
             text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
             👁️ 24-72h Watchlist
           </div>
@@ -2821,7 +2821,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
     <!-- Disclaimer -->
     <div style="padding:10px 18px;background:rgba(255,204,0,.04);
       border-top:1px solid rgba(255,204,0,.15);
-      font-size:11px;font-family:system-ui;color:var(--tx);line-height:1.7">
+      font-size:13px;font-family:system-ui;color:var(--tx);line-height:1.7">
       ⚠️ <strong style="color:var(--yl)">DISCLAIMER:</strong>
       This Intelligence Brief is generated by AI and is
       <strong style="color:var(--yl)">purely speculative and not financial advice.</strong>
@@ -2850,7 +2850,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
           <div style="font-size:52px;font-weight:900;font-family:var(--mn);line-height:1"
             id="sm-score">--</div>
-          <div style="font-size:12px;font-family:var(--mn);color:var(--tx)">/100</div>
+          <div style="font-size:13px;font-family:var(--mn);color:var(--tx)">/100</div>
         </div>
         <div style="font-size:13px;font-weight:700;margin-bottom:10px" id="sm-label">--</div>
         <!-- Score bar -->
@@ -2858,18 +2858,18 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
           <div id="sm-bar" style="height:100%;border-radius:4px;transition:width .8s;width:0%"></div>
         </div>
         <!-- Signal breakdown -->
-        <div id="sm-signals" style="font-size:11px;font-family:var(--mn)"></div>
+        <div id="sm-signals" style="font-size:13px;font-family:var(--mn)"></div>
       </div>
 
       <!-- 39. Fear & Greed 30-Day History Chart -->
       <div class="abox" style="text-align:left;padding:14px">
         <div class="albl" style="margin-bottom:8px">😱 Fear &amp; Greed Index — 30 Day History</div>
         <div style="display:flex;align-items:flex-end;gap:2px;height:80px" id="fg-history-chart"></div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;
+        <div style="display:flex;justify-content:space-between;font-size:13px;
           font-family:var(--mn);color:var(--tx);margin-top:4px">
           <span>30 days ago</span><span>20 days ago</span><span>10 days ago</span><span>today</span>
         </div>
-        <div style="display:flex;gap:14px;margin-top:8px;font-size:10px;font-family:var(--mn)">
+        <div style="display:flex;gap:14px;margin-top:8px;font-size:13px;font-family:var(--mn)">
           <span style="color:var(--rd)">■ Extreme Fear (0-25)</span>
           <span style="color:var(--or)">■ Fear (25-45)</span>
           <span style="color:var(--yl)">■ Neutral (45-55)</span>
@@ -2881,23 +2881,23 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
     <!-- 36. Price History Heatmap -->
     <div style="margin-bottom:14px">
-      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
         letter-spacing:1.5px;margin-bottom:8px">
         🌡️ 90-Day Price Performance Heatmap
-        <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;
+        <span style="font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;
           margin-left:10px;color:var(--tx)">Darker green = stronger gain · Darker red = stronger loss</span>
       </div>
       <!-- Day labels -->
       <div style="display:flex;gap:2px;margin-bottom:4px">
         <div style="width:24px;flex-shrink:0"></div>
         <div style="display:flex;gap:2px;flex:1">
-          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Mon</div>
-          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Tue</div>
-          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Wed</div>
-          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Thu</div>
-          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Fri</div>
-          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Sat</div>
-          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Sun</div>
+          <div style="flex:1;text-align:center;font-size:13px;font-family:var(--mn);color:var(--tx)">Mon</div>
+          <div style="flex:1;text-align:center;font-size:13px;font-family:var(--mn);color:var(--tx)">Tue</div>
+          <div style="flex:1;text-align:center;font-size:13px;font-family:var(--mn);color:var(--tx)">Wed</div>
+          <div style="flex:1;text-align:center;font-size:13px;font-family:var(--mn);color:var(--tx)">Thu</div>
+          <div style="flex:1;text-align:center;font-size:13px;font-family:var(--mn);color:var(--tx)">Fri</div>
+          <div style="flex:1;text-align:center;font-size:13px;font-family:var(--mn);color:var(--tx)">Sat</div>
+          <div style="flex:1;text-align:center;font-size:13px;font-family:var(--mn);color:var(--tx)">Sun</div>
         </div>
       </div>
       <div id="heatmap-grid" style="display:flex;flex-direction:column;gap:2px"></div>
@@ -2905,7 +2905,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
     <!-- 37. Regional Activity Heatmap -->
     <div>
-      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
         letter-spacing:1.5px;margin-bottom:8px">
         🗺️ Regional News Activity Heatmap — Stories by Region Today
       </div>
@@ -2936,7 +2936,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
               <div>
-                <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+                <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
                   text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Buy Price (USD)</div>
                 <input id="pl-buy" type="number" step="0.0001" placeholder="e.g. 0.50"
                   oninput="calcPL()"
@@ -2945,7 +2945,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
                     font-size:14px;font-family:var(--mn);outline:none">
               </div>
               <div>
-                <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+                <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
                   text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Quantity (XRP)</div>
                 <input id="pl-qty" type="number" step="1" placeholder="e.g. 10000"
                   oninput="calcPL()"
@@ -2956,7 +2956,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
             </div>
 
             <div>
-              <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+              <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
                 text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">
                 Sell / Target Price (USD)
                 <span style="color:var(--tq);cursor:pointer;margin-left:6px"
@@ -2973,7 +2973,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
             <!-- Results -->
             <div id="pl-results" style="background:var(--s2);border:1px solid var(--b);
-              border-radius:6px;padding:10px;font-family:var(--mn);font-size:12px;
+              border-radius:6px;padding:10px;font-family:var(--mn);font-size:13px;
               display:none">
               <div style="display:flex;justify-content:space-between;padding:4px 0;
                 border-bottom:1px solid rgba(255,255,255,.05)">
@@ -2995,7 +2995,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
                 <span id="pl-pct" style="font-weight:700;font-size:18px">--</span>
               </div>
             </div>
-            <div style="font-size:10px;font-family:var(--mn);color:var(--tx)">
+            <div style="font-size:13px;font-family:var(--mn);color:var(--tx)">
               ⚠️ Not financial advice. For informational purposes only.
             </div>
           </div>
@@ -3007,7 +3007,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
             <span class="pt" style="color:var(--tq);font-size:14px;font-weight:800;letter-spacing:1.5px">
               💱 XRP Price — Multi-Currency
             </span>
-            <span id="fx-ts" style="font-size:10px;font-family:var(--mn);color:var(--tx)">--</span>
+            <span id="fx-ts" style="font-size:13px;font-family:var(--mn);color:var(--tx)">--</span>
           </div>
           <div id="fx-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:12px">
             <div class="abox hi">
@@ -3061,25 +3061,25 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
             </span>
           </div>
           <div style="padding:14px">
-            <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+            <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
               text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Enter XRPL Address</div>
             <div style="display:flex;gap:6px;margin-bottom:10px">
               <input id="wallet-addr" type="text" placeholder="r..."
                 style="flex:1;background:var(--s2);border:1px solid var(--b);
                   color:var(--br);padding:8px 10px;border-radius:5px;
-                  font-size:12px;font-family:var(--mn);outline:none"
+                  font-size:13px;font-family:var(--mn);outline:none"
                 onkeydown="if(event.key==='Enter')checkWallet()">
               <button onclick="checkWallet()"
                 style="background:var(--bld);border:1px solid var(--bl);color:var(--bl);
                   padding:8px 14px;border-radius:5px;cursor:pointer;
-                  font-family:var(--mn);font-size:11px;font-weight:700;
+                  font-family:var(--mn);font-size:13px;font-weight:700;
                   text-transform:uppercase;transition:all .2s"
                 onmouseover="this.style.background='var(--bl)';this.style.color='#000'"
                 onmouseout="this.style.background='var(--bld)';this.style.color='var(--bl)'">
                 CHECK
               </button>
             </div>
-            <div id="wallet-result" style="font-family:var(--mn);font-size:12px">
+            <div id="wallet-result" style="font-family:var(--mn);font-size:13px">
               <div style="color:var(--tx)">Enter any XRPL address to see live balance and USD value.</div>
             </div>
           </div>
@@ -3091,27 +3091,27 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
             <span class="pt" style="color:var(--gr);font-size:14px;font-weight:800;letter-spacing:1.5px">
               📈 Portfolio Tracker
             </span>
-            <span style="font-size:10px;font-family:var(--mn);color:var(--tx)">Session only</span>
+            <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">Session only</span>
           </div>
           <div style="padding:12px">
             <!-- Add position row -->
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:8px">
               <input id="pt-label" type="text" placeholder="Label (e.g. Wallet 1)"
                 style="background:var(--s2);border:1px solid var(--b);color:var(--br);
-                  padding:6px 8px;border-radius:4px;font-size:11px;
+                  padding:6px 8px;border-radius:4px;font-size:13px;
                   font-family:var(--mn);outline:none">
               <input id="pt-amount" type="number" placeholder="XRP amount"
                 style="background:var(--s2);border:1px solid var(--b);color:var(--br);
-                  padding:6px 8px;border-radius:4px;font-size:11px;
+                  padding:6px 8px;border-radius:4px;font-size:13px;
                   font-family:var(--mn);outline:none">
               <input id="pt-cost" type="number" placeholder="Avg buy price"
                 style="background:var(--s2);border:1px solid var(--b);color:var(--br);
-                  padding:6px 8px;border-radius:4px;font-size:11px;
+                  padding:6px 8px;border-radius:4px;font-size:13px;
                   font-family:var(--mn);outline:none">
               <button onclick="addPortfolioEntry()"
                 style="background:var(--grd);border:1px solid var(--gr);color:var(--gr);
                   padding:6px 10px;border-radius:4px;cursor:pointer;
-                  font-family:var(--mn);font-size:11px;font-weight:700">
+                  font-family:var(--mn);font-size:13px;font-weight:700">
                 + ADD
               </button>
             </div>
@@ -3120,7 +3120,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
             <!-- Portfolio totals -->
             <div id="portfolio-totals" style="display:none;background:var(--s2);
               border:1px solid var(--b);border-radius:6px;padding:10px;
-              font-family:var(--mn);font-size:12px">
+              font-family:var(--mn);font-size:13px">
               <div style="display:flex;justify-content:space-between;padding:3px 0">
                 <span style="color:var(--tx)">Total XRP</span>
                 <span id="pt-total-xrp" style="color:var(--br);font-weight:700">--</span>
@@ -3134,7 +3134,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
                 <span id="pt-total-pl" style="font-weight:700;font-size:14px">--</span>
               </div>
             </div>
-            <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:6px">
+            <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:6px">
               ⚠️ Session only — entries clear on page refresh. Not financial advice.
             </div>
           </div>
@@ -3163,7 +3163,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
           <div id="sg-trend-bar" style="height:100%;background:var(--yl);border-radius:3px;
             transition:width .8s;width:0%"></div>
         </div>
-        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:6px" id="sg-trend-kw"></div>
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:6px" id="sg-trend-kw"></div>
       </div>
 
       <!-- News Velocity — 24h bar chart -->
@@ -3171,7 +3171,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
         <div class="albl">📰 News Velocity — Stories per Hour (24h)</div>
         <div id="sg-velocity-chart" style="display:flex;align-items:flex-end;gap:2px;
           height:60px;margin-top:8px"></div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;
+        <div style="display:flex;justify-content:space-between;font-size:13px;
           font-family:var(--mn);color:var(--tx);margin-top:4px">
           <span id="sg-vel-oldest">24h ago</span>
           <span>12h ago</span>
@@ -3182,14 +3182,14 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
     <!-- 28. 30-Day Sentiment Trend Chart -->
     <div style="margin-bottom:14px">
-      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
         letter-spacing:1.5px;margin-bottom:8px">📈 30-Day Sentiment Trend</div>
       <div id="sg-daily-chart" style="display:flex;align-items:flex-end;gap:2px;height:80px"></div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;
+      <div style="display:flex;justify-content:space-between;font-size:13px;
         font-family:var(--mn);color:var(--tx);margin-top:4px" id="sg-daily-labels">
         <span>30d ago</span><span>20d ago</span><span>10d ago</span><span>today</span>
       </div>
-      <div style="display:flex;gap:12px;margin-top:6px;font-size:10px;font-family:var(--mn)">
+      <div style="display:flex;gap:12px;margin-top:6px;font-size:13px;font-family:var(--mn)">
         <span><span style="color:var(--gr)">■</span> Bullish</span>
         <span><span style="color:var(--rd)">■</span> Bearish</span>
         <span><span style="color:var(--tx)">■</span> Neutral</span>
@@ -3198,25 +3198,25 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
     <!-- 30. Source Leaderboard -->
     <div>
-      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
         letter-spacing:1.5px;margin-bottom:8px">🏆 Source Leaderboard — Most Active (Today)</div>
       <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:11px">
+        <table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:13px">
           <thead>
             <tr style="background:var(--s2);border-bottom:1px solid var(--b)">
-              <th style="padding:5px 8px;text-align:left;color:var(--tx);font-size:10px;
+              <th style="padding:5px 8px;text-align:left;color:var(--tx);font-size:13px;
                 text-transform:uppercase;letter-spacing:1px;width:24px">#</th>
-              <th style="padding:5px 8px;text-align:left;color:var(--tx);font-size:10px;
+              <th style="padding:5px 8px;text-align:left;color:var(--tx);font-size:13px;
                 text-transform:uppercase;letter-spacing:1px">Source</th>
-              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:10px;
+              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:13px;
                 text-transform:uppercase;letter-spacing:1px">Stories</th>
-              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:10px;
+              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:13px;
                 text-transform:uppercase;letter-spacing:1px">🟢 Bull</th>
-              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:10px;
+              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:13px;
                 text-transform:uppercase;letter-spacing:1px">🔴 Bear</th>
-              <th style="padding:5px 8px;text-align:left;color:var(--tx);font-size:10px;
+              <th style="padding:5px 8px;text-align:left;color:var(--tx);font-size:13px;
                 text-transform:uppercase;letter-spacing:1px">Sentiment Bar</th>
-              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:10px;
+              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:13px;
                 text-transform:uppercase;letter-spacing:1px">⚡ Breaking</th>
             </tr>
           </thead>
@@ -3235,18 +3235,18 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
   <div class="score" style="margin-bottom:10px">
     <div class="sec-title" style="color:var(--bl)">⚔️ Competitive Intelligence</div>
 
-    <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+    <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
       letter-spacing:1.5px;margin-bottom:8px">📊 XRP vs Major Competitors — Live Performance</div>
     <div id="comp-vs-table" style="overflow-x:auto;margin-bottom:14px">
-      <table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:12px">
+      <table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:13px">
         <thead>
           <tr style="background:var(--s2);border-bottom:1px solid var(--b)">
-            <th style="padding:8px 12px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Asset</th>
-            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Price</th>
-            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">24h %</th>
-            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">7d %</th>
-            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Market Cap</th>
-            <th style="padding:8px 12px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">XRP Edge</th>
+            <th style="padding:8px 12px;text-align:left;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">Asset</th>
+            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">Price</th>
+            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">24h %</th>
+            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">7d %</th>
+            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">Market Cap</th>
+            <th style="padding:8px 12px;text-align:left;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">XRP Edge</th>
           </tr>
         </thead>
         <tbody id="comp-vs-body"></tbody>
@@ -3258,22 +3258,22 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
       <!-- 25. ODL Corridors -->
       <div>
-        <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
           letter-spacing:1.5px;margin-bottom:8px">🌐 Active ODL Corridors</div>
         <div id="comp-odl-list"></div>
       </div>
 
       <!-- 26. ISO 20022 Adoption -->
       <div>
-        <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
           letter-spacing:1.5px;margin-bottom:8px">📋 ISO 20022 Adoption</div>
         <div style="background:var(--s2);border:1px solid rgba(72,255,130,.25);border-radius:8px;
           padding:10px;margin-bottom:8px">
-          <div style="font-size:11px;color:var(--gr);line-height:1.7;font-family:system-ui" id="comp-iso-advantage"></div>
+          <div style="font-size:13px;color:var(--gr);line-height:1.7;font-family:system-ui" id="comp-iso-advantage"></div>
         </div>
         <div id="comp-iso-list"></div>
         <div style="margin-top:8px;padding:6px 10px;background:var(--s2);border-radius:5px;
-          border:1px solid var(--b);font-size:11px;font-family:var(--mn)">
+          border:1px solid var(--b);font-size:13px;font-family:var(--mn)">
           Banks exploring ISO 20022 + Ripple:
           <span id="comp-iso-banks" style="color:var(--yl);font-weight:700;font-size:14px">--</span>
         </div>
@@ -3282,7 +3282,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
     <!-- 27. XRP vs SWIFT -->
     <div>
-      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
         letter-spacing:1.5px;margin-bottom:8px">⚡ XRP vs SWIFT — The Case for ODL</div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="comp-swift-grid">
 
@@ -3314,7 +3314,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
       </div>
       <div style="margin-top:8px;padding:10px 14px;background:rgba(72,255,130,.04);
-        border:1px solid rgba(72,255,130,.2);border-radius:6px;font-size:12px;
+        border:1px solid rgba(72,255,130,.2);border-radius:6px;font-size:13px;
         color:var(--br);line-height:1.7;font-family:system-ui" id="cs-note"></div>
     </div>
 
@@ -3330,37 +3330,37 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
       <span class="pt" style="color:var(--or);font-size:16px;font-weight:800;letter-spacing:2px">
         🎙️ Ripple Exec Tracker
       </span>
-      <span id="exec-ts" style="font-size:10px;font-family:var(--mn);color:var(--tx)">--</span>
+      <span id="exec-ts" style="font-size:13px;font-family:var(--mn);color:var(--tx)">--</span>
     </div>
     <!-- Executive tabs -->
     <div style="display:flex;gap:0;border-bottom:1px solid var(--b);overflow-x:auto">
       <button class="exec-tab on" onclick="setExecTab(this,'all')"
         style="padding:6px 14px;background:transparent;border:none;color:var(--or);
-          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer;
           text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--or);white-space:nowrap">
         ALL
       </button>
       <button class="exec-tab" onclick="setExecTab(this,'Brad Garlinghouse')"
         style="padding:6px 12px;background:transparent;border:none;color:var(--tx);
-          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer;
           text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:2px solid transparent">
         BRAD
       </button>
       <button class="exec-tab" onclick="setExecTab(this,'Monica Long')"
         style="padding:6px 12px;background:transparent;border:none;color:var(--tx);
-          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer;
           text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:2px solid transparent">
         MONICA
       </button>
       <button class="exec-tab" onclick="setExecTab(this,'David Schwartz')"
         style="padding:6px 12px;background:transparent;border:none;color:var(--tx);
-          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer;
           text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:2px solid transparent">
         DAVID
       </button>
       <button class="exec-tab" onclick="setExecTab(this,'Stuart Alderoty')"
         style="padding:6px 12px;background:transparent;border:none;color:var(--tx);
-          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer;
           text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:2px solid transparent">
         STUART
       </button>
@@ -3376,33 +3376,33 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
       <span class="pt" style="color:var(--gr);font-size:16px;font-weight:800;letter-spacing:2px">
         💻 XRPL Dev Activity
       </span>
-      <span id="gh-ts" style="font-size:10px;font-family:var(--mn);color:var(--tx)">--</span>
+      <span id="gh-ts" style="font-size:13px;font-family:var(--mn);color:var(--tx)">--</span>
     </div>
     <!-- GitHub stats strip -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);
       border-bottom:1px solid var(--b);background:var(--s2)">
       <div style="padding:8px 10px;text-align:center;border-right:1px solid var(--b)">
         <div style="font-size:16px;font-weight:900;font-family:var(--mn);color:var(--gr)" id="gh-rippled-7d">--</div>
-        <div style="font-size:9px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">rippled commits<br>7 days</div>
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">rippled commits<br>7 days</div>
       </div>
       <div style="padding:8px 10px;text-align:center;border-right:1px solid var(--b)">
         <div style="font-size:16px;font-weight:900;font-family:var(--mn);color:var(--bl)" id="gh-dev-7d">--</div>
-        <div style="font-size:9px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">other repos<br>7 days</div>
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">other repos<br>7 days</div>
       </div>
       <div style="padding:8px 10px;text-align:center;border-right:1px solid var(--b)">
         <div style="font-size:16px;font-weight:900;font-family:var(--mn);color:var(--yl)" id="gh-stars">--</div>
-        <div style="font-size:9px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">GitHub stars<br>3 repos</div>
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">GitHub stars<br>3 repos</div>
       </div>
       <div style="padding:8px 10px;text-align:center">
         <div style="font-size:16px;font-weight:900;font-family:var(--mn);color:var(--or)" id="gh-issues">--</div>
-        <div style="font-size:9px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">open issues<br>3 repos</div>
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">open issues<br>3 repos</div>
       </div>
     </div>
     <!-- Last commit banner -->
     <div style="padding:8px 12px;border-bottom:1px solid var(--b);background:rgba(72,255,130,.04)">
-      <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-bottom:2px">Latest commit</div>
-      <div style="font-size:12px;font-weight:700;color:var(--gr)" id="gh-last-msg">Loading...</div>
-      <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-bottom:2px">Latest commit</div>
+      <div style="font-size:13px;font-weight:700;color:var(--gr)" id="gh-last-msg">Loading...</div>
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:2px">
         <span id="gh-last-author"></span> &nbsp;·&nbsp; <span id="gh-last-date"></span>
       </div>
     </div>
@@ -3423,13 +3423,13 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
     <!-- 17. Country Status Grid -->
     <div style="margin-bottom:14px">
-      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
         letter-spacing:1.5px;margin-bottom:8px">
         🌍 Global XRP Legal Status
-        <span style="float:right;font-size:10px;color:var(--tx)">Updated Jun 2026</span>
+        <span style="float:right;font-size:13px;color:var(--tx)">Updated Jun 2026</span>
       </div>
       <div id="reg-country-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px"></div>
-      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mn)">
+      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:13px;font-family:var(--mn)">
         <span style="color:var(--gr)">✅ LEGAL</span>
         <span style="color:var(--bl)">📋 TAXED</span>
         <span style="color:var(--yl)">⚠️ CONTESTED</span>
@@ -3441,18 +3441,18 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
     <!-- 18. ETF Tracker -->
     <div style="margin-bottom:14px">
-      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
         letter-spacing:1.5px;margin-bottom:8px">📊 XRP ETF / ETP Tracker</div>
       <div id="reg-etf-table" style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:12px">
+        <table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:13px">
           <thead>
             <tr style="background:var(--s2);border-bottom:1px solid var(--b)">
-              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Applicant</th>
-              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Product</th>
-              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Market</th>
-              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Status</th>
-              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Filed</th>
-              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Note</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">Applicant</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">Product</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">Market</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">Status</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">Filed</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:13px;text-transform:uppercase;letter-spacing:1px">Note</th>
             </tr>
           </thead>
           <tbody id="reg-etf-body"></tbody>
@@ -3465,14 +3465,14 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
       <!-- SEC Timeline -->
       <div>
-        <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
           letter-spacing:1.5px;margin-bottom:8px">⚖️ SEC Case Timeline</div>
         <div id="reg-sec-timeline"></div>
       </div>
 
       <!-- MiCA Calendar -->
       <div>
-        <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
           letter-spacing:1.5px;margin-bottom:8px">🇪🇺 MiCA Implementation</div>
         <div id="reg-mica-calendar"></div>
       </div>
@@ -3481,7 +3481,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
     <!-- 21. CBDC Projects on XRPL -->
     <div>
-      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
         letter-spacing:1.5px;margin-bottom:8px">🏦 Central Bank / CBDC Projects on XRPL</div>
       <div id="reg-cbdc-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
     </div>
@@ -3510,9 +3510,9 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
 
 <!-- FOOTER -->
 <footer>
-  <div>🛰️ <em style="color:var(--bl);font-weight:700">XRPRadar</em> &nbsp;|&nbsp; Version: <span id="ft-ver" style="color:var(--tq);font-weight:700">--</span> &nbsp;|&nbsp; Updated: <span id="ft-last" style="color:var(--br)">--</span> &nbsp;|&nbsp; Uptime: <span id="ft-uptime" style="color:var(--br)">--</span> &nbsp;&nbsp;<a href="/debug" target="_blank" style="color:var(--or);font-size:10px;font-weight:700;text-decoration:none;border:1px solid var(--or);padding:1px 6px;border-radius:3px">DEBUG</a></div>
+  <div>🛰️ <em style="color:var(--bl);font-weight:700">XRPRadar</em> &nbsp;|&nbsp; Version: <span id="ft-ver" style="color:var(--tq);font-weight:700">--</span> &nbsp;|&nbsp; Updated: <span id="ft-last" style="color:var(--br)">--</span> &nbsp;|&nbsp; Uptime: <span id="ft-uptime" style="color:var(--br)">--</span> &nbsp;&nbsp;<a href="/debug" target="_blank" style="color:var(--or);font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--or);padding:1px 6px;border-radius:3px">DEBUG</a></div>
   <div style="color:var(--yl)">⚠️ Not Financial Advice — XRPRadar is for informational purposes only. DYOR.</div>
-  <div>Feeds: <span id="ft-feeds" style="color:var(--br)">--</span> &nbsp;|&nbsp; Maintenance: <span id="ft-maint" style="color:var(--br)">--</span> &nbsp;|&nbsp; Preflight: <span id="ft-qa-status" style="font-weight:700">--</span> &nbsp;&nbsp;<button onclick="openPFModal()" style="color:var(--bl);font-size:10px;font-weight:700;text-decoration:none;border:1px solid var(--bl);padding:1px 8px;border-radius:3px;background:var(--bld);cursor:pointer;font-family:var(--mn)">🔍 DETAILS</button></div>
+  <div>Feeds: <span id="ft-feeds" style="color:var(--br)">--</span> &nbsp;|&nbsp; Maintenance: <span id="ft-maint" style="color:var(--br)">--</span> &nbsp;|&nbsp; Preflight: <span id="ft-qa-status" style="font-weight:700">--</span> &nbsp;&nbsp;<button onclick="openPFModal()" style="color:var(--bl);font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--bl);padding:1px 8px;border-radius:3px;background:var(--bld);cursor:pointer;font-family:var(--mn)">🔍 DETAILS</button></div>
   <div style="height:16px"></div>
 </footer>
 
@@ -3523,7 +3523,7 @@ footer{margin-top:10px;padding-top:14px;border-top:2px solid var(--b);
       <span style="color:var(--bl);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px">🔍 Preflight / QA Details</span>
       <span onclick="closePFModal()" style="color:var(--bl);cursor:pointer;font-size:18px;border:1px solid var(--bl);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:4px">✕</span>
     </div>
-    <div style="padding:16px;font-family:var(--mn);font-size:12px;line-height:2.4">
+    <div style="padding:16px;font-family:var(--mn);font-size:13px;line-height:2.4">
       <div>Last run: <span id="pf-last" style="color:var(--br)">--</span></div>
       <div>Feed Integrity: <span id="pf-feeds" style="color:var(--br)">--</span></div>
       <div>Last Error: <span id="pf-error" style="color:var(--rd)">None</span></div>
@@ -3592,7 +3592,7 @@ function renderTop20(){
   if(!sorted.length){el.innerHTML='<div class="empty">Loading stories...</div>';return;}
   const sentC={"bullish":"var(--gr)","bearish":"var(--rd)","neutral":"var(--tx)"};
   el.innerHTML=sorted.map((s,i)=>{
-    const brk=s.breaking?'<span style="color:var(--yl);font-weight:700;font-family:var(--mn);font-size:10px">⚡ BREAKING &nbsp;</span>':''
+    const brk=s.breaking?'<span style="color:var(--yl);font-weight:700;font-family:var(--mn);font-size:13px">⚡ BREAKING &nbsp;</span>':''
     const sent=s.sentiment||"neutral";
     const sum=s.summary?s.summary.substring(0,160)+(s.summary.length>160?"...":""):"";
     return `<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 10px;
@@ -3604,15 +3604,15 @@ function renderTop20(){
         min-width:24px;text-align:right;margin-top:1px">${i+1}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap">
-          ${brk}<span style="font-size:10px;font-weight:700;font-family:var(--mn);
+          ${brk}<span style="font-size:13px;font-weight:700;font-family:var(--mn);
             color:var(--tx);background:var(--s1);padding:1px 6px;border-radius:3px;
             border:1px solid var(--b)">${s.source}</span>
-          <span style="font-size:10px;font-family:var(--mn);
+          <span style="font-size:13px;font-family:var(--mn);
             color:${sentC[sent]||"var(--tx)"};font-weight:700">${sent.toUpperCase()}</span>
-          <span style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-left:auto">${s.age||""}</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-left:auto">${s.age||""}</span>
         </div>
         <div style="font-size:13px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:3px">${s.title}</div>
-        ${sum?`<div style="font-size:11px;color:var(--tx);line-height:1.5">${sum}</div>`:""}
+        ${sum?`<div style="font-size:13px;color:var(--tx);line-height:1.5">${sum}</div>`:""}
       </div>
     </div>`;
   }).join("");
@@ -3662,18 +3662,18 @@ function renderExecFeed(){
   feed.innerHTML = stories.map(s=>`
     <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        <span style="font-size:10px;font-weight:700;font-family:var(--mn);
+        <span style="font-size:13px;font-weight:700;font-family:var(--mn);
           color:var(--or);background:rgba(255,153,0,.1);padding:2px 7px;
           border-radius:3px;border:1px solid rgba(255,153,0,.3)">${s.exec_name||""}</span>
-        <span style="font-size:10px;font-family:var(--mn);color:var(--tx)">${s.exec_title||""}</span>
-        <span style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-left:auto">${s.age||""}</span>
+        <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">${s.exec_title||""}</span>
+        <span style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-left:auto">${s.age||""}</span>
       </div>
-      <div style="font-size:12px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:2px;
+      <div style="font-size:13px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:2px;
         cursor:pointer" onclick="window.open('${s.link||"#"}','_blank')"
         onmouseover="this.style.color='var(--gr)'" onmouseout="this.style.color='var(--bl)'">
         ${s.title||""}
       </div>
-      <div style="font-size:10px;font-family:var(--mn);color:var(--tx)">${s.source||""}</div>
+      <div style="font-size:13px;font-family:var(--mn);color:var(--tx)">${s.source||""}</div>
     </div>`).join("");
 }
 
@@ -3708,9 +3708,9 @@ function updateExecIntel(d){
         <div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;
           background:${repoColor[commit.repo]||"var(--tx)"}"></div>
         <div style="min-width:0">
-          <div style="font-size:11px;font-weight:600;color:var(--br);line-height:1.3;
+          <div style="font-size:13px;font-weight:600;color:var(--br);line-height:1.3;
             overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${commit.msg||""}</div>
-          <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:1px">
+          <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:1px">
             <span style="color:${repoColor[commit.repo]||"var(--tx)"};font-weight:700">${commit.repo}</span>
             &nbsp;·&nbsp;${commit.author||""}
             &nbsp;·&nbsp;${commit.date||""}
@@ -3782,7 +3782,7 @@ function updatePrediction(d){
         <div style="font-size:13px;font-family:var(--mn);color:var(--rd)">
           ${pred.error}
         </div>
-        <div style="font-size:11px;color:var(--tx);margin-top:8px">
+        <div style="font-size:13px;color:var(--tx);margin-top:8px">
           Check that ANTHROPIC_API_KEY is set in Railway Variables.
         </div>`;
       loading.style.display = "block";
@@ -3893,7 +3893,7 @@ function updateDispIntel(d){
       const firstDay = Object.values(days)[0];
       const wkLabel  = firstDay ? firstDay.date.slice(5) : "";
       return `<div style="display:flex;gap:2px;align-items:center">
-        <div style="width:24px;flex-shrink:0;font-size:9px;font-family:var(--mn);
+        <div style="width:24px;flex-shrink:0;font-size:13px;font-family:var(--mn);
           color:var(--tx);text-align:right;padding-right:4px">${wkLabel}</div>
         <div style="display:flex;gap:2px;flex:1">
           ${[0,1,2,3,4,5,6].map(dow=>{
@@ -3945,7 +3945,7 @@ function updateDispIntel(d){
       return `<div style="background:rgba(117,188,255,${bgAlpha});border:1px solid var(--b);
         border-radius:8px;padding:10px;text-align:center">
         <div style="font-size:18px;margin-bottom:4px">${region.split(" ")[0]}</div>
-        <div style="font-size:11px;font-weight:700;color:var(--br);font-family:var(--mn);
+        <div style="font-size:13px;font-weight:700;color:var(--br);font-family:var(--mn);
           margin-bottom:6px">${region.split(" ").slice(1).join(" ")}</div>
         <div style="font-size:20px;font-weight:900;font-family:var(--mn);
           color:${col};margin-bottom:4px">${count}</div>
@@ -3953,7 +3953,7 @@ function updateDispIntel(d){
           <div style="height:100%;width:${pct}%;background:${col};
             border-radius:2px;transition:width .8s"></div>
         </div>
-        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:3px">
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:3px">
           stories today
         </div>
       </div>`;
@@ -4050,7 +4050,7 @@ async function checkWallet(){
     res.innerHTML = `
       <div style="background:var(--s2);border:1px solid rgba(117,188,255,.3);
         border-radius:6px;padding:10px">
-        ${tag ? `<div style="font-size:11px;color:var(--yl);font-weight:700;
+        ${tag ? `<div style="font-size:13px;color:var(--yl);font-weight:700;
           margin-bottom:6px;font-family:var(--mn)">🏷️ ${tag}</div>` : ""}
         <div style="font-size:28px;font-weight:900;font-family:var(--mn);
           color:var(--bl);margin-bottom:4px">
@@ -4060,11 +4060,11 @@ async function checkWallet(){
           color:var(--gr);margin-bottom:8px">
           ≈ $${usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} USD
         </div>
-        <div style="font-size:11px;color:var(--tx);display:flex;gap:12px;flex-wrap:wrap">
+        <div style="font-size:13px;color:var(--tx);display:flex;gap:12px;flex-wrap:wrap">
           <span>Account opened: <strong style="color:var(--br)">${ts}</strong></span>
           <span>Transactions: <strong style="color:var(--br)">${txCnt}</strong></span>
         </div>
-        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);
           margin-top:6px;word-break:break-all">${addr}</div>
       </div>`;
   }catch(err){
@@ -4096,20 +4096,20 @@ function renderPortfolio(){
   const totalsEl = document.getElementById("portfolio-totals");
   if(!tableEl) return;
   if(!portfolioEntries.length){
-    tableEl.innerHTML = '<div style="font-size:11px;font-family:var(--mn);color:var(--tx)">No entries yet. Add a position above.</div>';
+    tableEl.innerHTML = '<div style="font-size:13px;font-family:var(--mn);color:var(--tx)">No entries yet. Add a position above.</div>';
     if(totalsEl) totalsEl.style.display = "none";
     return;
   }
   let totalXRP = 0, totalVal = 0, totalCost = 0;
-  tableEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:11px;margin-bottom:6px">
+  tableEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:13px;margin-bottom:6px">
     <thead><tr style="background:var(--s2);border-bottom:1px solid var(--b)">
-      <th style="padding:4px 6px;text-align:left;color:var(--tx);font-size:10px">Label</th>
-      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">XRP</th>
-      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">Buy $</th>
-      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">Value</th>
-      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">P&amp;L</th>
-      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">%</th>
-      <th style="padding:4px 4px;text-align:center;color:var(--tx);font-size:10px"></th>
+      <th style="padding:4px 6px;text-align:left;color:var(--tx);font-size:13px">Label</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:13px">XRP</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:13px">Buy $</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:13px">Value</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:13px">P&amp;L</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:13px">%</th>
+      <th style="padding:4px 4px;text-align:center;color:var(--tx);font-size:13px"></th>
     </tr></thead><tbody>` +
     portfolioEntries.map(e=>{
       const val  = e.amount * currentXRPPrice;
@@ -4136,7 +4136,7 @@ function renderPortfolio(){
         </td>
         <td style="padding:4px 4px;text-align:center">
           <span onclick="removePortfolioEntry(${e.id})"
-            style="color:var(--rd);cursor:pointer;font-size:12px">✕</span>
+            style="color:var(--rd);cursor:pointer;font-size:13px">✕</span>
         </td>
       </tr>`;
     }).join("") + "</tbody></table>";
@@ -4297,7 +4297,7 @@ function updateCompIntel(d){
         <td style="padding:8px 12px;text-align:right;font-family:var(--mn);color:var(--tx)">
           ${mc >= 1e9 ? "$"+(mc/1e9).toFixed(1)+"B" : mc >= 1e6 ? "$"+(mc/1e6).toFixed(1)+"M" : "--"}
         </td>
-        <td style="padding:8px 12px;font-size:11px;color:${r.isSelf?"var(--bl)":"var(--tx)"};
+        <td style="padding:8px 12px;font-size:13px;color:${r.isSelf?"var(--bl)":"var(--tx)"};
           max-width:220px">${r.isSelf ? "🎯 Tracking live" : edge}</td>
       </tr>`;
     }).join("");
@@ -4310,18 +4310,18 @@ function updateCompIntel(d){
     odlEl.innerHTML = ci.odl_corridors.map(c=>`
       <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;
         border-bottom:1px solid rgba(255,255,255,.04)">
-        <span style="font-size:8px;color:${stColor[c.status]||"var(--tx)"};
+        <span style="font-size:13px;color:${stColor[c.status]||"var(--tx)"};
           margin-top:5px;flex-shrink:0">●</span>
         <div style="min-width:0">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span style="font-size:12px;font-weight:700;color:var(--br);font-family:var(--mn)">
+            <span style="font-size:13px;font-weight:700;color:var(--br);font-family:var(--mn)">
               ${c.from_c} → ${c.to_c}
             </span>
-            <span style="font-size:10px;color:${stColor[c.status]};font-weight:700;
+            <span style="font-size:13px;color:${stColor[c.status]};font-weight:700;
               font-family:var(--mn)">${c.status}</span>
-            <span style="font-size:10px;color:var(--tx);font-family:var(--mn)">${c.partner}</span>
+            <span style="font-size:13px;color:var(--tx);font-family:var(--mn)">${c.partner}</span>
           </div>
-          <div style="font-size:11px;color:var(--tx);margin-top:2px;line-height:1.4">${c.vol_note}</div>
+          <div style="font-size:13px;color:var(--tx);margin-top:2px;line-height:1.4">${c.vol_note}</div>
         </div>
       </div>`).join("");
   }
@@ -4337,11 +4337,11 @@ function updateCompIntel(d){
   if(isoEl && ci.iso20022 && ci.iso20022.adopted){
     isoEl.innerHTML = ci.iso20022.adopted.map(a=>`
       <div style="display:flex;align-items:center;gap:7px;padding:4px 0;
-        border-bottom:1px solid rgba(255,255,255,.03);font-family:var(--mn);font-size:11px">
-        <span style="color:var(--gr);font-size:12px">✅</span>
+        border-bottom:1px solid rgba(255,255,255,.03);font-family:var(--mn);font-size:13px">
+        <span style="color:var(--gr);font-size:13px">✅</span>
         <span style="font-weight:700;color:var(--br)">${a.name}</span>
         <span style="color:var(--tx)">${a.region}</span>
-        <span style="color:var(--tx);margin-left:auto;font-size:10px">${a.note.substring(0,40)}...</span>
+        <span style="color:var(--tx);margin-left:auto;font-size:13px">${a.note.substring(0,40)}...</span>
       </div>`).join("");
   }
 
@@ -4373,9 +4373,9 @@ function updateRegIntel(d){
         onmouseover="showRegTooltip(this,'${(c.note||"").replace(/'/g,"&#39;")}')"
         onmouseout="hideRegTooltip()">
         <div style="font-size:16px;margin-bottom:3px">${c.flag}</div>
-        <div style="font-size:10px;font-weight:700;color:var(--br);font-family:var(--mn);
+        <div style="font-size:13px;font-weight:700;color:var(--br);font-family:var(--mn);
           line-height:1.2;margin-bottom:3px">${c.country}</div>
-        <div style="font-size:10px;font-weight:700;color:${cm.text};font-family:var(--mn)">
+        <div style="font-size:13px;font-weight:700;color:${cm.text};font-family:var(--mn)">
           ${cm.icon} ${c.status}
         </div>
       </div>`;
@@ -4394,7 +4394,7 @@ function updateRegIntel(d){
         <td style="padding:6px 10px;color:var(--tx)">${e.market}</td>
         <td style="padding:6px 10px">
           <span style="color:${etfColor[e.status]||"var(--tx)"};font-weight:700;
-            font-family:var(--mn);font-size:11px;
+            font-family:var(--mn);font-size:13px;
             background:${etfColor[e.status]||"var(--tx)"}18;
             padding:2px 8px;border-radius:3px;
             border:1px solid ${etfColor[e.status]||"var(--b)"}44">
@@ -4402,7 +4402,7 @@ function updateRegIntel(d){
           </span>
         </td>
         <td style="padding:6px 10px;color:var(--tx)">${e.date}</td>
-        <td style="padding:6px 10px;color:var(--tx);font-size:11px">${e.note}</td>
+        <td style="padding:6px 10px;color:var(--tx);font-size:13px">${e.note}</td>
       </tr>`).join("");
   }
 
@@ -4422,13 +4422,13 @@ function updateRegIntel(d){
         </div>
         <div style="padding-bottom:6px">
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:2px">
-            <span style="font-size:10px;font-weight:700;font-family:var(--mn);
+            <span style="font-size:13px;font-weight:700;font-family:var(--mn);
               color:${dotColor}">${ev.date}</span>
-            ${isCurrent?'<span style="font-size:9px;font-family:var(--mn);color:var(--gr);background:rgba(72,255,130,.1);padding:1px 5px;border-radius:3px;border:1px solid rgba(72,255,130,.3)">NOW</span>':""}
-            ${isMajor?'<span style="font-size:9px;font-family:var(--mn);color:var(--yl)">★ MAJOR</span>':""}
+            ${isCurrent?'<span style="font-size:13px;font-family:var(--mn);color:var(--gr);background:rgba(72,255,130,.1);padding:1px 5px;border-radius:3px;border:1px solid rgba(72,255,130,.3)">NOW</span>':""}
+            ${isMajor?'<span style="font-size:13px;font-family:var(--mn);color:var(--yl)">★ MAJOR</span>':""}
           </div>
-          <div style="font-size:12px;font-weight:700;color:var(--br);margin-bottom:2px">${ev.event}</div>
-          <div style="font-size:11px;color:var(--tx);line-height:1.5">${ev.detail}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--br);margin-bottom:2px">${ev.event}</div>
+          <div style="font-size:13px;color:var(--tx);line-height:1.5">${ev.detail}</div>
         </div>
       </div>`;
     }).join("");
@@ -4446,12 +4446,12 @@ function updateRegIntel(d){
           <div style="width:1px;flex:1;background:var(--b);margin-top:4px"></div>
         </div>
         <div style="padding-bottom:6px">
-          <div style="font-size:10px;font-weight:700;font-family:var(--mn);
+          <div style="font-size:13px;font-weight:700;font-family:var(--mn);
             color:${dotColor};margin-bottom:2px">
             ${m.date} ${m.done?"✓":""}
           </div>
-          <div style="font-size:12px;font-weight:700;color:${m.done?"var(--br)":"var(--tx)"};margin-bottom:2px">${m.event}</div>
-          <div style="font-size:11px;color:var(--tx);line-height:1.5">${m.detail}</div>
+          <div style="font-size:13px;font-weight:700;color:${m.done?"var(--br)":"var(--tx)"};margin-bottom:2px">${m.event}</div>
+          <div style="font-size:13px;color:var(--tx);line-height:1.5">${m.detail}</div>
         </div>
       </div>`;
     }).join("");
@@ -4467,16 +4467,16 @@ function updateRegIntel(d){
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
           <span style="font-size:20px">${p.flag}</span>
           <div>
-            <div style="font-size:12px;font-weight:700;color:var(--br);font-family:var(--mn)">${p.country}</div>
-            <div style="font-size:10px;color:${stColor[p.status]||"var(--tx)"};font-weight:700;font-family:var(--mn)">
+            <div style="font-size:13px;font-weight:700;color:var(--br);font-family:var(--mn)">${p.country}</div>
+            <div style="font-size:13px;color:${stColor[p.status]||"var(--tx)"};font-weight:700;font-family:var(--mn)">
               ${p.status==="LIVE"?"✅":p.status==="PILOT"?"🧪":"🔍"} ${p.status}
             </div>
           </div>
-          <div style="margin-left:auto;font-size:10px;font-family:var(--mn);
+          <div style="margin-left:auto;font-size:13px;font-family:var(--mn);
             color:var(--tx);text-align:right">${p.partner}</div>
         </div>
-        <div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:4px">${p.project}</div>
-        <div style="font-size:11px;color:var(--tx);line-height:1.5">${p.detail}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--bl);margin-bottom:4px">${p.project}</div>
+        <div style="font-size:13px;color:var(--tx);line-height:1.5">${p.detail}</div>
       </div>`).join("");
   }
 }
@@ -4490,7 +4490,7 @@ function showRegTooltip(el, text){
     tt = document.createElement("div");
     tt.id = "reg-tt";
     tt.style.cssText = "position:fixed;z-index:9000;background:var(--s1);border:1px solid var(--b);"+
-      "color:var(--br);font-size:11px;font-family:system-ui;padding:8px 12px;border-radius:6px;"+
+      "color:var(--br);font-size:13px;font-family:system-ui;padding:8px 12px;border-radius:6px;"+
       "max-width:300px;line-height:1.6;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.5)";
     document.body.appendChild(tt);
   }
@@ -4565,7 +4565,7 @@ function updateTechIntel(d){
       res.forEach((r,i)=>{
         const pct = cur > 0 ? ((r-cur)/cur*100).toFixed(2) : "--";
         html += `<div style="display:flex;justify-content:space-between;padding:5px 0;
-          border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mn);font-size:12px">
+          border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mn);font-size:13px">
           <span style="color:var(--rd);font-weight:700">R${res.length-i}</span>
           <span style="color:var(--br);font-weight:700">$${parseFloat(r).toFixed(4)}</span>
           <span style="color:var(--rd)">+${pct}%</span>
@@ -4574,7 +4574,7 @@ function updateTechIntel(d){
       // Current price divider
       html += `<div style="display:flex;justify-content:space-between;padding:6px 0;
         background:var(--bld);border-radius:4px;margin:4px 0;padding:5px 8px;
-        font-family:var(--mn);font-size:12px;border:1px solid rgba(117,188,255,.3)">
+        font-family:var(--mn);font-size:13px;border:1px solid rgba(117,188,255,.3)">
         <span style="color:var(--bl);font-weight:700">NOW</span>
         <span style="color:var(--br);font-weight:900">$${parseFloat(cur).toFixed(4)}</span>
         <span style="color:var(--bl)">current</span>
@@ -4582,7 +4582,7 @@ function updateTechIntel(d){
       sup.forEach((s,i)=>{
         const pct = cur > 0 ? ((s-cur)/cur*100).toFixed(2) : "--";
         html += `<div style="display:flex;justify-content:space-between;padding:5px 0;
-          border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mn);font-size:12px">
+          border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mn);font-size:13px">
           <span style="color:var(--gr);font-weight:700">S${i+1}</span>
           <span style="color:var(--br);font-weight:700">$${parseFloat(s).toFixed(4)}</span>
           <span style="color:var(--gr)">${pct}%</span>
@@ -4683,10 +4683,10 @@ function updateOnchainIntel(d){
           // On-chain transaction
           const usd = w.amount_usd ? ` ($${parseInt(w.amount_usd).toLocaleString()})` : "";
           return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">
-            <div style="font-size:12px;font-weight:700;color:var(--yl);font-family:var(--mn)">
+            <div style="font-size:13px;font-weight:700;color:var(--yl);font-family:var(--mn)">
               🐋 ${parseInt(w.amount_xrp).toLocaleString()} XRP${usd}
             </div>
-            <div style="font-size:10px;color:var(--tx);font-family:var(--mn);margin-top:2px">
+            <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-top:2px">
               ${w.from||"unknown"} → ${w.to||"unknown"} · ${w.ts||""}
             </div>
           </div>`;
@@ -4694,8 +4694,8 @@ function updateOnchainIntel(d){
           // News story fallback
           const sc = w.sentiment==="bullish"?"var(--gr)":w.sentiment==="bearish"?"var(--rd)":"var(--tx)";
           return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">
-            <div style="font-size:12px;font-weight:600;color:var(--yl);line-height:1.4">${w.title||""}</div>
-            <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+            <div style="font-size:13px;font-weight:600;color:var(--yl);line-height:1.4">${w.title||""}</div>
+            <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:2px">
               <span style="color:${sc};font-weight:700">${w.sentiment||""}</span>
               &nbsp;·&nbsp;${w.source||""}&nbsp;·&nbsp;${w.age||""}
             </div>
@@ -4886,14 +4886,14 @@ async function fetchRegionStories(reg){
     const cnt=document.getElementById(`reg-count-${reg}`);
     if(cnt) cnt.textContent=`${d.total||0} stories`;
     if(!el) return;
-    if(!stories.length){el.innerHTML='<div style="font-size:10px;color:var(--tx);font-family:var(--mn)">No regional stories yet</div>';return;}
+    if(!stories.length){el.innerHTML='<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No regional stories yet</div>';return;}
     el.innerHTML=stories.map(s=>{
-      const trans=s.translated_title?`<div style="font-size:11px;color:var(--tq);font-style:italic;margin-top:3px;padding:3px 6px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:2px">🌐 EN: ${s.translated_title}</div>`:(s.lang==="non-english"?`<div style="font-size:10px;color:var(--tx);font-style:italic;margin-top:2px">🌐 Translation pending...</div>`:"");
+      const trans=s.translated_title?`<div style="font-size:13px;color:var(--tq);font-style:italic;margin-top:3px;padding:3px 6px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:2px">🌐 EN: ${s.translated_title}</div>`:(s.lang==="non-english"?`<div style="font-size:13px;color:var(--tx);font-style:italic;margin-top:2px">🌐 Translation pending...</div>`:"");
       const sent=s.sentiment==="bullish"?"g":s.sentiment==="bearish"?"r":"";
       return `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer" onclick="openStoryModal('${s.id}')">
-        <div style="font-size:11px;font-weight:700;color:var(--bl);line-height:1.3">${s.title}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--bl);line-height:1.3">${s.title}</div>
         ${trans}
-        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:2px">
           <span style="color:${sent==="g"?"var(--gr)":sent==="r"?"var(--rd)":"var(--tx)"};font-weight:700">${s.sentiment}</span>
           &nbsp;·&nbsp;${s.source}&nbsp;·&nbsp;${s.age||""}
         </div>
@@ -4967,7 +4967,7 @@ function updateRight(d){
     const entries=Object.entries(d.feed_health);
     fl.innerHTML=entries.slice(0,25).map(([name,status])=>
       `<div class="rrow"><span class="rk">${name}</span><span style="color:${status==="UP"?"var(--gr)":"var(--rd)"}">${status==="UP"?"●":"✗"}</span></div>`
-    ).join("")+`<div style="font-size:12px;color:var(--tx);font-family:var(--mn);padding:4px 0">&mdash; ${entries.length} sources total</div>`;
+    ).join("")+`<div style="font-size:13px;color:var(--tx);font-family:var(--mn);padding:4px 0">&mdash; ${entries.length} sources total</div>`;
   }
 }
 
