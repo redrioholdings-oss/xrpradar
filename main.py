@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.0g"
+BOT_FILE          = "XRPRadar_v3.0h"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -339,6 +339,14 @@ REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
 # ── State ──────────────────────────────────────────────────────────────────────
 STATE = {
     "price":         {},
+    "tools_intel": {
+        "fx_rates": {
+            "EUR": 0.0, "GBP": 0.0, "JPY": 0.0,
+            "AUD": 0.0, "CAD": 0.0, "SGD": 0.0,
+            "INR": 0.0, "BRL": 0.0, "MXN": 0.0,
+        },
+        "ts": "",
+    },
     "sent_intel": {
         "daily_sentiment": [],
         "velocity_hours":  [],
@@ -925,6 +933,36 @@ def fetch_tech_intel():
 
 
 
+
+
+# ── Practical Tools Fetch (v3.0h) ─────────────────────────────────────────
+def fetch_tools_intel():
+    hdr = {"User-Agent": "XRPRadar/3.0"}
+    ti  = STATE["tools_intel"]
+
+    # 33. Multi-currency FX rates (USD base)
+    try:
+        resp = requests.get(
+            "https://api.exchangerate-api.com/v4/latest/USD",
+            timeout=8).json()
+        rates = resp.get("rates", {})
+        for cur in ti["fx_rates"]:
+            ti["fx_rates"][cur] = round(float(rates.get(cur, 0)), 4)
+    except Exception as e:
+        log_error(f"fx_rates: {e}")
+        # Fallback: open.er-api.com
+        try:
+            resp2 = requests.get(
+                "https://open.er-api.com/v6/latest/USD",
+                timeout=8).json()
+            rates2 = resp2.get("rates", {})
+            for cur in ti["fx_rates"]:
+                if cur in rates2:
+                    ti["fx_rates"][cur] = round(float(rates2[cur]), 4)
+        except Exception as e2:
+            log_error(f"fx_rates_fallback: {e2}")
+
+    ti["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
 
 # ── Sentiment Engine Fetch (v3.0g) ────────────────────────────────────────
 def fetch_sent_intel():
@@ -1563,6 +1601,7 @@ def price_loop():
             fetch_tech_intel()
             fetch_exec_intel()
             fetch_comp_intel()
+            fetch_tools_intel()
         except Exception as e: log_error(f"price_loop: {e}")
         time.sleep(PRICE_INTERVAL)
 
@@ -1612,6 +1651,7 @@ def api_data():
         "tech_intel":       STATE["tech_intel"],
         "reg_intel":        STATE["reg_intel"],
         "exec_intel":       STATE["exec_intel"],
+        "tools_intel":      STATE["tools_intel"],
         "sent_intel":       STATE["sent_intel"],
         "comp_intel":       STATE["comp_intel"],
         "ai_us":            STATE["ai_us"],
@@ -2330,6 +2370,236 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   </div>
 </div>
 
+<!-- SECTION 9e: PRACTICAL TOOLS (v3.0h) -->
+<div style="margin-bottom:10px">
+  <div class="score">
+    <div class="sec-title" style="color:var(--tq)">🛠️ Practical Tools</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+
+      <!-- LEFT COL: P&L Calc + Multi-Currency -->
+      <div style="display:flex;flex-direction:column;gap:10px">
+
+        <!-- 32. XRP P&L Calculator -->
+        <div class="panel" style="border-color:rgba(0,229,204,.25)">
+          <div class="ph">
+            <span class="pt" style="color:var(--tq);font-size:14px;font-weight:800;letter-spacing:1.5px">
+              💰 XRP P&amp;L Calculator
+            </span>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+                  text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Buy Price (USD)</div>
+                <input id="pl-buy" type="number" step="0.0001" placeholder="e.g. 0.50"
+                  oninput="calcPL()"
+                  style="width:100%;background:var(--s2);border:1px solid var(--b);
+                    color:var(--br);padding:8px 10px;border-radius:5px;
+                    font-size:14px;font-family:var(--mn);outline:none">
+              </div>
+              <div>
+                <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+                  text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Quantity (XRP)</div>
+                <input id="pl-qty" type="number" step="1" placeholder="e.g. 10000"
+                  oninput="calcPL()"
+                  style="width:100%;background:var(--s2);border:1px solid var(--b);
+                    color:var(--br);padding:8px 10px;border-radius:5px;
+                    font-size:14px;font-family:var(--mn);outline:none">
+              </div>
+            </div>
+
+            <div>
+              <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+                text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">
+                Sell / Target Price (USD)
+                <span style="color:var(--tq);cursor:pointer;margin-left:6px"
+                  onclick="document.getElementById('pl-sell').value=currentXRPPrice.toFixed(4);calcPL()">
+                  [use live price]
+                </span>
+              </div>
+              <input id="pl-sell" type="number" step="0.0001" placeholder="e.g. 2.00"
+                oninput="calcPL()"
+                style="width:100%;background:var(--s2);border:1px solid var(--b);
+                  color:var(--br);padding:8px 10px;border-radius:5px;
+                  font-size:14px;font-family:var(--mn);outline:none">
+            </div>
+
+            <!-- Results -->
+            <div id="pl-results" style="background:var(--s2);border:1px solid var(--b);
+              border-radius:6px;padding:10px;font-family:var(--mn);font-size:12px;
+              display:none">
+              <div style="display:flex;justify-content:space-between;padding:4px 0;
+                border-bottom:1px solid rgba(255,255,255,.05)">
+                <span style="color:var(--tx)">Cost Basis</span>
+                <span id="pl-cost" style="color:var(--br);font-weight:700">--</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:4px 0;
+                border-bottom:1px solid rgba(255,255,255,.05)">
+                <span style="color:var(--tx)">Current / Target Value</span>
+                <span id="pl-value" style="color:var(--br);font-weight:700">--</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:4px 0;
+                border-bottom:1px solid rgba(255,255,255,.05)">
+                <span style="color:var(--tx)">P&amp;L (USD)</span>
+                <span id="pl-usd" style="font-weight:700;font-size:16px">--</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:4px 0">
+                <span style="color:var(--tx)">P&amp;L (%)</span>
+                <span id="pl-pct" style="font-weight:700;font-size:18px">--</span>
+              </div>
+            </div>
+            <div style="font-size:10px;font-family:var(--mn);color:var(--tx)">
+              ⚠️ Not financial advice. For informational purposes only.
+            </div>
+          </div>
+        </div>
+
+        <!-- 33. Multi-Currency Price Display -->
+        <div class="panel" style="border-color:rgba(0,229,204,.2)">
+          <div class="ph">
+            <span class="pt" style="color:var(--tq);font-size:14px;font-weight:800;letter-spacing:1.5px">
+              💱 XRP Price — Multi-Currency
+            </span>
+            <span id="fx-ts" style="font-size:10px;font-family:var(--mn);color:var(--tx)">--</span>
+          </div>
+          <div id="fx-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:12px">
+            <div class="abox hi">
+              <div class="albl">USD 🇺🇸</div>
+              <div class="aval b" style="font-size:20px" id="fx-usd">--</div>
+            </div>
+            <div class="abox">
+              <div class="albl">EUR 🇪🇺</div>
+              <div class="aval" style="font-size:20px" id="fx-eur">--</div>
+            </div>
+            <div class="abox">
+              <div class="albl">GBP 🇬🇧</div>
+              <div class="aval" style="font-size:20px" id="fx-gbp">--</div>
+            </div>
+            <div class="abox">
+              <div class="albl">JPY 🇯🇵</div>
+              <div class="aval" style="font-size:18px" id="fx-jpy">--</div>
+            </div>
+            <div class="abox">
+              <div class="albl">AUD 🇦🇺</div>
+              <div class="aval" style="font-size:20px" id="fx-aud">--</div>
+            </div>
+            <div class="abox">
+              <div class="albl">CAD 🇨🇦</div>
+              <div class="aval" style="font-size:20px" id="fx-cad">--</div>
+            </div>
+            <div class="abox">
+              <div class="albl">SGD 🇸🇬</div>
+              <div class="aval" style="font-size:20px" id="fx-sgd">--</div>
+            </div>
+            <div class="abox">
+              <div class="albl">INR 🇮🇳</div>
+              <div class="aval" style="font-size:18px" id="fx-inr">--</div>
+            </div>
+            <div class="abox">
+              <div class="albl">BRL 🇧🇷</div>
+              <div class="aval" style="font-size:20px" id="fx-brl">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COL: Wallet Checker + Portfolio Tracker -->
+      <div style="display:flex;flex-direction:column;gap:10px">
+
+        <!-- 34. XRPL Wallet Value Checker -->
+        <div class="panel" style="border-color:rgba(117,188,255,.25)">
+          <div class="ph">
+            <span class="pt" style="color:var(--bl);font-size:14px;font-weight:800;letter-spacing:1.5px">
+              🔍 XRPL Wallet Checker
+            </span>
+          </div>
+          <div style="padding:14px">
+            <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+              text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Enter XRPL Address</div>
+            <div style="display:flex;gap:6px;margin-bottom:10px">
+              <input id="wallet-addr" type="text" placeholder="r..."
+                style="flex:1;background:var(--s2);border:1px solid var(--b);
+                  color:var(--br);padding:8px 10px;border-radius:5px;
+                  font-size:12px;font-family:var(--mn);outline:none"
+                onkeydown="if(event.key==='Enter')checkWallet()">
+              <button onclick="checkWallet()"
+                style="background:var(--bld);border:1px solid var(--bl);color:var(--bl);
+                  padding:8px 14px;border-radius:5px;cursor:pointer;
+                  font-family:var(--mn);font-size:11px;font-weight:700;
+                  text-transform:uppercase;transition:all .2s"
+                onmouseover="this.style.background='var(--bl)';this.style.color='#000'"
+                onmouseout="this.style.background='var(--bld)';this.style.color='var(--bl)'">
+                CHECK
+              </button>
+            </div>
+            <div id="wallet-result" style="font-family:var(--mn);font-size:12px">
+              <div style="color:var(--tx)">Enter any XRPL address to see live balance and USD value.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 35. Portfolio Tracker -->
+        <div class="panel" style="border-color:rgba(72,255,130,.2)">
+          <div class="ph">
+            <span class="pt" style="color:var(--gr);font-size:14px;font-weight:800;letter-spacing:1.5px">
+              📈 Portfolio Tracker
+            </span>
+            <span style="font-size:10px;font-family:var(--mn);color:var(--tx)">Session only</span>
+          </div>
+          <div style="padding:12px">
+            <!-- Add position row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:8px">
+              <input id="pt-label" type="text" placeholder="Label (e.g. Wallet 1)"
+                style="background:var(--s2);border:1px solid var(--b);color:var(--br);
+                  padding:6px 8px;border-radius:4px;font-size:11px;
+                  font-family:var(--mn);outline:none">
+              <input id="pt-amount" type="number" placeholder="XRP amount"
+                style="background:var(--s2);border:1px solid var(--b);color:var(--br);
+                  padding:6px 8px;border-radius:4px;font-size:11px;
+                  font-family:var(--mn);outline:none">
+              <input id="pt-cost" type="number" placeholder="Avg buy price"
+                style="background:var(--s2);border:1px solid var(--b);color:var(--br);
+                  padding:6px 8px;border-radius:4px;font-size:11px;
+                  font-family:var(--mn);outline:none">
+              <button onclick="addPortfolioEntry()"
+                style="background:var(--grd);border:1px solid var(--gr);color:var(--gr);
+                  padding:6px 10px;border-radius:4px;cursor:pointer;
+                  font-family:var(--mn);font-size:11px;font-weight:700">
+                + ADD
+              </button>
+            </div>
+            <!-- Portfolio table -->
+            <div id="portfolio-table" style="margin-bottom:8px"></div>
+            <!-- Portfolio totals -->
+            <div id="portfolio-totals" style="display:none;background:var(--s2);
+              border:1px solid var(--b);border-radius:6px;padding:10px;
+              font-family:var(--mn);font-size:12px">
+              <div style="display:flex;justify-content:space-between;padding:3px 0">
+                <span style="color:var(--tx)">Total XRP</span>
+                <span id="pt-total-xrp" style="color:var(--br);font-weight:700">--</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:3px 0">
+                <span style="color:var(--tx)">Total Value</span>
+                <span id="pt-total-val" style="color:var(--br);font-weight:700">--</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:3px 0">
+                <span style="color:var(--tx)">Total P&amp;L</span>
+                <span id="pt-total-pl" style="font-weight:700;font-size:14px">--</span>
+              </div>
+            </div>
+            <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:6px">
+              ⚠️ Session only — entries clear on page refresh. Not financial advice.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- SECTION 9d: SENTIMENT ENGINE (v3.0g) -->
 <div style="margin-bottom:10px">
   <div class="score">
@@ -2736,6 +3006,7 @@ async function fetchData(){
     updatePriceIntel(d);
     updateOnchainIntel(d);
     updateTechIntel(d);
+    updateToolsIntel(d);
     updateSentIntel(d);
     updateCompIntel(d);
     updateRegIntel(d);
@@ -2903,6 +3174,201 @@ function updateExecIntel(d){
 }
 
 
+
+
+// ── Practical Tools (v3.0h) ────────────────────────────────────────────────
+let currentXRPPrice = 0;
+let portfolioEntries = [];
+
+// ── 32. P&L Calculator ────────────────────────────────────────────────────
+function calcPL(){
+  const buy  = parseFloat(document.getElementById("pl-buy")?.value  || 0);
+  const qty  = parseFloat(document.getElementById("pl-qty")?.value  || 0);
+  const sell = parseFloat(document.getElementById("pl-sell")?.value || 0);
+  const res  = document.getElementById("pl-results");
+  if(!buy || !qty || !sell || !res) return;
+
+  const cost   = buy  * qty;
+  const value  = sell * qty;
+  const plUSD  = value - cost;
+  const plPct  = ((sell - buy) / buy) * 100;
+  const isPos  = plUSD >= 0;
+  const col    = isPos ? "var(--gr)" : "var(--rd)";
+  const sign   = isPos ? "+" : "";
+
+  c("pl-cost",  `$${cost.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`);
+  c("pl-value", `$${value.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`);
+
+  const plUSDEl = document.getElementById("pl-usd");
+  if(plUSDEl){
+    plUSDEl.textContent = `${sign}$${Math.abs(plUSD).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    plUSDEl.style.color = col;
+  }
+  const plPctEl = document.getElementById("pl-pct");
+  if(plPctEl){
+    plPctEl.textContent = `${sign}${plPct.toFixed(2)}%`;
+    plPctEl.style.color = col;
+  }
+  res.style.display = "block";
+  res.style.borderColor = isPos ? "rgba(72,255,130,.3)" : "rgba(255,64,96,.3)";
+}
+
+// ── 33. Multi-Currency Display ─────────────────────────────────────────────
+function updateToolsIntel(d){
+  const ti  = d.tools_intel || {};
+  const px  = parseFloat((d.price || {}).usd || 0);
+  currentXRPPrice = px;
+  if(!px) return;
+
+  const fxr = ti.fx_rates || {};
+  if(ti.ts) c("fx-ts", ti.ts);
+  c("fx-usd", `$${px.toFixed(4)}`);
+
+  const fxMap = {
+    "fx-eur":"EUR", "fx-gbp":"GBP", "fx-jpy":"JPY",
+    "fx-aud":"AUD", "fx-cad":"CAD", "fx-sgd":"SGD",
+    "fx-inr":"INR", "fx-brl":"BRL",
+  };
+  const decimals = {"fx-jpy":0,"fx-inr":2};
+
+  Object.entries(fxMap).forEach(([elId, cur])=>{
+    const rate = fxr[cur] || 0;
+    if(!rate) return;
+    const converted = px * rate;
+    const dec = decimals[elId] !== undefined ? decimals[elId] : 4;
+    const el = document.getElementById(elId);
+    if(el) el.textContent = converted.toFixed(dec);
+  });
+
+  // Refresh portfolio values with new price
+  if(portfolioEntries.length) renderPortfolio();
+}
+
+// ── 34. Wallet Checker ────────────────────────────────────────────────────
+async function checkWallet(){
+  const addr = (document.getElementById("wallet-addr")?.value || "").trim();
+  const res  = document.getElementById("wallet-result");
+  if(!addr || !addr.startsWith("r") || addr.length < 20){
+    if(res) res.innerHTML = '<div style="color:var(--rd)">⚠️ Enter a valid XRPL address (starts with r, 25-34 chars)</div>';
+    return;
+  }
+  if(res) res.innerHTML = '<div style="color:var(--tx)">🔍 Fetching wallet data...</div>';
+  try{
+    const resp = await fetch(`https://api.xrpscan.com/api/v1/account/${addr}`);
+    if(!resp.ok) throw new Error("Not found");
+    const data = await resp.json();
+    const bal  = parseFloat(data.xrpBalance || data.balance || 0);
+    const usd  = bal * currentXRPPrice;
+    const tag  = data.accountName?.name || "";
+    const ts   = data.inception ? new Date(data.inception).toLocaleDateString() : "--";
+    const txCnt= data.txCount || "--";
+    res.innerHTML = `
+      <div style="background:var(--s2);border:1px solid rgba(117,188,255,.3);
+        border-radius:6px;padding:10px">
+        ${tag ? `<div style="font-size:11px;color:var(--yl);font-weight:700;
+          margin-bottom:6px;font-family:var(--mn)">🏷️ ${tag}</div>` : ""}
+        <div style="font-size:28px;font-weight:900;font-family:var(--mn);
+          color:var(--bl);margin-bottom:4px">
+          ${bal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})} XRP
+        </div>
+        <div style="font-size:18px;font-weight:700;font-family:var(--mn);
+          color:var(--gr);margin-bottom:8px">
+          ≈ $${usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} USD
+        </div>
+        <div style="font-size:11px;color:var(--tx);display:flex;gap:12px;flex-wrap:wrap">
+          <span>Account opened: <strong style="color:var(--br)">${ts}</strong></span>
+          <span>Transactions: <strong style="color:var(--br)">${txCnt}</strong></span>
+        </div>
+        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+          margin-top:6px;word-break:break-all">${addr}</div>
+      </div>`;
+  }catch(err){
+    if(res) res.innerHTML = `<div style="color:var(--rd)">⚠️ Could not load wallet: ${err.message}. Verify address is valid.</div>`;
+  }
+}
+
+// ── 35. Portfolio Tracker ─────────────────────────────────────────────────
+function addPortfolioEntry(){
+  const label  = document.getElementById("pt-label")?.value?.trim()  || `Entry ${portfolioEntries.length+1}`;
+  const amount = parseFloat(document.getElementById("pt-amount")?.value || 0);
+  const cost   = parseFloat(document.getElementById("pt-cost")?.value  || 0);
+  if(!amount || amount <= 0){ alert("Enter a valid XRP amount"); return; }
+  portfolioEntries.push({ label, amount, cost, id: Date.now() });
+  ["pt-label","pt-amount","pt-cost"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = "";
+  });
+  renderPortfolio();
+}
+
+function removePortfolioEntry(id){
+  portfolioEntries = portfolioEntries.filter(e => e.id !== id);
+  renderPortfolio();
+}
+
+function renderPortfolio(){
+  const tableEl  = document.getElementById("portfolio-table");
+  const totalsEl = document.getElementById("portfolio-totals");
+  if(!tableEl) return;
+  if(!portfolioEntries.length){
+    tableEl.innerHTML = '<div style="font-size:11px;font-family:var(--mn);color:var(--tx)">No entries yet. Add a position above.</div>';
+    if(totalsEl) totalsEl.style.display = "none";
+    return;
+  }
+  let totalXRP = 0, totalVal = 0, totalCost = 0;
+  tableEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:11px;margin-bottom:6px">
+    <thead><tr style="background:var(--s2);border-bottom:1px solid var(--b)">
+      <th style="padding:4px 6px;text-align:left;color:var(--tx);font-size:10px">Label</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">XRP</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">Buy $</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">Value</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">P&amp;L</th>
+      <th style="padding:4px 6px;text-align:right;color:var(--tx);font-size:10px">%</th>
+      <th style="padding:4px 4px;text-align:center;color:var(--tx);font-size:10px"></th>
+    </tr></thead><tbody>` +
+    portfolioEntries.map(e=>{
+      const val  = e.amount * currentXRPPrice;
+      const cost = e.cost   * e.amount;
+      const pl   = val - cost;
+      const pct  = e.cost > 0 ? ((currentXRPPrice - e.cost) / e.cost * 100) : 0;
+      const col  = pl >= 0 ? "var(--gr)" : "var(--rd)";
+      const sign = pl >= 0 ? "+" : "";
+      totalXRP  += e.amount;
+      totalVal  += val;
+      totalCost += cost;
+      return `<tr style="border-bottom:1px solid rgba(255,255,255,.03)">
+        <td style="padding:4px 6px;color:var(--br);font-weight:700">${e.label}</td>
+        <td style="padding:4px 6px;text-align:right;color:var(--br)">${e.amount.toLocaleString()}</td>
+        <td style="padding:4px 6px;text-align:right;color:var(--tx)">$${e.cost.toFixed(4)}</td>
+        <td style="padding:4px 6px;text-align:right;color:var(--bl);font-weight:700">
+          $${val.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+        </td>
+        <td style="padding:4px 6px;text-align:right;color:${col};font-weight:700">
+          ${sign}$${Math.abs(pl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+        </td>
+        <td style="padding:4px 6px;text-align:right;color:${col};font-weight:700">
+          ${sign}${pct.toFixed(1)}%
+        </td>
+        <td style="padding:4px 4px;text-align:center">
+          <span onclick="removePortfolioEntry(${e.id})"
+            style="color:var(--rd);cursor:pointer;font-size:12px">✕</span>
+        </td>
+      </tr>`;
+    }).join("") + "</tbody></table>";
+
+  const totalPL  = totalVal - totalCost;
+  const totalPct = totalCost > 0 ? (totalPL / totalCost * 100) : 0;
+  const col      = totalPL >= 0 ? "var(--gr)" : "var(--rd)";
+  const sign     = totalPL >= 0 ? "+" : "";
+  c("pt-total-xrp", totalXRP.toLocaleString() + " XRP");
+  c("pt-total-val", `$${totalVal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`);
+  const plEl = document.getElementById("pt-total-pl");
+  if(plEl){
+    plEl.textContent = `${sign}$${Math.abs(totalPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (${sign}${totalPct.toFixed(2)}%)`;
+    plEl.style.color = col;
+  }
+  if(totalsEl) totalsEl.style.display = "block";
+}
 
 // ── Sentiment Engine (v3.0g) ───────────────────────────────────────────────
 function updateSentIntel(d){
