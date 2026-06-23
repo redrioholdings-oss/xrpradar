@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.0c"
+BOT_FILE          = "XRPRadar_v3.0d"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -339,6 +339,65 @@ REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
 # ── State ──────────────────────────────────────────────────────────────────────
 STATE = {
     "price":         {},
+    "reg_intel": {
+        "countries": [
+            {"country":"United States","flag":"🇺🇸","status":"CONTESTED","note":"SEC lawsuit settled; XRP non-security ruling in programmatic sales. Evolving regulatory clarity."},
+            {"country":"European Union","flag":"🇪🇺","status":"LEGAL","note":"MiCA regulation fully in force. XRP classified as crypto-asset, not security. Clear framework."},
+            {"country":"United Kingdom","flag":"🇬🇧","status":"LEGAL","note":"FCA regulated. Crypto-asset promotion rules apply. No specific XRP restrictions."},
+            {"country":"Japan","flag":"🇯🇵","status":"LEGAL","note":"FSA regulated. XRP officially recognised as a crypto-asset. SBI Holdings major partner."},
+            {"country":"South Korea","flag":"🇰🇷","status":"LEGAL","note":"FSC/FSS regulated. Major trading volume on Upbit and Bithumb. High retail adoption."},
+            {"country":"Singapore","flag":"🇸🇬","status":"LEGAL","note":"MAS regulated under PSA. Ripple holds Major Payment Institution licence in Singapore."},
+            {"country":"UAE","flag":"🇦🇪","status":"LEGAL","note":"VARA (Dubai) and ADGM (Abu Dhabi) regulated. Active crypto hub. Ripple has regional HQ in Dubai."},
+            {"country":"Switzerland","flag":"🇨🇭","status":"LEGAL","note":"FINMA regulated. Crypto Valley in Zug. XRP openly traded on licensed exchanges."},
+            {"country":"Australia","flag":"🇦🇺","status":"LEGAL","note":"ASIC regulated. Crypto exchanges licenced. No XRP-specific restrictions."},
+            {"country":"Germany","flag":"🇩🇪","status":"LEGAL","note":"BaFin regulated under MiCA framework. Deutsche Börse-listed crypto products available."},
+            {"country":"Brazil","flag":"🇧🇷","status":"LEGAL","note":"Banco Central do Brasil regulated. Large crypto market. Bitso major corridor partner."},
+            {"country":"Canada","flag":"🇨🇦","status":"LEGAL","note":"CSA regulated. Crypto ETPs listed on TSX. Ripple ODL active on Canada-Mexico corridor."},
+            {"country":"Mexico","flag":"🇲🇽","status":"LEGAL","note":"CNBV regulated. Major Ripple ODL remittance corridor with the United States."},
+            {"country":"Philippines","flag":"🇵🇭","status":"LEGAL","note":"BSP regulated. Major remittance corridor. XRP used for OFW payments via Ripple partners."},
+            {"country":"India","flag":"🇮🇳","status":"TAXED","note":"30% crypto tax + 1% TDS. Legal to hold and trade. Regulatory framework still developing."},
+            {"country":"Thailand","flag":"🇹🇭","status":"LEGAL","note":"SEC Thailand regulated. XRP listed on licensed exchanges. Ripple partnerships active."},
+            {"country":"Nigeria","flag":"🇳🇬","status":"RESTRICTED","note":"CBN lifted crypto ban in 2023. Regulated under SEC Nigeria but restrictions remain on banks."},
+            {"country":"China","flag":"🇨🇳","status":"BANNED","note":"All crypto trading banned since 2021. Citizens may not legally trade or hold XRP."},
+            {"country":"Russia","flag":"🇷🇺","status":"RESTRICTED","note":"Limited legal use. Crypto as payment banned. Trading tolerated but heavily restricted."},
+            {"country":"Saudi Arabia","flag":"🇸🇦","status":"PENDING","note":"SAMA evaluating framework. Crypto not officially prohibited but no clear legal status."},
+        ],
+        "etf_tracker": [
+            {"applicant":"21Shares","product":"XRP ETP","market":"Europe","status":"LIVE","date":"2019","note":"Actively trading on SIX Swiss Exchange. AUM growing."},
+            {"applicant":"CoinShares","product":"XRP ETP","market":"Europe","status":"LIVE","date":"2020","note":"Listed on multiple European exchanges. Institutional grade."},
+            {"applicant":"WisdomTree","product":"XRP ETP","market":"Europe","status":"LIVE","date":"2021","note":"FCA and EU regulated. Available in UK and Europe."},
+            {"applicant":"VanEck","product":"XRP ETP","market":"Europe","status":"LIVE","date":"2021","note":"Deutsche Börse listed. Physically backed."},
+            {"applicant":"Bitwise","product":"XRP ETF","market":"USA","status":"FILED","date":"2025","note":"SEC review pending. Filed as spot XRP ETF."},
+            {"applicant":"WisdomTree","product":"XRP ETF","market":"USA","status":"FILED","date":"2025","note":"US spot ETF filing submitted to SEC."},
+            {"applicant":"ProShares","product":"XRP Futures ETF","market":"USA","status":"REVIEW","date":"2025","note":"Futures-based product under SEC consideration."},
+            {"applicant":"Canary Capital","product":"XRP ETF","market":"USA","status":"FILED","date":"2024","note":"First US spot XRP ETF filing. Pioneer application."},
+        ],
+        "sec_timeline": [
+            {"date":"Dec 2020","event":"SEC Files Lawsuit","detail":"SEC sues Ripple Labs, CEO Brad Garlinghouse, and co-founder Chris Larsen for $1.3B unregistered securities offering.","status":"past"},
+            {"date":"Nov 2022","event":"Judge Sides on Documents","detail":"Court orders release of Hinman speech documents. SEC internal views on ETH deemed relevant.","status":"past"},
+            {"date":"Jul 2023","event":"Historic Partial Victory","detail":"Judge Analisa Torres rules: XRP is NOT a security in programmatic sales on exchanges. Institutional sales ruled as unregistered securities.","status":"past","major":True},
+            {"date":"Aug 2023","event":"SEC Appeals","detail":"SEC files notice of appeal on the programmatic sales ruling. Ripple cross-appeals institutional sales ruling.","status":"past"},
+            {"date":"Oct 2024","event":"SEC Drops Charges","detail":"SEC drops charges against Garlinghouse and Larsen personally. Significant de-escalation.","status":"past","major":True},
+            {"date":"Mar 2025","event":"Settlement Reached","detail":"Ripple and SEC reach settlement. $50M fine paid vs. original $2B demand. SEC drops appeal.","status":"past","major":True},
+            {"date":"2026","event":"Post-Settlement Era","detail":"XRP operating in post-lawsuit clarity. New crypto-friendly SEC administration. Industry watching closely.","status":"current"},
+        ],
+        "mica_calendar": [
+            {"date":"Jun 2023","event":"MiCA Published","detail":"EU Markets in Crypto-Assets regulation officially published in EU Official Journal.","done":True},
+            {"date":"Dec 2024","event":"Stablecoin Rules Live","detail":"Title III (EMTs) and Title IV (ARTs) provisions effective. RLUSD and stablecoin issuers must comply.","done":True},
+            {"date":"Dec 2024","event":"Full MiCA in Force","detail":"Complete MiCA framework operational across all 27 EU member states. XRP classified as crypto-asset.","done":True},
+            {"date":"2025","event":"National Implementation","detail":"EU member states complete national regulatory adaptations. Local supervisors assuming jurisdiction.","done":False},
+            {"date":"2025-2026","event":"CASP Licensing Wave","detail":"Crypto Asset Service Providers complete MiCA licensing. Major exchanges, custodians complying.","done":False},
+            {"date":"2026+","event":"MiCA Review Clause","detail":"European Commission required to review MiCA effectiveness and consider DeFi/NFT expansion.","done":False},
+        ],
+        "cbdc_projects": [
+            {"country":"Bhutan","flag":"🇧🇹","project":"Druk Digital","partner":"Ripple","status":"LIVE","detail":"National digital currency on XRPL. Royal Monetary Authority partnership. First sovereign CBDC on XRPL."},
+            {"country":"Montenegro","flag":"🇲🇪","project":"Digital Euro Pilot","partner":"Ripple","status":"PILOT","detail":"Central Bank of Montenegro piloting digital euro infrastructure on XRPL."},
+            {"country":"Palau","flag":"🇵🇼","project":"Palau Stablecoin","partner":"Ripple","status":"LIVE","detail":"PSC (Palau Stablecoin) — USD-backed digital currency on XRPL for government payments."},
+            {"country":"Colombia","flag":"🇨🇴","project":"Banco de la República","partner":"Ripple","status":"EXPLORING","detail":"Colombia's central bank exploring XRPL for digital peso settlement infrastructure."},
+            {"country":"Hong Kong","flag":"🇭🇰","project":"HKD CBDC","partner":"Ripple","status":"PILOT","detail":"HKMA participating in Project mBridge. Ripple in discussion for XRPL settlement layer."},
+            {"country":"Republic of Georgia","flag":"🇬🇪","project":"Digital GEL","partner":"Ripple","status":"EXPLORING","detail":"National Bank of Georgia exploring Ripple technology for national digital currency."},
+        ],
+    },
     "tech_intel":    {
         "rsi_1h":             0.0,
         "rsi_1d":             0.0,
@@ -1202,6 +1261,7 @@ def api_data():
         "onchain":          STATE["onchain"],
         "onchain_intel":    STATE["onchain_intel"],
         "tech_intel":       STATE["tech_intel"],
+        "reg_intel":        STATE["reg_intel"],
         "ai_us":            STATE["ai_us"],
         "ai_global":        STATE["ai_global"],
         "ai_regions":       STATE["ai_regions"],
@@ -1918,6 +1978,81 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   </div>
 </div>
 
+<!-- SECTION 10: REGULATORY RADAR (v3.0d) -->
+<div style="margin-bottom:10px">
+
+  <!-- Section Header -->
+  <div class="score" style="margin-bottom:10px">
+    <div class="sec-title" style="color:var(--or)">🏛️ Regulatory Radar</div>
+
+    <!-- 17. Country Status Grid -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        letter-spacing:1.5px;margin-bottom:8px">
+        🌍 Global XRP Legal Status
+        <span style="float:right;font-size:10px;color:var(--tx)">Updated Jun 2026</span>
+      </div>
+      <div id="reg-country-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px"></div>
+      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mn)">
+        <span style="color:var(--gr)">✅ LEGAL</span>
+        <span style="color:var(--bl)">📋 TAXED</span>
+        <span style="color:var(--yl)">⚠️ CONTESTED</span>
+        <span style="color:var(--or)">🔶 RESTRICTED</span>
+        <span style="color:var(--tx)">🔍 PENDING</span>
+        <span style="color:var(--rd)">❌ BANNED</span>
+      </div>
+    </div>
+
+    <!-- 18. ETF Tracker -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        letter-spacing:1.5px;margin-bottom:8px">📊 XRP ETF / ETP Tracker</div>
+      <div id="reg-etf-table" style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:12px">
+          <thead>
+            <tr style="background:var(--s2);border-bottom:1px solid var(--b)">
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Applicant</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Product</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Market</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Status</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Filed</th>
+              <th style="padding:6px 10px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Note</th>
+            </tr>
+          </thead>
+          <tbody id="reg-etf-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 19 + 20. SEC Timeline + MiCA Calendar side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+
+      <!-- SEC Timeline -->
+      <div>
+        <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+          letter-spacing:1.5px;margin-bottom:8px">⚖️ SEC Case Timeline</div>
+        <div id="reg-sec-timeline"></div>
+      </div>
+
+      <!-- MiCA Calendar -->
+      <div>
+        <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+          letter-spacing:1.5px;margin-bottom:8px">🇪🇺 MiCA Implementation</div>
+        <div id="reg-mica-calendar"></div>
+      </div>
+
+    </div>
+
+    <!-- 21. CBDC Projects on XRPL -->
+    <div>
+      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        letter-spacing:1.5px;margin-bottom:8px">🏦 Central Bank / CBDC Projects on XRPL</div>
+      <div id="reg-cbdc-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+    </div>
+
+  </div>
+</div>
+
 <!-- STORY POPUP -->
 <div id="story-modal" onclick="closeModal(event)">
   <div class="modal-box" onclick="event.stopPropagation()">
@@ -1980,6 +2115,7 @@ async function fetchData(){
     updatePriceIntel(d);
     updateOnchainIntel(d);
     updateTechIntel(d);
+    updateRegIntel(d);
     updateAI(d);
     updateScoreboard(d);
     updateAnalytics(d);
@@ -2053,6 +2189,162 @@ function c(id,v){const el=document.getElementById(id);if(el&&v!==undefined)el.te
 
 
 
+
+
+// ── Regulatory Radar (v3.0d) ───────────────────────────────────────────────
+function updateRegIntel(d){
+  const ri = d.reg_intel || {};
+
+  // ── 17. Country Status Grid ───────────────────────────────────────────
+  const cgEl = document.getElementById("reg-country-grid");
+  if(cgEl && ri.countries){
+    const colorMap = {
+      "LEGAL":     {bg:"rgba(72,255,130,.08)",  border:"rgba(72,255,130,.35)",  text:"var(--gr)", icon:"✅"},
+      "TAXED":     {bg:"rgba(117,188,255,.08)", border:"rgba(117,188,255,.35)", text:"var(--bl)", icon:"📋"},
+      "CONTESTED": {bg:"rgba(255,204,0,.08)",   border:"rgba(255,204,0,.35)",   text:"var(--yl)", icon:"⚠️"},
+      "RESTRICTED":{bg:"rgba(255,153,0,.08)",   border:"rgba(255,153,0,.35)",   text:"var(--or)", icon:"🔶"},
+      "PENDING":   {bg:"rgba(128,153,179,.08)", border:"rgba(128,153,179,.3)",  text:"var(--tx)", icon:"🔍"},
+      "BANNED":    {bg:"rgba(255,64,96,.08)",   border:"rgba(255,64,96,.35)",   text:"var(--rd)", icon:"❌"},
+    };
+    cgEl.innerHTML = ri.countries.map(c=>{
+      const cm = colorMap[c.status] || colorMap["PENDING"];
+      return `<div title="${c.note||""}"
+        style="background:${cm.bg};border:1px solid ${cm.border};border-radius:6px;
+          padding:7px 8px;cursor:default;transition:border-color .2s"
+        onmouseover="showRegTooltip(this,'${(c.note||"").replace(/'/g,"&#39;")}')"
+        onmouseout="hideRegTooltip()">
+        <div style="font-size:16px;margin-bottom:3px">${c.flag}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--br);font-family:var(--mn);
+          line-height:1.2;margin-bottom:3px">${c.country}</div>
+        <div style="font-size:10px;font-weight:700;color:${cm.text};font-family:var(--mn)">
+          ${cm.icon} ${c.status}
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // ── 18. ETF / ETP Tracker ─────────────────────────────────────────────
+  const etfEl = document.getElementById("reg-etf-body");
+  if(etfEl && ri.etf_tracker){
+    const etfColor = {"LIVE":"var(--gr)","FILED":"var(--bl)","REVIEW":"var(--yl)","PENDING":"var(--tx)","REJECTED":"var(--rd)"};
+    etfEl.innerHTML = ri.etf_tracker.map((e,i)=>`
+      <tr style="border-bottom:1px solid rgba(255,255,255,.03);
+        background:${i%2===0?"var(--s1)":"transparent"}">
+        <td style="padding:6px 10px;color:var(--br);font-weight:700">${e.applicant}</td>
+        <td style="padding:6px 10px;color:var(--tx)">${e.product}</td>
+        <td style="padding:6px 10px;color:var(--tx)">${e.market}</td>
+        <td style="padding:6px 10px">
+          <span style="color:${etfColor[e.status]||"var(--tx)"};font-weight:700;
+            font-family:var(--mn);font-size:11px;
+            background:${etfColor[e.status]||"var(--tx)"}18;
+            padding:2px 8px;border-radius:3px;
+            border:1px solid ${etfColor[e.status]||"var(--b)"}44">
+            ${e.status==="LIVE"?"✅":e.status==="FILED"?"📋":e.status==="REVIEW"?"⏳":"🔍"} ${e.status}
+          </span>
+        </td>
+        <td style="padding:6px 10px;color:var(--tx)">${e.date}</td>
+        <td style="padding:6px 10px;color:var(--tx);font-size:11px">${e.note}</td>
+      </tr>`).join("");
+  }
+
+  // ── 19. SEC Case Timeline ─────────────────────────────────────────────
+  const secEl = document.getElementById("reg-sec-timeline");
+  if(secEl && ri.sec_timeline){
+    secEl.innerHTML = ri.sec_timeline.map(ev=>{
+      const isCurrent = ev.status === "current";
+      const isMajor   = ev.major;
+      const dotColor  = isCurrent ? "var(--gr)" : isMajor ? "var(--yl)" : "var(--bl)";
+      return `<div style="display:flex;gap:10px;margin-bottom:10px;position:relative">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+          <div style="width:${isMajor?"12px":"8px"};height:${isMajor?"12px":"8px"};
+            border-radius:50%;background:${dotColor};margin-top:3px;
+            ${isMajor?`box-shadow:0 0 8px ${dotColor}`:""}"></div>
+          <div style="width:1px;flex:1;background:var(--b);margin-top:4px"></div>
+        </div>
+        <div style="padding-bottom:6px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:2px">
+            <span style="font-size:10px;font-weight:700;font-family:var(--mn);
+              color:${dotColor}">${ev.date}</span>
+            ${isCurrent?'<span style="font-size:9px;font-family:var(--mn);color:var(--gr);background:rgba(72,255,130,.1);padding:1px 5px;border-radius:3px;border:1px solid rgba(72,255,130,.3)">NOW</span>':""}
+            ${isMajor?'<span style="font-size:9px;font-family:var(--mn);color:var(--yl)">★ MAJOR</span>':""}
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--br);margin-bottom:2px">${ev.event}</div>
+          <div style="font-size:11px;color:var(--tx);line-height:1.5">${ev.detail}</div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // ── 20. MiCA Calendar ─────────────────────────────────────────────────
+  const micaEl = document.getElementById("reg-mica-calendar");
+  if(micaEl && ri.mica_calendar){
+    micaEl.innerHTML = ri.mica_calendar.map(m=>{
+      const dotColor = m.done ? "var(--gr)" : "var(--tx)";
+      return `<div style="display:flex;gap:10px;margin-bottom:10px">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+          <div style="width:8px;height:8px;border-radius:50%;margin-top:3px;
+            background:${dotColor};${m.done?`box-shadow:0 0 6px ${dotColor}`:"border:1px solid var(--b)"}"></div>
+          <div style="width:1px;flex:1;background:var(--b);margin-top:4px"></div>
+        </div>
+        <div style="padding-bottom:6px">
+          <div style="font-size:10px;font-weight:700;font-family:var(--mn);
+            color:${dotColor};margin-bottom:2px">
+            ${m.date} ${m.done?"✓":""}
+          </div>
+          <div style="font-size:12px;font-weight:700;color:${m.done?"var(--br)":"var(--tx)"};margin-bottom:2px">${m.event}</div>
+          <div style="font-size:11px;color:var(--tx);line-height:1.5">${m.detail}</div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // ── 21. CBDC Projects ─────────────────────────────────────────────────
+  const cbdcEl = document.getElementById("reg-cbdc-grid");
+  if(cbdcEl && ri.cbdc_projects){
+    const stColor = {"LIVE":"var(--gr)","PILOT":"var(--yl)","EXPLORING":"var(--bl)"};
+    cbdcEl.innerHTML = ri.cbdc_projects.map(p=>`
+      <div style="background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px;
+        border-color:${stColor[p.status]||"var(--b)"}44">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <span style="font-size:20px">${p.flag}</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--br);font-family:var(--mn)">${p.country}</div>
+            <div style="font-size:10px;color:${stColor[p.status]||"var(--tx)"};font-weight:700;font-family:var(--mn)">
+              ${p.status==="LIVE"?"✅":p.status==="PILOT"?"🧪":"🔍"} ${p.status}
+            </div>
+          </div>
+          <div style="margin-left:auto;font-size:10px;font-family:var(--mn);
+            color:var(--tx);text-align:right">${p.partner}</div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:4px">${p.project}</div>
+        <div style="font-size:11px;color:var(--tx);line-height:1.5">${p.detail}</div>
+      </div>`).join("");
+  }
+}
+
+// ── Reg Tooltip ────────────────────────────────────────────────────────────
+let regTooltip = null;
+function showRegTooltip(el, text){
+  if(!text) return;
+  let tt = document.getElementById("reg-tt");
+  if(!tt){
+    tt = document.createElement("div");
+    tt.id = "reg-tt";
+    tt.style.cssText = "position:fixed;z-index:9000;background:var(--s1);border:1px solid var(--b);"+
+      "color:var(--br);font-size:11px;font-family:system-ui;padding:8px 12px;border-radius:6px;"+
+      "max-width:300px;line-height:1.6;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.5)";
+    document.body.appendChild(tt);
+  }
+  tt.textContent = text;
+  tt.style.display = "block";
+  const r = el.getBoundingClientRect();
+  tt.style.top  = (r.bottom + 6 + window.scrollY) + "px";
+  tt.style.left = Math.min(r.left, window.innerWidth - 320) + "px";
+}
+function hideRegTooltip(){
+  const tt = document.getElementById("reg-tt");
+  if(tt) tt.style.display = "none";
+}
 
 // ── Technical Signals (v3.0c) ──────────────────────────────────────────────
 function updateTechIntel(d){
