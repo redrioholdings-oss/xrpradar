@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.0f"
+BOT_FILE          = "XRPRadar_v3.0g"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -339,6 +339,15 @@ REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
 # ── State ──────────────────────────────────────────────────────────────────────
 STATE = {
     "price":         {},
+    "sent_intel": {
+        "daily_sentiment": [],
+        "velocity_hours":  [],
+        "source_leaders":  [],
+        "google_trend":    0,
+        "google_trend_label": "",
+        "trend_keywords":  [],
+        "ts":              "",
+    },
     "comp_intel": {
         "vs_coins": {
             "solana":   {"symbol":"SOL","price":0.0,"change_24h":0.0,"change_7d":0.0,"mcap":0.0},
@@ -916,6 +925,139 @@ def fetch_tech_intel():
 
 
 
+
+# ── Sentiment Engine Fetch (v3.0g) ────────────────────────────────────────
+def fetch_sent_intel():
+    hdr = {"User-Agent": "XRPRadar/3.0"}
+    si  = STATE["sent_intel"]
+    now = datetime.now(timezone.utc)
+
+    # 28. 30-Day Rolling Sentiment — build daily buckets from story history
+    try:
+        stories = STATE.get("stories", [])
+        # Build daily sentiment counts from story pub dates
+        daily = {}
+        for s in stories:
+            pub = s.get("pub","") or s.get("published","")
+            if not pub:
+                continue
+            try:
+                # Parse to date string YYYY-MM-DD
+                if "T" in pub:
+                    day_key = pub[:10]
+                elif len(pub) >= 10:
+                    day_key = pub[:10]
+                else:
+                    continue
+                if day_key not in daily:
+                    daily[day_key] = {"bull":0,"bear":0,"neut":0,"total":0}
+                sent = s.get("sentiment","neutral")
+                daily[day_key]["total"] += 1
+                if sent == "bullish":  daily[day_key]["bull"] += 1
+                elif sent == "bearish": daily[day_key]["bear"] += 1
+                else:                  daily[day_key]["neut"] += 1
+            except: continue
+
+        # Last 30 days sorted
+        sorted_days = sorted(daily.keys())[-30:]
+        si["daily_sentiment"] = [
+            {
+                "date":     d,
+                "bull":     daily[d]["bull"],
+                "bear":     daily[d]["bear"],
+                "neut":     daily[d]["neut"],
+                "total":    daily[d]["total"],
+                "bull_pct": round(daily[d]["bull"]/max(daily[d]["total"],1)*100,1),
+                "bear_pct": round(daily[d]["bear"]/max(daily[d]["total"],1)*100,1),
+            }
+            for d in sorted_days
+        ]
+    except Exception as e:
+        log_error(f"daily_sentiment: {e}")
+
+    # 29. News Velocity — stories per hour for last 24h
+    try:
+        stories = STATE.get("stories", [])
+        hour_buckets = {h: 0 for h in range(24)}
+        for s in stories:
+            pub = s.get("pub","") or s.get("published","")
+            if not pub: continue
+            try:
+                if "T" in pub:
+                    hr_str = pub[11:13]
+                    if hr_str.isdigit():
+                        pub_hr  = int(hr_str)
+                        cur_hr  = now.hour
+                        hrs_ago = (cur_hr - pub_hr) % 24
+                        if hrs_ago < 24:
+                            bucket = 23 - hrs_ago
+                            hour_buckets[bucket] = hour_buckets.get(bucket, 0) + 1
+            except: continue
+        si["velocity_hours"] = [
+            {"hour": h, "count": hour_buckets[h]}
+            for h in range(24)
+        ]
+    except Exception as e:
+        log_error(f"velocity: {e}")
+
+    # 30. Source Leaderboard — most active + most bullish sources
+    try:
+        stories  = STATE.get("stories", [])
+        src_data = {}
+        for s in stories:
+            src  = s.get("source","Unknown")
+            sent = s.get("sentiment","neutral")
+            if src not in src_data:
+                src_data[src] = {"name":src,"total":0,"bull":0,"bear":0,"breaking":0}
+            src_data[src]["total"]    += 1
+            if sent == "bullish":  src_data[src]["bull"]  += 1
+            if sent == "bearish":  src_data[src]["bear"]  += 1
+            if s.get("breaking"):  src_data[src]["breaking"] += 1
+
+        # Sort by total stories, top 15
+        leaders = sorted(src_data.values(), key=lambda x: x["total"], reverse=True)[:15]
+        for l in leaders:
+            t = max(l["total"], 1)
+            l["bull_pct"] = round(l["bull"] / t * 100, 0)
+            l["bear_pct"] = round(l["bear"] / t * 100, 0)
+        si["source_leaders"] = leaders
+    except Exception as e:
+        log_error(f"source_leaders: {e}")
+
+    # 31. Google Trends — XRP interest via RSS proxy
+    try:
+        import feedparser as _fp2
+        trend_url = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
+        feed = _fp2.parse(trend_url)
+        xrp_score = 0
+        keywords  = []
+        for entry in feed.entries[:20]:
+            title = getattr(entry,"title","").lower()
+            # Check for XRP/Ripple/crypto mentions
+            if any(kw in title for kw in ["xrp","ripple","crypto","bitcoin","ethereum","blockchain"]):
+                xrp_score += 10
+                keywords.append(getattr(entry,"title","")[:40])
+        # Also check approximate trend from our story velocity
+        recent_stories = [s for s in STATE.get("stories",[])
+                          if s.get("pub","") >= (now - __import__("datetime").timedelta(hours=6)).strftime("%Y-%m-%d")]
+        velocity_score = min(len(recent_stories) * 5, 90)
+        si["google_trend"]       = min(xrp_score + velocity_score, 100)
+        si["trend_keywords"]     = keywords[:5]
+        si["google_trend_label"] = (
+            "🔥 Trending" if si["google_trend"] > 70 else
+            "📈 Rising"   if si["google_trend"] > 40 else
+            "😴 Quiet"    if si["google_trend"] > 15 else
+            "💤 Minimal"
+        )
+    except Exception as e:
+        log_error(f"google_trends: {e}")
+        # Fallback: derive from story count
+        recent = len([s for s in STATE.get("stories",[]) if s.get("age","").endswith("h ago") or s.get("age","").endswith("m ago")])
+        si["google_trend"]       = min(recent * 4, 100)
+        si["google_trend_label"] = "📡 From feed velocity"
+
+    si["ts"] = now.strftime("%H:%M UTC")
+
 # ── Competitive Intelligence Fetch (v3.0f) ────────────────────────────────
 def fetch_comp_intel():
     hdr = {"User-Agent": "XRPRadar/3.0"}
@@ -1470,6 +1612,7 @@ def api_data():
         "tech_intel":       STATE["tech_intel"],
         "reg_intel":        STATE["reg_intel"],
         "exec_intel":       STATE["exec_intel"],
+        "sent_intel":       STATE["sent_intel"],
         "comp_intel":       STATE["comp_intel"],
         "ai_us":            STATE["ai_us"],
         "ai_global":        STATE["ai_global"],
@@ -2187,6 +2330,89 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   </div>
 </div>
 
+<!-- SECTION 9d: SENTIMENT ENGINE (v3.0g) -->
+<div style="margin-bottom:10px">
+  <div class="score">
+    <div class="sec-title" style="color:var(--yl)">🧠 Sentiment Engine</div>
+
+    <!-- Top row: Google Trend score + Velocity gauge -->
+    <div style="display:grid;grid-template-columns:200px 1fr;gap:10px;margin-bottom:14px">
+
+      <!-- Google Trend Score -->
+      <div class="abox" style="border-color:rgba(255,204,0,.3);background:var(--yld);text-align:center">
+        <div class="albl" style="color:var(--yl)">XRP Interest Score</div>
+        <div style="font-size:48px;font-weight:900;font-family:var(--mn);line-height:1;
+          margin:6px 0" id="sg-trend-score" style="color:var(--br)">--</div>
+        <div style="font-size:13px;font-weight:700;font-family:var(--mn)" id="sg-trend-label">--</div>
+        <div style="height:6px;background:var(--s2);border-radius:3px;overflow:hidden;margin-top:8px">
+          <div id="sg-trend-bar" style="height:100%;background:var(--yl);border-radius:3px;
+            transition:width .8s;width:0%"></div>
+        </div>
+        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:6px" id="sg-trend-kw"></div>
+      </div>
+
+      <!-- News Velocity — 24h bar chart -->
+      <div class="abox" style="text-align:left;padding:12px">
+        <div class="albl">📰 News Velocity — Stories per Hour (24h)</div>
+        <div id="sg-velocity-chart" style="display:flex;align-items:flex-end;gap:2px;
+          height:60px;margin-top:8px"></div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;
+          font-family:var(--mn);color:var(--tx);margin-top:4px">
+          <span id="sg-vel-oldest">24h ago</span>
+          <span>12h ago</span>
+          <span>now</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 28. 30-Day Sentiment Trend Chart -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        letter-spacing:1.5px;margin-bottom:8px">📈 30-Day Sentiment Trend</div>
+      <div id="sg-daily-chart" style="display:flex;align-items:flex-end;gap:2px;height:80px"></div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;
+        font-family:var(--mn);color:var(--tx);margin-top:4px" id="sg-daily-labels">
+        <span>30d ago</span><span>20d ago</span><span>10d ago</span><span>today</span>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:6px;font-size:10px;font-family:var(--mn)">
+        <span><span style="color:var(--gr)">■</span> Bullish</span>
+        <span><span style="color:var(--rd)">■</span> Bearish</span>
+        <span><span style="color:var(--tx)">■</span> Neutral</span>
+      </div>
+    </div>
+
+    <!-- 30. Source Leaderboard -->
+    <div>
+      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        letter-spacing:1.5px;margin-bottom:8px">🏆 Source Leaderboard — Most Active (Today)</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:11px">
+          <thead>
+            <tr style="background:var(--s2);border-bottom:1px solid var(--b)">
+              <th style="padding:5px 8px;text-align:left;color:var(--tx);font-size:10px;
+                text-transform:uppercase;letter-spacing:1px;width:24px">#</th>
+              <th style="padding:5px 8px;text-align:left;color:var(--tx);font-size:10px;
+                text-transform:uppercase;letter-spacing:1px">Source</th>
+              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:10px;
+                text-transform:uppercase;letter-spacing:1px">Stories</th>
+              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:10px;
+                text-transform:uppercase;letter-spacing:1px">🟢 Bull</th>
+              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:10px;
+                text-transform:uppercase;letter-spacing:1px">🔴 Bear</th>
+              <th style="padding:5px 8px;text-align:left;color:var(--tx);font-size:10px;
+                text-transform:uppercase;letter-spacing:1px">Sentiment Bar</th>
+              <th style="padding:5px 8px;text-align:center;color:var(--tx);font-size:10px;
+                text-transform:uppercase;letter-spacing:1px">⚡ Breaking</th>
+            </tr>
+          </thead>
+          <tbody id="sg-leaderboard"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- SECTION 9c: COMPETITIVE INTELLIGENCE (v3.0f) -->
 <div style="margin-bottom:10px">
 
@@ -2510,6 +2736,7 @@ async function fetchData(){
     updatePriceIntel(d);
     updateOnchainIntel(d);
     updateTechIntel(d);
+    updateSentIntel(d);
     updateCompIntel(d);
     updateRegIntel(d);
     updateExecIntel(d);
@@ -2675,6 +2902,95 @@ function updateExecIntel(d){
   }
 }
 
+
+
+// ── Sentiment Engine (v3.0g) ───────────────────────────────────────────────
+function updateSentIntel(d){
+  const si = d.sent_intel || {};
+
+  // ── 31. Google Trend Score ────────────────────────────────────────────
+  const score = si.google_trend || 0;
+  const scoreEl = document.getElementById("sg-trend-score");
+  if(scoreEl){
+    scoreEl.textContent = score;
+    scoreEl.style.color = score > 70 ? "var(--gr)" : score > 40 ? "var(--yl)" : "var(--tx)";
+  }
+  c("sg-trend-label", si.google_trend_label || "--");
+  const tBar = document.getElementById("sg-trend-bar");
+  if(tBar){
+    tBar.style.width     = `${score}%`;
+    tBar.style.background = score > 70 ? "var(--gr)" : score > 40 ? "var(--yl)" : "var(--tx)";
+  }
+  if(si.trend_keywords && si.trend_keywords.length){
+    const kwEl = document.getElementById("sg-trend-kw");
+    if(kwEl) kwEl.textContent = si.trend_keywords.slice(0,3).join(" · ");
+  }
+
+  // ── 29. News Velocity Chart (24h bars) ────────────────────────────────
+  const velEl = document.getElementById("sg-velocity-chart");
+  if(velEl && si.velocity_hours && si.velocity_hours.length){
+    const maxV = Math.max(...si.velocity_hours.map(h=>h.count), 1);
+    velEl.innerHTML = si.velocity_hours.map((h,i)=>{
+      const pct  = Math.round((h.count / maxV) * 100);
+      const isNow = i === 23;
+      const col  = isNow ? "var(--bl)" : h.count > maxV * 0.7 ? "var(--gr)" :
+                   h.count > maxV * 0.3 ? "var(--yl)" : "var(--s2)";
+      return `<div title="${h.count} stories" style="flex:1;background:${col};
+        border-radius:2px 2px 0 0;min-height:2px;height:${Math.max(pct,2)}%;
+        transition:height .4s;cursor:default"></div>`;
+    }).join("");
+  }
+
+  // ── 28. 30-Day Sentiment Chart ────────────────────────────────────────
+  const dayEl = document.getElementById("sg-daily-chart");
+  if(dayEl && si.daily_sentiment && si.daily_sentiment.length){
+    const days = si.daily_sentiment;
+    const maxD = Math.max(...days.map(d=>d.total), 1);
+    dayEl.innerHTML = days.map((day,i)=>{
+      const h    = Math.round((day.total / maxD) * 80);
+      const bPct = day.bull_pct || 0;
+      const rPct = day.bear_pct || 0;
+      const nPct = 100 - bPct - rPct;
+      const isToday = i === days.length - 1;
+      return `<div title="${day.date}: ${day.bull}🟢 ${day.bear}🔴 ${day.neut}⚪ (${day.total} total)"
+        style="flex:1;display:flex;flex-direction:column;min-width:4px;
+          border-radius:2px 2px 0 0;overflow:hidden;cursor:default;
+          ${isToday?"outline:1px solid var(--bl)":""};height:${Math.max(h,3)}px">
+        <div style="flex:${bPct};background:var(--gr);min-height:${bPct>0?1:0}px"></div>
+        <div style="flex:${nPct};background:var(--tx);min-height:${nPct>0?1:0}px"></div>
+        <div style="flex:${rPct};background:var(--rd);min-height:${rPct>0?1:0}px"></div>
+      </div>`;
+    }).join("");
+  }
+
+  // ── 30. Source Leaderboard ────────────────────────────────────────────
+  const lbEl = document.getElementById("sg-leaderboard");
+  if(lbEl && si.source_leaders && si.source_leaders.length){
+    const medals = ["🥇","🥈","🥉"];
+    lbEl.innerHTML = si.source_leaders.map((src,i)=>{
+      const rank  = medals[i] || `${i+1}`;
+      const bPct  = src.bull_pct || 0;
+      const rPct  = src.bear_pct || 0;
+      const rowBg = i < 3 ? `background:rgba(${i===0?"255,204,0":i===1?"192,192,192":"205,127,50"},.05)` : "";
+      return `<tr style="border-bottom:1px solid rgba(255,255,255,.03);${rowBg}">
+        <td style="padding:5px 8px;text-align:center;font-size:13px">${rank}</td>
+        <td style="padding:5px 8px;font-weight:700;color:var(--br)">${src.name}</td>
+        <td style="padding:5px 8px;text-align:center;font-weight:700;
+          color:var(--bl)">${src.total}</td>
+        <td style="padding:5px 8px;text-align:center;color:var(--gr);font-weight:700">${bPct}%</td>
+        <td style="padding:5px 8px;text-align:center;color:var(--rd);font-weight:700">${rPct}%</td>
+        <td style="padding:5px 8px;min-width:80px">
+          <div style="height:6px;background:var(--s2);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${bPct}%;background:var(--gr);border-radius:3px"></div>
+          </div>
+        </td>
+        <td style="padding:5px 8px;text-align:center;color:var(--yl);font-weight:700">
+          ${src.breaking > 0 ? src.breaking : "—"}
+        </td>
+      </tr>`;
+    }).join("");
+  }
+}
 
 // ── Competitive Intelligence (v3.0f) ──────────────────────────────────────
 function updateCompIntel(d){
