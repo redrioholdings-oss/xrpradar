@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v2.0"
+BOT_FILE          = "XRPRadar_v3.0a"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -339,6 +339,20 @@ REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
 # ── State ──────────────────────────────────────────────────────────────────────
 STATE = {
     "price":         {},
+    "price_intel":   {
+        "dominance":        0.0,
+        "funding_rate":     0.0,
+        "funding_ts":       "",
+        "open_interest_usd":0.0,
+        "open_interest_xrp":0.0,
+        "xrp_eth":          0.0,
+        "eth_usd":          0.0,
+        "volatility_30d":   0.0,
+        "bid":              0.0,
+        "ask":              0.0,
+        "spread_pct":       0.0,
+        "ts":               "",
+    },
     "fear_greed":    {},
     "escrow":        {},
     "onchain":       {},
@@ -508,6 +522,94 @@ def fetch_price():
         STATE["onchain"] = {"ledger_index": "--", "tps": "--", "accounts": "--", "transactions": "--"}
 
     STATE["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+# ── Price Intelligence Fetch (v3.0a) ──────────────────────────────────────
+def fetch_price_intel():
+    hdr = {"User-Agent": "XRPRadar/3.0"}
+    pi  = STATE["price_intel"]
+
+    # 1. XRP Market Dominance
+    try:
+        gl = requests.get("https://api.coingecko.com/api/v3/global",
+                          headers=hdr, timeout=10).json()
+        pct = gl.get("data", {}).get("market_cap_percentage", {}).get("xrp", 0)
+        pi["dominance"] = round(float(pct), 3)
+    except Exception as e:
+        log_error(f"dominance: {e}")
+
+    # 2. Futures Funding Rate (Binance)
+    try:
+        fr = requests.get(
+            "https://fapi.binance.com/fapi/v1/fundingRate?symbol=XRPUSDT&limit=1",
+            timeout=8).json()
+        if fr and isinstance(fr, list):
+            rate = float(fr[0].get("fundingRate", 0)) * 100
+            pi["funding_rate"] = round(rate, 5)
+            pi["funding_ts"]   = fr[0].get("fundingTime", "")
+    except Exception as e:
+        log_error(f"funding_rate: {e}")
+
+    # 3. Open Interest (Binance Futures)
+    try:
+        oi = requests.get(
+            "https://fapi.binance.com/fapi/v1/openInterest?symbol=XRPUSDT",
+            timeout=8).json()
+        xrp_oi = float(oi.get("openInterest", 0))
+        xrp_px = float(STATE["price"].get("usd", 1) or 1)
+        pi["open_interest_xrp"] = round(xrp_oi, 0)
+        pi["open_interest_usd"] = round(xrp_oi * xrp_px, 0)
+    except Exception as e:
+        log_error(f"open_interest: {e}")
+
+    # 4. ETH/USD price + XRP/ETH pair
+    try:
+        eth = requests.get(
+            "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+            headers=hdr, timeout=8).json()
+        eth_usd = float(eth.get("ethereum", {}).get("usd", 0))
+        xrp_usd = float(STATE["price"].get("usd", 0) or 0)
+        pi["eth_usd"] = round(eth_usd, 2)
+        if eth_usd > 0 and xrp_usd > 0:
+            pi["xrp_eth"] = round(xrp_usd / eth_usd, 8)
+    except Exception as e:
+        log_error(f"xrp_eth: {e}")
+
+    # 5. 30-Day Rolling Volatility (annualised)
+    try:
+        hist = requests.get(
+            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
+            "?vs_currency=usd&days=31&interval=daily",
+            headers=hdr, timeout=12).json()
+        prices = [p[1] for p in hist.get("prices", [])]
+        if len(prices) >= 10:
+            import math
+            returns = [math.log(prices[i]/prices[i-1])
+                       for i in range(1, len(prices)) if prices[i-1] > 0]
+            if returns:
+                mean    = sum(returns) / len(returns)
+                variance= sum((r - mean)**2 for r in returns) / len(returns)
+                vol_ann = math.sqrt(variance * 365) * 100
+                pi["volatility_30d"] = round(vol_ann, 2)
+    except Exception as e:
+        log_error(f"volatility: {e}")
+
+    # 6. Bid/Ask Spread (Binance spot)
+    try:
+        bk = requests.get(
+            "https://api.binance.com/api/v3/ticker/bookTicker?symbol=XRPUSDT",
+            timeout=6).json()
+        bid = float(bk.get("bidPrice", 0))
+        ask = float(bk.get("askPrice", 0))
+        if bid > 0 and ask > 0:
+            spread = (ask - bid) / bid * 100
+            pi["bid"]        = round(bid, 5)
+            pi["ask"]        = round(ask, 5)
+            pi["spread_pct"] = round(spread, 5)
+    except Exception as e:
+        log_error(f"bid_ask: {e}")
+
+    pi["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
 
 # ── News Fetch ─────────────────────────────────────────────────────────────────
 def fetch_news():
@@ -738,7 +840,9 @@ def run_qa():
 # ── Main Loops ─────────────────────────────────────────────────────────────────
 def price_loop():
     while True:
-        try: fetch_price()
+        try:
+            fetch_price()
+            fetch_price_intel()
         except Exception as e: log_error(f"price_loop: {e}")
         time.sleep(PRICE_INTERVAL)
 
@@ -780,6 +884,7 @@ def ping():
 def api_data():
     return jsonify({
         "price":            STATE["price"],
+        "price_intel":      STATE["price_intel"],
         "fear_greed":       STATE["fear_greed"],
         "escrow":           STATE["escrow"],
         "onchain":          STATE["onchain"],
@@ -1143,6 +1248,50 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   </div>
 </div>
 
+<!-- SECTION 3b: PRICE INTELLIGENCE (v3.0a) -->
+<div class="acct" style="border-color:rgba(72,255,130,.2);margin-bottom:10px">
+  <div class="sec-title" style="color:var(--gr)">⚡ Price Intelligence</div>
+  <div class="agrid" style="grid-template-columns:repeat(6,1fr)">
+
+    <div class="abox hi">
+      <div class="albl">XRP Dominance</div>
+      <div class="aval b" id="pi-dom">--%</div>
+      <div class="asub">of total crypto mktcap</div>
+    </div>
+
+    <div class="abox" id="pi-fr-box">
+      <div class="albl">Funding Rate</div>
+      <div class="aval" id="pi-fr">--%</div>
+      <div class="asub" id="pi-fr-sub">Perpetual futures</div>
+    </div>
+
+    <div class="abox">
+      <div class="albl">Open Interest</div>
+      <div class="aval b" id="pi-oi-usd">--</div>
+      <div class="asub" id="pi-oi-xrp">-- XRP contracts</div>
+    </div>
+
+    <div class="abox">
+      <div class="albl">XRP / ETH</div>
+      <div class="aval" id="pi-xrpeth">--</div>
+      <div class="asub" id="pi-eth-usd">ETH: $--</div>
+    </div>
+
+    <div class="abox" id="pi-vol-box">
+      <div class="albl">30D Volatility</div>
+      <div class="aval y" id="pi-vol">--%</div>
+      <div class="asub" id="pi-vol-sub">Annualised</div>
+    </div>
+
+    <div class="abox">
+      <div class="albl">Bid/Ask Spread</div>
+      <div class="aval g" id="pi-spread">--%</div>
+      <div class="asub" id="pi-ba">Bid: -- / Ask: --</div>
+    </div>
+
+  </div>
+</div>
+
 <!-- SECTION 4: CHART -->
 <div class="acct" style="padding:10px;border-color:rgba(117,188,255,.15)">
   <div class="sec-title" style="color:var(--bl)">📊 Live XRP/USD Chart</div>
@@ -1154,6 +1303,12 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
       </script>
     </div>
   </div>
+</div>
+
+<!-- SECTION 4b: TOP 20 XRP STORIES -->
+<div class="score" style="margin-bottom:10px">
+  <div class="sec-title" style="color:var(--bl)">📋 Top 20 XRP Stories</div>
+  <div id="top20-feed" style="display:flex;flex-direction:column;gap:6px"></div>
 </div>
 
 <!-- SECTION 5: US + GLOBAL INTELLIGENCE (2-column panel) -->
@@ -1351,6 +1506,7 @@ async function fetchData(){
     updateHeader(d);
     updateStatus(d);
     updateMarket(d);
+    updatePriceIntel(d);
     updateAI(d);
     updateScoreboard(d);
     updateAnalytics(d);
@@ -1367,7 +1523,48 @@ async function fetchNews(){
     allStories = d.stories||[];
     allStories.forEach(s=>{storyData[s.id]=s;});
     renderNews(d.total_all||0);
+    renderTop20();
   }catch(e){console.error("fetchNews:",e);}
+}
+
+function renderTop20(){
+  const el=document.getElementById("top20-feed");
+  if(!el) return;
+  // Sort: breaking first, then by recency
+  const sorted=[...allStories]
+    .sort((a,b)=>{
+      if(a.breaking&&!b.breaking) return -1;
+      if(!a.breaking&&b.breaking) return 1;
+      return (b.pub||"").localeCompare(a.pub||"");
+    })
+    .slice(0,20);
+  if(!sorted.length){el.innerHTML='<div class="empty">Loading stories...</div>';return;}
+  const sentC={"bullish":"var(--gr)","bearish":"var(--rd)","neutral":"var(--tx)"};
+  el.innerHTML=sorted.map((s,i)=>{
+    const brk=s.breaking?'<span style="color:var(--yl);font-weight:700;font-family:var(--mn);font-size:10px">⚡ BREAKING &nbsp;</span>':''
+    const sent=s.sentiment||"neutral";
+    const sum=s.summary?s.summary.substring(0,160)+(s.summary.length>160?"...":""):"";
+    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 10px;
+      background:var(--s2);border:1px solid var(--b);border-radius:6px;cursor:pointer;transition:border-color .2s"
+      onclick="openStoryModal('${s.id}')"
+      onmouseover="this.style.borderColor='var(--bl)'"
+      onmouseout="this.style.borderColor='var(--b)'">
+      <div style="font-size:14px;font-weight:900;font-family:var(--mn);color:var(--tx);
+        min-width:24px;text-align:right;margin-top:1px">${i+1}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap">
+          ${brk}<span style="font-size:10px;font-weight:700;font-family:var(--mn);
+            color:var(--tx);background:var(--s1);padding:1px 6px;border-radius:3px;
+            border:1px solid var(--b)">${s.source}</span>
+          <span style="font-size:10px;font-family:var(--mn);
+            color:${sentC[sent]||"var(--tx)"};font-weight:700">${sent.toUpperCase()}</span>
+          <span style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-left:auto">${s.age||""}</span>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:3px">${s.title}</div>
+        ${sum?`<div style="font-size:11px;color:var(--tx);line-height:1.5">${sum}</div>`:""}
+      </div>
+    </div>`;
+  }).join("");
 }
 
 // ── Format helpers ─────────────────────────────────────────────────────────
@@ -1380,6 +1577,65 @@ function fmtUSD(v){
   return `$${v.toFixed(2)}`;
 }
 function c(id,v){const el=document.getElementById(id);if(el&&v!==undefined)el.textContent=v;}
+
+
+// ── Price Intelligence (v3.0a) ─────────────────────────────────────────────
+function updatePriceIntel(d){
+  const pi = d.price_intel || {};
+
+  // 1. Dominance
+  if(pi.dominance !== undefined)
+    c("pi-dom", `${parseFloat(pi.dominance).toFixed(3)}%`);
+
+  // 2. Funding Rate — colour-coded: green=positive(bullish), red=negative(bearish)
+  if(pi.funding_rate !== undefined){
+    const fr    = parseFloat(pi.funding_rate);
+    const frEl  = document.getElementById("pi-fr");
+    const frBox = document.getElementById("pi-fr-box");
+    if(frEl){
+      frEl.textContent = `${fr >= 0 ? "+" : ""}${fr.toFixed(4)}%`;
+      frEl.style.color = fr >= 0 ? "var(--gr)" : "var(--rd)";
+    }
+    if(frBox){
+      frBox.className = fr >= 0 ? "abox pos" : "abox neg";
+    }
+    const frSub = document.getElementById("pi-fr-sub");
+    if(frSub) frSub.textContent = fr >= 0 ? "Longs paying — bullish" : "Shorts paying — bearish";
+  }
+
+  // 3. Open Interest
+  if(pi.open_interest_usd){
+    c("pi-oi-usd", fmtUSD(pi.open_interest_usd));
+    c("pi-oi-xrp", `${parseInt(pi.open_interest_xrp).toLocaleString()} XRP`);
+  }
+
+  // 4. XRP/ETH
+  if(pi.xrp_eth){
+    c("pi-xrpeth", parseFloat(pi.xrp_eth).toFixed(6) + " ETH");
+    c("pi-eth-usd", `ETH: $${parseFloat(pi.eth_usd||0).toLocaleString()}`);
+  }
+
+  // 5. Volatility — colour coded: green=low(<40%), yellow=medium, red=high(>80%)
+  if(pi.volatility_30d){
+    const vol   = parseFloat(pi.volatility_30d);
+    const volEl = document.getElementById("pi-vol");
+    const volBox= document.getElementById("pi-vol-box");
+    if(volEl){
+      volEl.textContent = `${vol.toFixed(1)}%`;
+      volEl.style.color = vol < 40 ? "var(--gr)" : vol < 80 ? "var(--yl)" : "var(--rd)";
+    }
+    const volSub = document.getElementById("pi-vol-sub");
+    if(volSub) volSub.textContent = vol < 40 ? "Low — calm market" : vol < 80 ? "Medium — active" : "High — volatile";
+  }
+
+  // 6. Bid/Ask Spread
+  if(pi.spread_pct !== undefined){
+    const sp = parseFloat(pi.spread_pct);
+    c("pi-spread", `${sp.toFixed(4)}%`);
+    if(pi.bid && pi.ask)
+      c("pi-ba", `Bid: $${parseFloat(pi.bid).toFixed(5)} / Ask: $${parseFloat(pi.ask).toFixed(5)}`);
+  }
+}
 
 // ── Header ─────────────────────────────────────────────────────────────────
 function updateHeader(d){
@@ -1419,7 +1675,7 @@ function updateMarket(d){
   if(hi&&p.high_24h){hi.textContent=`$${parseFloat(p.high_24h).toFixed(4)}`;}
   const lo=document.getElementById("mk-low");
   if(lo&&p.low_24h){lo.textContent=`$${parseFloat(p.low_24h).toFixed(4)}`;}
-  c("mk-btc", p.btc?`₿ ${parseFloat(p.btc).toFixed(8)}`:"--");
+  c("mk-btc", p.btc?`${parseFloat(p.btc).toFixed(8)}`:"--");
   // Right panel mirrors
   c("rc-supply", p.supply_circ?`${(p.supply_circ/1e9).toFixed(1)}B XRP`:"--");
   c("rc-tps",    (d.onchain||{}).tps||"--");
@@ -1432,7 +1688,7 @@ function updateMarket(d){
   c("rm-athpct", p.ath_pct?`${Math.abs(parseFloat(p.ath_pct)).toFixed(1)}% below`:"--");
   if(p.high_24h) c("rm-high",`$${parseFloat(p.high_24h).toFixed(4)}`);
   if(p.low_24h)  c("rm-low", `$${parseFloat(p.low_24h).toFixed(4)}`);
-  c("rm-btc",    p.btc?`₿ ${parseFloat(p.btc).toFixed(8)}`:"--");
+  c("rm-btc",    p.btc?`${parseFloat(p.btc).toFixed(8)}`:"--");
 }
 
 // ── AI ─────────────────────────────────────────────────────────────────────
