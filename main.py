@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.1b"
+BOT_FILE          = "XRPRadar_v3.1c"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -2166,9 +2166,9 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .lm{flex:1;color:var(--br)}
 .lm.bull{color:var(--gr)}.lm.bear{color:var(--rd)}.lm.break{color:var(--yl)}
 /* NEWS FEED */
-.nrow{display:grid;grid-template-columns:1fr 420px;gap:14px;margin-bottom:10px}
-.npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
-.nfeed{max-height:520px;overflow-y:auto;padding:8px 12px}
+.nrow{display:grid;grid-template-columns:1fr 420px;gap:6px;margin-bottom:10px;align-items:start}
+.npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;align-self:start}
+.nfeed{max-height:900px;overflow-y:auto;padding:8px 12px}
 .ncard{background:var(--s2);border:1px solid var(--b);border-radius:6px;
   padding:9px;margin-bottom:7px;cursor:pointer;transition:border-color .2s}
 .ncard:hover{border-color:var(--bl)}
@@ -2207,7 +2207,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
   font-family:var(--mn);letter-spacing:.05em;text-transform:uppercase;transition:all .2s;white-space:nowrap}
 .nbtn:hover,.nbtn.on{background:var(--bld);border-color:var(--bl);color:var(--bl)}
 /* RIGHT PANEL */
-.rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;min-width:0}
+.rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;min-width:0;align-self:start}
 .rcard{padding:10px 14px;border-bottom:1px solid var(--b);font-size:13px;font-family:var(--mn)}
 .rtitle{font-size:13px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:700}
 .rrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;align-items:center;min-height:24px}
@@ -2224,7 +2224,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .r1{color:#ffd700}.r2{color:#c0c0c0}.r3{color:#cd7f32}.rn{color:var(--or)}
 /* ANALYTICS LAB */
 .lab{background:var(--s1);border:1px solid rgba(0,229,204,.2);
-  border-radius:10px;padding:14px;margin-bottom:10px}
+  border-radius:10px;padding:14px;margin-bottom:10px;margin-top:0}
 .lab3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .labp{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px}
 .labt{font-size:13px;font-weight:800;color:var(--bl);font-family:var(--mn);
