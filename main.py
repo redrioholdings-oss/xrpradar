@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.0h"
+BOT_FILE          = "XRPRadar_v3.1"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -339,6 +339,37 @@ REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
 # ── State ──────────────────────────────────────────────────────────────────────
 STATE = {
     "price":         {},
+    "prediction": {
+        "sections": {
+            "market_pulse":        "",
+            "connections":         "",
+            "domino_effect":       "",
+            "regional_flashpoints":"",
+            "watchlist":           "",
+        },
+        "generated_at":   "",
+        "next_run_cst":   "Daily at 11:50 AM CST",
+        "last_run_date":  "",
+        "story_count":    0,
+        "source_count":   0,
+        "status":         "pending",
+        "error":          "",
+    },
+    "disp_intel": {
+        "price_heatmap":  [],
+        "smart_money":    {
+            "score":       0,
+            "label":       "",
+            "signals":     [],
+            "whale_score": 0,
+            "flow_score":  0,
+            "rsi_score":   0,
+            "sent_score":  0,
+            "oi_score":    0,
+        },
+        "fg_history":     [],
+        "ts":             "",
+    },
     "tools_intel": {
         "fx_rates": {
             "EUR": 0.0, "GBP": 0.0, "JPY": 0.0,
@@ -934,6 +965,293 @@ def fetch_tech_intel():
 
 
 
+
+
+
+
+# ── XRP Intelligence Brief (v3.1) ─────────────────────────────────────────
+def fetch_prediction(force=False):
+    """Daily XRP Intelligence Brief — runs at 17:50 UTC (11:50am CST)."""
+    pred  = STATE["prediction"]
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if not force and pred.get("last_run_date") == today:
+        return
+    pred["status"] = "generating"
+    try:
+        import datetime as _dt
+
+        # Gather last 24h stories
+        now    = datetime.now(timezone.utc)
+        cutoff = (now - _dt.timedelta(hours=24)).strftime("%Y-%m-%d")
+        stories= [s for s in STATE.get("stories",[])
+                  if s.get("pub", s.get("published","")) >= cutoff]
+        if len(stories) < 10:
+            stories = STATE.get("stories",[])
+        stories    = stories[:35]
+        src_count  = len(set(s.get("source","") for s in stories))
+
+        # Compact story digest
+        lines = []
+        for s in stories:
+            cat    = s.get("category","General")
+            sent   = s.get("sentiment","neutral").upper()[:4]
+            src    = s.get("source","")[:25]
+            ttl    = s.get("title","")[:110]
+            smry   = (s.get("summary","") or "")[:140]
+            region = s.get("region","") or ""
+            tag    = f"|{region}" if region else ""
+            lines.append(f"[{cat}|{sent}|{src}{tag}] {ttl}. {smry}")
+        story_text = chr(10).join(lines)
+
+        # Live market snapshot
+        p  = STATE.get("price",         {})
+        ti = STATE.get("tech_intel",    {})
+        oc = STATE.get("onchain_intel", {})
+        pi = STATE.get("price_intel",   {})
+        fg = STATE.get("fear_greed",    {})
+        st = STATE.get("story_stats",   {})
+
+        mkt_lines = [
+            f"XRP/USD: ${p.get('usd',0)} | 24h: {p.get('change_24h',0):+.2f}% | 7d: {p.get('change_7d',0):+.2f}% | Rank: #{p.get('rank','--')}",
+            f"Fear & Greed: {fg.get('score','--')} ({fg.get('label','--')})",
+            f"RSI 1H: {ti.get('rsi_1h','--')} ({ti.get('rsi_1h_label','--')}) | RSI 1D: {ti.get('rsi_1d','--')} ({ti.get('rsi_1d_label','--')})",
+            f"52W Position: {ti.get('week52_position','--')}% of range | High: ${ti.get('week52_high','--')} | Low: ${ti.get('week52_low','--')}",
+            f"Support: {ti.get('support',[])} | Resistance: {ti.get('resistance',[])}",
+            f"Funding Rate: {pi.get('funding_rate',0):+.4f}% | OI: ${pi.get('open_interest_usd',0):,.0f} | Dominance: {pi.get('dominance','--')}%",
+            f"30D Vol: {pi.get('volatility_30d','--')}% | Spread: {pi.get('spread_pct','--')}%",
+            f"Exchange Flow: {oc.get('exchange_flow','--')} - {oc.get('exchange_flow_note','')}",
+            f"Whale Alerts: {len(oc.get('whale_alerts',[]))} | RLUSD Supply: {oc.get('rlusd_supply',0):,.0f} | DEX Vol: ${oc.get('dex_vol_24h',0):,.0f}",
+            f"Escrow Countdown: {oc.get('escrow_days','--')}d {oc.get('escrow_hours','--')}h",
+            f"Stories 24h: {st.get('today',0)} total | {st.get('bullish',0)} bull | {st.get('bearish',0)} bear | {st.get('neutral',0)} neutral",
+        ]
+        mkt_text = chr(10).join(mkt_lines)
+
+        prompt_parts = [
+            "You are the world's foremost XRP intelligence analyst. Your specialty is identifying non-obvious connections between events and projecting domino effects within the XRP ecosystem.",
+            "",
+            f"LIVE MARKET SNAPSHOT ({now.strftime('%B %d, %Y %H:%M UTC')}):",
+            mkt_text,
+            "",
+            f"XRP NEWS - LAST 24 HOURS ({len(stories)} stories from {src_count} sources worldwide):",
+            story_text,
+            "",
+            "Write today's XRP Intelligence Brief in exactly these 5 sections. Each section must be 4-6 substantive sentences. Reference specific companies, countries, price levels, and individuals from the news above. Find connections other analysts would miss.",
+            "",
+            "## MARKET PULSE",
+            "Synthesise the combined technical data, derivatives market, and price action into one coherent picture. What does the combination of RSI, funding rate, open interest, whale activity, Fear and Greed, and 52-week position tell you about market posture right now?",
+            "",
+            "## STORY CONNECTIONS",
+            "Identify the non-obvious links between today's most significant news stories. Where does a regulatory development reinforce or contradict a technical signal? What two seemingly unrelated stories are telling the same underlying narrative? Connect specific dots with specific reasoning.",
+            "",
+            "## DOMINO EFFECT",
+            "Trace the most plausible cause-and-effect chains. Structure each as: IF [current condition] THEN [near-term outcome] WHICH COULD LEAD TO [second-order consequence]. Provide at least three distinct chains. Be specific about timelines where the data supports it.",
+            "",
+            "## REGIONAL FLASHPOINTS",
+            "Which geographic markets are generating the most meaningful signal today and why? Which country-level development has the highest potential to move XRP in the next week? Name specific countries, regulators, and institutions.",
+            "",
+            "## WATCHLIST",
+            "List exactly 4-5 specific things to monitor in the next 24-72 hours. Each item must name a concrete catalyst: a price level, a regulatory decision, a scheduled event, an on-chain threshold. State what outcome would be bullish and what would be bearish for each.",
+        ]
+        prompt = chr(10).join(prompt_parts)
+
+        system = (
+            "You are the world's best XRP intelligence analyst. "
+            "Write in clear direct professional prose — the style of a Bloomberg Intelligence note. "
+            "Be specific: name companies, countries, price levels, and individuals. "
+            "Never use bullet points or markdown bold. "
+            "Use only the ## section headers provided. "
+            "Never write it is important to note or in conclusion. "
+            "Calibrate uncertainty honestly — say likely, possible, or speculative where appropriate."
+        )
+
+        raw = call_claude(prompt, system, max_tokens=1400)
+        if not raw or len(raw) < 200:
+            pred["status"] = "error"
+            pred["error"]  = "Response too short or empty - check ANTHROPIC_API_KEY"
+            return
+
+        # Parse sections
+        sections = {
+            "market_pulse":         "",
+            "connections":          "",
+            "domino_effect":        "",
+            "regional_flashpoints": "",
+            "watchlist":            "",
+        }
+        for part in raw.split("##"):
+            part = part.strip()
+            if not part: continue
+            split_idx = part.find(chr(10))
+            if split_idx < 0: continue
+            header = part[:split_idx].strip().upper()
+            body   = part[split_idx:].strip()
+            if   "MARKET PULSE" in header: sections["market_pulse"]         = body
+            elif "CONNECTIONS"  in header: sections["connections"]           = body
+            elif "DOMINO"       in header: sections["domino_effect"]         = body
+            elif "REGIONAL"     in header: sections["regional_flashpoints"]  = body
+            elif "WATCH"        in header: sections["watchlist"]             = body
+
+        # Next run time
+        next_utc = now.replace(hour=17, minute=50, second=0, microsecond=0)
+        if next_utc <= now:
+            next_utc = next_utc + _dt.timedelta(days=1)
+        remaining = next_utc - now
+        hrs  = int(remaining.total_seconds() // 3600)
+        mins = int((remaining.total_seconds() % 3600) // 60)
+
+        pred["sections"]      = sections
+        pred["generated_at"]  = now.strftime("%B %d, %Y at %I:%M %p UTC")
+        pred["last_run_date"] = today
+        pred["story_count"]   = len(stories)
+        pred["source_count"]  = src_count
+        pred["next_run_cst"]  = f"Next brief in {hrs}h {mins}m (11:50 AM CST)"
+        pred["status"]        = "complete"
+        pred["error"]         = ""
+
+    except Exception as e:
+        pred["status"] = "error"
+        pred["error"]  = str(e)[:300]
+        log_error(f"fetch_prediction: {e}")
+
+
+def prediction_loop():
+    """Checks every 5 minutes — fires daily at 17:48-18:05 UTC (11:48am CST)."""
+    import datetime as _dt
+    while True:
+        try:
+            now   = datetime.now(timezone.utc)
+            today = now.strftime("%Y-%m-%d")
+            last  = STATE["prediction"].get("last_run_date","")
+            in_window = (
+                (now.hour == 17 and now.minute >= 48) or
+                (now.hour == 18 and now.minute <= 5)
+            )
+            if in_window and last != today:
+                fetch_prediction()
+            if last != today:
+                next_utc = now.replace(hour=17, minute=50, second=0, microsecond=0)
+                if next_utc <= now:
+                    next_utc = next_utc + _dt.timedelta(days=1)
+                remaining = next_utc - now
+                hrs  = int(remaining.total_seconds() // 3600)
+                mins = int((remaining.total_seconds() % 3600) // 60)
+                STATE["prediction"]["next_run_cst"] = (
+                    f"Next brief in {hrs}h {mins}m (11:50 AM CST)"
+                )
+        except Exception as e:
+            log_error(f"prediction_loop: {e}")
+        time.sleep(300)
+
+
+# ── Unique Displays Fetch (v3.0i) ─────────────────────────────────────────
+def fetch_disp_intel():
+    hdr = {"User-Agent": "XRPRadar/3.0"}
+    di  = STATE["disp_intel"]
+    now = datetime.now(timezone.utc)
+
+    # 36. Price History Heatmap — 90 days of daily % changes
+    try:
+        hist = requests.get(
+            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
+            "?vs_currency=usd&days=90&interval=daily",
+            headers=hdr, timeout=15).json()
+        prices = [p[1] for p in hist.get("prices", [])]
+        heatmap = []
+        for i in range(1, len(prices)):
+            if prices[i-1] > 0:
+                pct_change = (prices[i] - prices[i-1]) / prices[i-1] * 100
+                # Date for this entry
+                ts_ms = hist["prices"][i][0]
+                import datetime as _dt
+                day = _dt.datetime.fromtimestamp(ts_ms/1000, tz=_dt.timezone.utc)
+                heatmap.append({
+                    "date":    day.strftime("%Y-%m-%d"),
+                    "dow":     day.weekday(),        # 0=Mon 6=Sun
+                    "week":    day.isocalendar()[1],
+                    "price":   round(prices[i], 4),
+                    "change":  round(pct_change, 2),
+                })
+        di["price_heatmap"] = heatmap[-90:]
+    except Exception as e:
+        log_error(f"price_heatmap: {e}")
+
+    # 38. Smart Money Score — proprietary composite
+    try:
+        sm   = di["smart_money"]
+        pi   = STATE.get("price_intel", {})
+        ti   = STATE.get("tech_intel",  {})
+        oc   = STATE.get("onchain_intel",{})
+        st   = STATE.get("story_stats", {})
+        signals = []
+        score   = 0
+
+        # Signal 1: Whale activity (0-20 pts)
+        whale_ct = len(oc.get("whale_alerts", []))
+        w_score  = min(whale_ct * 4, 20)
+        sm["whale_score"] = w_score
+        score += w_score
+        if whale_ct > 0:
+            signals.append({"label": f"Whale Activity: {whale_ct} alerts","points": w_score,"positive": True})
+
+        # Signal 2: Exchange Flow (0-20 pts)
+        flow = oc.get("exchange_flow","NEUTRAL")
+        f_score = 20 if flow=="INFLOW" else 10 if flow=="NEUTRAL" or flow=="MIXED" else 0
+        sm["flow_score"] = f_score
+        score += f_score
+        signals.append({"label": f"Exchange Flow: {flow}","points": f_score,"positive": f_score >= 10})
+
+        # Signal 3: RSI position (0-20 pts)
+        rsi_1d = float(ti.get("rsi_1d", 50))
+        r_score = 20 if 40 <= rsi_1d <= 60 else 15 if 30 <= rsi_1d <= 70 else 5
+        sm["rsi_score"] = r_score
+        score += r_score
+        signals.append({"label": f"RSI 1D: {rsi_1d:.1f} ({ti.get('rsi_1d_label','')})","points": r_score,"positive": r_score >= 15})
+
+        # Signal 4: Bullish sentiment ratio (0-20 pts)
+        total  = max(st.get("today", 1), 1)
+        bull_r = st.get("bullish", 0) / total
+        s_score= round(bull_r * 20)
+        sm["sent_score"] = s_score
+        score += s_score
+        signals.append({"label": f"Sentiment: {round(bull_r*100)}% bullish today","points": s_score,"positive": bull_r > 0.4})
+
+        # Signal 5: Funding rate (0-20 pts)
+        fr = float(pi.get("funding_rate", 0))
+        o_score = 15 if 0 < fr < 0.05 else 20 if fr >= 0.05 else 10 if fr == 0 else 5
+        sm["oi_score"] = o_score
+        score += o_score
+        signals.append({"label": f"Funding Rate: {fr:+.4f}%","points": o_score,"positive": fr > 0})
+
+        sm["score"]   = score
+        sm["signals"] = signals
+        sm["label"]   = (
+            "🔥 Strong Bull Signal"  if score >= 80 else
+            "📈 Bullish Lean"        if score >= 60 else
+            "⚖️ Neutral / Mixed"     if score >= 40 else
+            "📉 Bearish Lean"        if score >= 20 else
+            "❄️ Strong Bear Signal"
+        )
+    except Exception as e:
+        log_error(f"smart_money: {e}")
+
+    # 39. Fear & Greed 30-Day History
+    try:
+        fg_hist = requests.get(
+            "https://api.alternative.me/fng/?limit=30&format=json",
+            timeout=8).json()
+        entries = fg_hist.get("data", [])
+        di["fg_history"] = [
+            {
+                "value":      int(e.get("value", 0)),
+                "label":      e.get("value_classification",""),
+                "timestamp":  e.get("timestamp",""),
+            }
+            for e in reversed(entries)   # chronological order
+        ]
+    except Exception as e:
+        log_error(f"fg_history: {e}")
+
+    di["ts"] = now.strftime("%H:%M UTC")
 
 # ── Practical Tools Fetch (v3.0h) ─────────────────────────────────────────
 def fetch_tools_intel():
@@ -1602,6 +1920,7 @@ def price_loop():
             fetch_exec_intel()
             fetch_comp_intel()
             fetch_tools_intel()
+            fetch_disp_intel()
         except Exception as e: log_error(f"price_loop: {e}")
         time.sleep(PRICE_INTERVAL)
 
@@ -1635,6 +1954,12 @@ def fmt_usd(v):
     return f"${v:.4f}"
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
+@app.route("/run-prediction")
+def run_prediction_route():
+    import threading as _t
+    _t.Thread(target=lambda: fetch_prediction(force=True), daemon=True).start()
+    return jsonify({"status":"triggered","message":"Brief generating — check /api/data in ~20 seconds"})
+
 @app.route("/ping")
 def ping():
     return "XRPRadar v1.1 OK", 200
@@ -1651,6 +1976,8 @@ def api_data():
         "tech_intel":       STATE["tech_intel"],
         "reg_intel":        STATE["reg_intel"],
         "exec_intel":       STATE["exec_intel"],
+        "prediction":       STATE["prediction"],
+        "disp_intel":       STATE["disp_intel"],
         "tools_intel":      STATE["tools_intel"],
         "sent_intel":       STATE["sent_intel"],
         "comp_intel":       STATE["comp_intel"],
@@ -2370,6 +2697,224 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   </div>
 </div>
 
+<!-- SECTION: XRP INTELLIGENCE BRIEF (v3.1) -->
+<div style="margin-bottom:10px">
+  <div style="background:linear-gradient(135deg,#0a0a0a 0%,#0d0d18 100%);
+    border:1px solid rgba(255,153,0,.3);border-radius:12px;overflow:hidden">
+
+    <!-- Header -->
+    <div style="padding:14px 18px;background:rgba(255,153,0,.06);
+      border-bottom:1px solid rgba(255,153,0,.25);
+      display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:32px;filter:drop-shadow(0 0 10px rgba(255,153,0,.6))">🔮</span>
+        <div>
+          <div style="font-size:18px;font-weight:900;color:#fff;font-family:var(--mn);
+            text-transform:uppercase;letter-spacing:2px">XRP Intelligence Brief</div>
+          <div style="font-size:11px;font-family:var(--mn);color:var(--or);margin-top:2px">
+            AI-powered daily analysis · Cross-feed connection mapping · Domino effect projections
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div id="pred-status-badge" style="font-size:10px;font-family:var(--mn);
+          font-weight:700;padding:4px 12px;border-radius:4px;
+          background:rgba(128,153,179,.1);color:var(--tx);
+          border:1px solid var(--b)">PENDING</div>
+        <button onclick="triggerBrief()"
+          style="background:rgba(255,153,0,.12);border:1px solid rgba(255,153,0,.4);
+            color:var(--or);padding:5px 14px;border-radius:5px;cursor:pointer;
+            font-family:var(--mn);font-size:10px;font-weight:700;
+            text-transform:uppercase;letter-spacing:.05em;transition:all .2s"
+          onmouseover="this.style.background='rgba(255,153,0,.25)'"
+          onmouseout="this.style.background='rgba(255,153,0,.12)'">
+          ⚡ GENERATE NOW
+        </button>
+      </div>
+    </div>
+
+    <!-- Meta row -->
+    <div style="padding:8px 18px;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(255,255,255,.04);
+      display:flex;gap:20px;flex-wrap:wrap;font-family:var(--mn);font-size:10px;color:var(--tx)">
+      <span>📅 Generated: <span id="pred-generated" style="color:var(--br)">--</span></span>
+      <span>📰 Stories analyzed: <span id="pred-story-count" style="color:var(--br)">--</span></span>
+      <span>📡 Sources: <span id="pred-src-count" style="color:var(--br)">--</span></span>
+      <span style="margin-left:auto">⏰ <span id="pred-next-run" style="color:var(--or)">--</span></span>
+    </div>
+
+    <!-- Content — 5 sections -->
+    <div id="pred-content" style="padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+      <!-- Loading state -->
+      <div id="pred-loading" style="grid-column:1/-1;text-align:center;padding:40px;
+        font-family:var(--mn);color:var(--tx)">
+        <div style="font-size:32px;margin-bottom:10px">🔮</div>
+        <div style="font-size:13px">Brief pending — generates daily at 11:50 AM CST</div>
+        <div style="font-size:11px;margin-top:6px;color:var(--tx)">
+          Or click <strong style="color:var(--or)">GENERATE NOW</strong> to run immediately
+          (requires ANTHROPIC_API_KEY in Railway)
+        </div>
+      </div>
+
+      <!-- Section cards (hidden until brief is ready) -->
+      <div id="pred-sections" style="display:none;grid-column:1/-1;
+        display:none;grid-template-columns:1fr 1fr;gap:14px">
+
+        <!-- Market Pulse -->
+        <div style="background:rgba(117,188,255,.04);border:1px solid rgba(117,188,255,.2);
+          border-radius:8px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--bl);font-family:var(--mn);
+            text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
+            📊 Market Pulse
+          </div>
+          <div id="pred-pulse" style="font-size:13px;color:var(--br);line-height:1.8;
+            font-family:system-ui">--</div>
+        </div>
+
+        <!-- Story Connections -->
+        <div style="background:rgba(0,229,204,.04);border:1px solid rgba(0,229,204,.2);
+          border-radius:8px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--tq);font-family:var(--mn);
+            text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
+            🔗 Story Connections
+          </div>
+          <div id="pred-conn" style="font-size:13px;color:var(--br);line-height:1.8;
+            font-family:system-ui">--</div>
+        </div>
+
+        <!-- Domino Effect — full width -->
+        <div style="grid-column:1/-1;background:rgba(255,153,0,.05);
+          border:1px solid rgba(255,153,0,.25);border-radius:8px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--or);font-family:var(--mn);
+            text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
+            🌊 Domino Effect — Cause &amp; Consequence Chains
+          </div>
+          <div id="pred-domino" style="font-size:13px;color:var(--br);line-height:1.8;
+            font-family:system-ui">--</div>
+        </div>
+
+        <!-- Regional Flashpoints -->
+        <div style="background:rgba(72,255,130,.04);border:1px solid rgba(72,255,130,.2);
+          border-radius:8px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--gr);font-family:var(--mn);
+            text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
+            🌍 Regional Flashpoints
+          </div>
+          <div id="pred-regional" style="font-size:13px;color:var(--br);line-height:1.8;
+            font-family:system-ui">--</div>
+        </div>
+
+        <!-- Watchlist -->
+        <div style="background:rgba(255,204,0,.04);border:1px solid rgba(255,204,0,.2);
+          border-radius:8px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--yl);font-family:var(--mn);
+            text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
+            👁️ 24-72h Watchlist
+          </div>
+          <div id="pred-watch" style="font-size:13px;color:var(--br);line-height:1.8;
+            font-family:system-ui">--</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div style="padding:10px 18px;background:rgba(255,204,0,.04);
+      border-top:1px solid rgba(255,204,0,.15);
+      font-size:11px;font-family:system-ui;color:var(--tx);line-height:1.7">
+      ⚠️ <strong style="color:var(--yl)">DISCLAIMER:</strong>
+      This Intelligence Brief is generated by AI and is
+      <strong style="color:var(--yl)">purely speculative and not financial advice.</strong>
+      It is intended for informational and educational purposes only.
+      Never trade what you cannot afford to lose.
+      Past analysis does not guarantee future accuracy.
+      Always <strong style="color:var(--yl)">Do Your Own Research (DYOR)</strong>
+      before making any investment decisions.
+      XRPRadar and its AI systems assume no liability for trading decisions.
+    </div>
+
+  </div>
+</div>
+
+<!-- SECTION 9f: UNIQUE DISPLAYS (v3.0i) -->
+<div style="margin-bottom:10px">
+  <div class="score">
+    <div class="sec-title" style="color:var(--or)">🎨 Unique Displays</div>
+
+    <!-- Top row: Smart Money Score + F&G History -->
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:10px;margin-bottom:14px">
+
+      <!-- 38. Smart Money Score -->
+      <div class="abox" style="border-color:rgba(255,153,0,.35);background:rgba(255,153,0,.05);text-align:left;padding:14px">
+        <div class="albl" style="color:var(--or);margin-bottom:8px">🧠 Smart Money Score</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+          <div style="font-size:52px;font-weight:900;font-family:var(--mn);line-height:1"
+            id="sm-score">--</div>
+          <div style="font-size:12px;font-family:var(--mn);color:var(--tx)">/100</div>
+        </div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px" id="sm-label">--</div>
+        <!-- Score bar -->
+        <div style="height:8px;background:var(--s2);border-radius:4px;overflow:hidden;margin-bottom:10px">
+          <div id="sm-bar" style="height:100%;border-radius:4px;transition:width .8s;width:0%"></div>
+        </div>
+        <!-- Signal breakdown -->
+        <div id="sm-signals" style="font-size:11px;font-family:var(--mn)"></div>
+      </div>
+
+      <!-- 39. Fear & Greed 30-Day History Chart -->
+      <div class="abox" style="text-align:left;padding:14px">
+        <div class="albl" style="margin-bottom:8px">😱 Fear &amp; Greed Index — 30 Day History</div>
+        <div style="display:flex;align-items:flex-end;gap:2px;height:80px" id="fg-history-chart"></div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;
+          font-family:var(--mn);color:var(--tx);margin-top:4px">
+          <span>30 days ago</span><span>20 days ago</span><span>10 days ago</span><span>today</span>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:8px;font-size:10px;font-family:var(--mn)">
+          <span style="color:var(--rd)">■ Extreme Fear (0-25)</span>
+          <span style="color:var(--or)">■ Fear (25-45)</span>
+          <span style="color:var(--yl)">■ Neutral (45-55)</span>
+          <span style="color:var(--gr)">■ Greed (55-75)</span>
+          <span style="color:#00ffcc">■ Extreme Greed (75-100)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 36. Price History Heatmap -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        letter-spacing:1.5px;margin-bottom:8px">
+        🌡️ 90-Day Price Performance Heatmap
+        <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;
+          margin-left:10px;color:var(--tx)">Darker green = stronger gain · Darker red = stronger loss</span>
+      </div>
+      <!-- Day labels -->
+      <div style="display:flex;gap:2px;margin-bottom:4px">
+        <div style="width:24px;flex-shrink:0"></div>
+        <div style="display:flex;gap:2px;flex:1">
+          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Mon</div>
+          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Tue</div>
+          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Wed</div>
+          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Thu</div>
+          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Fri</div>
+          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Sat</div>
+          <div style="flex:1;text-align:center;font-size:9px;font-family:var(--mn);color:var(--tx)">Sun</div>
+        </div>
+      </div>
+      <div id="heatmap-grid" style="display:flex;flex-direction:column;gap:2px"></div>
+    </div>
+
+    <!-- 37. Regional Activity Heatmap -->
+    <div>
+      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        letter-spacing:1.5px;margin-bottom:8px">
+        🗺️ Regional News Activity Heatmap — Stories by Region Today
+      </div>
+      <div id="regional-heatmap" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"></div>
+    </div>
+
+  </div>
+</div>
+
 <!-- SECTION 9e: PRACTICAL TOOLS (v3.0h) -->
 <div style="margin-bottom:10px">
   <div class="score">
@@ -3006,6 +3551,8 @@ async function fetchData(){
     updatePriceIntel(d);
     updateOnchainIntel(d);
     updateTechIntel(d);
+    updatePrediction(d);
+    updateDispIntel(d);
     updateToolsIntel(d);
     updateSentIntel(d);
     updateCompIntel(d);
@@ -3175,6 +3722,244 @@ function updateExecIntel(d){
 
 
 
+
+
+
+// ── XRP Intelligence Brief (v3.1) ─────────────────────────────────────────
+function updatePrediction(d){
+  const pred = d.prediction || {};
+
+  // Status badge
+  const badge = document.getElementById("pred-status-badge");
+  const statusMap = {
+    "pending":    {text:"⏰ SCHEDULED",   bg:"rgba(128,153,179,.1)", col:"var(--tx)"},
+    "generating": {text:"⚙️ GENERATING...",bg:"rgba(255,153,0,.15)",  col:"var(--or)"},
+    "complete":   {text:"✅ COMPLETE",     bg:"rgba(72,255,130,.1)",  col:"var(--gr)"},
+    "error":      {text:"❌ ERROR",        bg:"rgba(255,64,96,.1)",   col:"var(--rd)"},
+  };
+  if(badge){
+    const st = statusMap[pred.status] || statusMap["pending"];
+    badge.textContent       = st.text;
+    badge.style.background  = st.bg;
+    badge.style.color       = st.col;
+    badge.style.borderColor = st.col;
+  }
+
+  // Meta row
+  c("pred-generated",   pred.generated_at  || "--");
+  c("pred-story-count", pred.story_count   ? pred.story_count + " stories" : "--");
+  c("pred-src-count",   pred.source_count  ? pred.source_count + " sources" : "--");
+  c("pred-next-run",    pred.next_run_cst  || "--");
+
+  const loading  = document.getElementById("pred-loading");
+  const sections = document.getElementById("pred-sections");
+
+  if(pred.status === "complete" && pred.sections){
+    const sec = pred.sections;
+    if(loading)  loading.style.display  = "none";
+    if(sections){ sections.style.display = "grid"; }
+
+    c("pred-pulse",    sec.market_pulse         || "Generating...");
+    c("pred-conn",     sec.connections           || "Generating...");
+    c("pred-domino",   sec.domino_effect         || "Generating...");
+    c("pred-regional", sec.regional_flashpoints  || "Generating...");
+    c("pred-watch",    sec.watchlist             || "Generating...");
+
+  } else if(pred.status === "generating"){
+    if(loading){
+      loading.innerHTML = `<div style="font-size:32px;margin-bottom:10px">⚙️</div>
+        <div style="font-size:13px;font-family:var(--mn);color:var(--or)">
+          Analyzing ${pred.story_count||"--"} stories from ${pred.source_count||"--"} sources...<br>
+          Brief will appear in approximately 15-20 seconds.
+        </div>`;
+      loading.style.display = "block";
+    }
+    if(sections) sections.style.display = "none";
+
+  } else if(pred.status === "error" && pred.error){
+    if(loading){
+      loading.innerHTML = `<div style="font-size:32px;margin-bottom:10px">⚠️</div>
+        <div style="font-size:13px;font-family:var(--mn);color:var(--rd)">
+          ${pred.error}
+        </div>
+        <div style="font-size:11px;color:var(--tx);margin-top:8px">
+          Check that ANTHROPIC_API_KEY is set in Railway Variables.
+        </div>`;
+      loading.style.display = "block";
+    }
+    if(sections) sections.style.display = "none";
+  }
+}
+
+async function triggerBrief(){
+  const badge = document.getElementById("pred-status-badge");
+  if(badge){ badge.textContent="⚙️ TRIGGERING..."; badge.style.color="var(--or)"; }
+  try{
+    await fetch("/run-prediction");
+    // Poll for result every 3 seconds for up to 60 seconds
+    let polls = 0;
+    const timer = setInterval(async ()=>{
+      polls++;
+      if(polls > 20){ clearInterval(timer); return; }
+      const d = await fetch("/api/data").then(r=>r.json());
+      updatePrediction(d);
+      if(d.prediction && d.prediction.status === "complete"){
+        clearInterval(timer);
+      }
+    }, 3000);
+  }catch(e){
+    if(badge){ badge.textContent="❌ TRIGGER FAILED"; badge.style.color="var(--rd)"; }
+  }
+}
+
+// ── Unique Displays (v3.0i) ────────────────────────────────────────────────
+function updateDispIntel(d){
+  const di = d.disp_intel || {};
+
+  // ── 38. Smart Money Score ─────────────────────────────────────────────
+  const sm = di.smart_money || {};
+  if(sm.score !== undefined){
+    const score = sm.score;
+    const col   = score >= 80 ? "var(--gr)" :
+                  score >= 60 ? "var(--bl)" :
+                  score >= 40 ? "var(--yl)" :
+                  score >= 20 ? "var(--or)" : "var(--rd)";
+    const scoreEl = document.getElementById("sm-score");
+    if(scoreEl){ scoreEl.textContent = score; scoreEl.style.color = col; }
+    c("sm-label", sm.label || "--");
+    const bar = document.getElementById("sm-bar");
+    if(bar){ bar.style.width = `${score}%`; bar.style.background = col; }
+
+    const sigEl = document.getElementById("sm-signals");
+    if(sigEl && sm.signals && sm.signals.length){
+      sigEl.innerHTML = sm.signals.map(sig=>{
+        const sc = sig.positive ? "var(--gr)" : "var(--rd)";
+        return `<div style="display:flex;justify-content:space-between;
+          padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+          <span style="color:var(--tx)">${sig.label}</span>
+          <span style="color:${sc};font-weight:700">+${sig.points}</span>
+        </div>`;
+      }).join("");
+    }
+  }
+
+  // ── 39. Fear & Greed 30-Day Chart ────────────────────────────────────
+  const fgEl = document.getElementById("fg-history-chart");
+  if(fgEl && di.fg_history && di.fg_history.length){
+    const fgColor = v =>
+      v <= 25 ? "var(--rd)"  :
+      v <= 45 ? "var(--or)"  :
+      v <= 55 ? "var(--yl)"  :
+      v <= 75 ? "var(--gr)"  : "#00ffcc";
+    fgEl.innerHTML = di.fg_history.map((f,i)=>{
+      const isToday = i === di.fg_history.length - 1;
+      const col     = fgColor(f.value);
+      return `<div title="${f.label}: ${f.value}"
+        style="flex:1;background:${col};border-radius:2px 2px 0 0;
+          min-height:4px;height:${f.value}%;cursor:default;
+          ${isToday ? "outline:2px solid #fff;outline-offset:-1px" : ""}
+          opacity:${isToday?1:0.75};transition:opacity .2s"
+        onmouseover="this.style.opacity=1"
+        onmouseout="this.style.opacity=${isToday?1:0.75}">
+      </div>`;
+    }).join("");
+  }
+
+  // ── 36. Price History Heatmap ─────────────────────────────────────────
+  const hmEl = document.getElementById("heatmap-grid");
+  if(hmEl && di.price_heatmap && di.price_heatmap.length){
+    // Group by week
+    const weeks = {};
+    di.price_heatmap.forEach(day=>{
+      const wk = day.week;
+      if(!weeks[wk]) weeks[wk] = {};
+      weeks[wk][day.dow] = day;
+    });
+
+    const heatColor = pct => {
+      const abs = Math.abs(pct);
+      if(pct >= 5)  return `rgba(72,255,130,0.95)`;
+      if(pct >= 3)  return `rgba(72,255,130,0.75)`;
+      if(pct >= 1)  return `rgba(72,255,130,0.50)`;
+      if(pct >= 0)  return `rgba(72,255,130,0.25)`;
+      if(pct >= -1) return `rgba(255,64,96,0.25)`;
+      if(pct >= -3) return `rgba(255,64,96,0.50)`;
+      if(pct >= -5) return `rgba(255,64,96,0.75)`;
+      return `rgba(255,64,96,0.95)`;
+    };
+
+    hmEl.innerHTML = Object.entries(weeks).map(([wk,days])=>{
+      // Get week label from first day
+      const firstDay = Object.values(days)[0];
+      const wkLabel  = firstDay ? firstDay.date.slice(5) : "";
+      return `<div style="display:flex;gap:2px;align-items:center">
+        <div style="width:24px;flex-shrink:0;font-size:9px;font-family:var(--mn);
+          color:var(--tx);text-align:right;padding-right:4px">${wkLabel}</div>
+        <div style="display:flex;gap:2px;flex:1">
+          ${[0,1,2,3,4,5,6].map(dow=>{
+            const day = days[dow];
+            if(!day) return `<div style="flex:1;height:20px;border-radius:3px;
+              background:var(--s2);opacity:.2"></div>`;
+            const col = heatColor(day.change);
+            return `<div title="${day.date}: ${day.change > 0 ? "+" : ""}${day.change}% ($${day.price})"
+              style="flex:1;height:20px;border-radius:3px;background:${col};cursor:default;
+                transition:transform .1s"
+              onmouseover="this.style.transform='scale(1.15)'"
+              onmouseout="this.style.transform='scale(1)'">
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // ── 37. Regional Activity Heatmap ────────────────────────────────────
+  const rhEl = document.getElementById("regional-heatmap");
+  if(rhEl){
+    const allStories = window.allStories || [];
+    const regionKeywords = {
+      "🇯🇵 Japan":          ["japan","japanese","jpy","sbi","coincheck"],
+      "🇰🇷 Korea":          ["korea","korean","krw","upbit","bithumb"],
+      "🇦🇪 UAE/Middle East":["uae","dubai","emirates","middle east","adgm","vara"],
+      "🇪🇺 Europe":         ["europe","european","eur","mica","ecb","binance.eu"],
+      "🇮🇳 India":          ["india","indian","inr","rupee","wazirx","coinswitch"],
+      "🌎 Latin America":   ["latam","latin","mexico","brazil","bitso","brasil"],
+      "🌍 Africa":          ["africa","african","nigeria","kenya","flutterwave"],
+      "🌏 SE Asia":         ["singapore","thailand","philippines","malay","sea","sgd","php"],
+    };
+    const maxStories = 20;
+    const regionCounts = {};
+    Object.keys(regionKeywords).forEach(r=>{ regionCounts[r]=0; });
+    allStories.forEach(s=>{
+      const txt = (s.title+" "+(s.summary||"")).toLowerCase();
+      Object.entries(regionKeywords).forEach(([r,kws])=>{
+        if(kws.some(kw=>txt.includes(kw))) regionCounts[r]++;
+      });
+    });
+    const maxCount = Math.max(...Object.values(regionCounts), 1);
+    rhEl.innerHTML = Object.entries(regionCounts).map(([region, count])=>{
+      const pct    = Math.round((count / maxCount) * 100);
+      const col    = pct >= 70 ? "var(--gr)" : pct >= 40 ? "var(--yl)" :
+                     pct >= 15 ? "var(--bl)" : "var(--tx)";
+      const bgAlpha= (pct / 100 * 0.2).toFixed(2);
+      return `<div style="background:rgba(117,188,255,${bgAlpha});border:1px solid var(--b);
+        border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:18px;margin-bottom:4px">${region.split(" ")[0]}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--br);font-family:var(--mn);
+          margin-bottom:6px">${region.split(" ").slice(1).join(" ")}</div>
+        <div style="font-size:20px;font-weight:900;font-family:var(--mn);
+          color:${col};margin-bottom:4px">${count}</div>
+        <div style="height:4px;background:var(--s2);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${col};
+            border-radius:2px;transition:width .8s"></div>
+        </div>
+        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:3px">
+          stories today
+        </div>
+      </div>`;
+    }).join("");
+  }
+}
 
 // ── Practical Tools (v3.0h) ────────────────────────────────────────────────
 let currentXRPPrice = 0;
@@ -4344,6 +5129,7 @@ setTimeout(()=>{ if(allStories.length===0) fetchNews(); }, 60000);
 
 # ── Startup ────────────────────────────────────────────────────────────────────
 load_state()
+threading.Thread(target=prediction_loop, daemon=True).start()
 threading.Thread(target=price_loop, daemon=True).start()
 threading.Thread(target=news_loop,  daemon=True).start()
 
