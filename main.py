@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.0e"
+BOT_FILE          = "XRPRadar_v3.0f"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -339,6 +339,49 @@ REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
 # ── State ──────────────────────────────────────────────────────────────────────
 STATE = {
     "price":         {},
+    "comp_intel": {
+        "vs_coins": {
+            "solana":   {"symbol":"SOL","price":0.0,"change_24h":0.0,"change_7d":0.0,"mcap":0.0},
+            "ethereum": {"symbol":"ETH","price":0.0,"change_24h":0.0,"change_7d":0.0,"mcap":0.0},
+            "cardano":  {"symbol":"ADA","price":0.0,"change_24h":0.0,"change_7d":0.0,"mcap":0.0},
+            "stellar":  {"symbol":"XLM","price":0.0,"change_24h":0.0,"change_7d":0.0,"mcap":0.0},
+        },
+        "xrp_vs": {"price":0.0,"change_24h":0.0,"change_7d":0.0,"mcap":0.0},
+        "odl_corridors": [
+            {"from_c":"🇺🇸 USA","to_c":"🇲🇽 Mexico","partner":"Bitso","status":"ACTIVE","vol_note":"Largest ODL corridor globally. Millions USD daily via Bitso."},
+            {"from_c":"🇺🇸 USA","to_c":"🇵🇭 Philippines","partner":"Coins.ph","status":"ACTIVE","vol_note":"Major OFW remittance route. Millions of Filipino workers."},
+            {"from_c":"🇪🇺 Europe","to_c":"🇲🇽 Mexico","partner":"Bitso","status":"ACTIVE","vol_note":"Cross-Atlantic corridor expanding with MiCA clarity."},
+            {"from_c":"🇯🇵 Japan","to_c":"🇵🇭 Philippines","partner":"SBI Remit","status":"ACTIVE","vol_note":"SBI Holdings flagship ODL corridor. High volume."},
+            {"from_c":"🇦🇺 Australia","to_c":"🇵🇭 Philippines","partner":"FlashFX","status":"ACTIVE","vol_note":"AUD to PHP remittance. Major OFW corridor."},
+            {"from_c":"🇬🇧 UK","to_c":"🇳🇬 Nigeria","partner":"Ripple Partner","status":"GROWING","vol_note":"Africa expansion focus. Flutterwave integration."},
+            {"from_c":"🇺🇸 USA","to_c":"🇮🇳 India","partner":"Various","status":"GROWING","vol_note":"Largest remittance market globally. $100B+ annual flows."},
+            {"from_c":"🇸🇬 Singapore","to_c":"🌏 SE Asia","partner":"Various","status":"GROWING","vol_note":"Regional hub. Ripple Singapore MPI licence active."},
+        ],
+        "iso20022": {
+            "adopted": [
+                {"name":"SWIFT gpi","region":"Global","status":"LIVE","note":"SWIFT global payments network fully ISO 20022 compliant since 2023."},
+                {"name":"TARGET2","region":"EU","status":"LIVE","note":"ECB's large-value payment system migrated Nov 2022."},
+                {"name":"CHAPS","region":"UK","status":"LIVE","note":"Bank of England high-value payment system migrated 2023."},
+                {"name":"Fedwire","region":"USA","status":"LIVE","note":"US Federal Reserve system completed migration 2024."},
+                {"name":"CHIPS","region":"USA","status":"LIVE","note":"Clearing House Interbank Payments System ISO 20022 compliant."},
+                {"name":"SIC","region":"Switzerland","status":"LIVE","note":"Swiss Interbank Clearing system migrated 2023."},
+                {"name":"HVPS+","region":"Canada","status":"LIVE","note":"High Value Payment System Canada completed 2023."},
+                {"name":"RITS","region":"Australia","status":"LIVE","note":"Reserve Bank Information Transfer System migrated."},
+            ],
+            "xrp_advantage": "XRP and the XRPL natively support ISO 20022 data fields, positioning Ripple as infrastructure for the new global payment standard.",
+            "banks_exploring": 200,
+        },
+        "swift_vs": {
+            "swift_daily_vol_usd":  5000000000000,
+            "swift_avg_time_hrs":   24,
+            "swift_avg_cost_pct":   6.0,
+            "xrpl_settle_secs":     3,
+            "xrpl_cost_usd":        0.0002,
+            "xrpl_daily_tx":        0,
+            "note": "SWIFT moves ~$5 trillion/day but takes 1-5 days and costs 2-10%. XRPL settles in 3-5 seconds for fractions of a cent.",
+        },
+        "ts": "",
+    },
     "exec_intel": {
         "executives": [
             {"name":"Brad Garlinghouse","title":"CEO, Ripple","handle":"bgarlinghouse","feed":"https://news.google.com/rss/search?q=Brad+Garlinghouse+XRP+Ripple&hl=en-US&gl=US&ceid=US:en"},
@@ -872,6 +915,57 @@ def fetch_tech_intel():
     ti["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
 
 
+
+# ── Competitive Intelligence Fetch (v3.0f) ────────────────────────────────
+def fetch_comp_intel():
+    hdr = {"User-Agent": "XRPRadar/3.0"}
+    ci  = STATE["comp_intel"]
+
+    # 24. XRP vs SOL / ETH / ADA / XLM — CoinGecko multi-coin
+    try:
+        ids = "ripple,solana,ethereum,cardano,stellar"
+        resp = requests.get(
+            f"https://api.coingecko.com/api/v3/simple/price"
+            f"?ids={ids}&vs_currencies=usd"
+            f"&include_market_cap=true"
+            f"&include_24hr_change=true"
+            f"&include_7d_change=true",
+            headers=hdr, timeout=12).json()
+
+        coin_map = {
+            "ripple":   "xrp_vs",
+            "solana":   ("vs_coins","solana"),
+            "ethereum": ("vs_coins","ethereum"),
+            "cardano":  ("vs_coins","cardano"),
+            "stellar":  ("vs_coins","stellar"),
+        }
+        for cid, target in coin_map.items():
+            data = resp.get(cid, {})
+            record = {
+                "price":      round(float(data.get("usd", 0)),          6),
+                "change_24h": round(float(data.get("usd_24h_change", 0)), 2),
+                "change_7d":  round(float(data.get("usd_7d_change", 0)),  2),
+                "mcap":       round(float(data.get("usd_market_cap", 0)), 0),
+            }
+            if isinstance(target, tuple):
+                ci[target[0]][target[1]].update(record)
+            else:
+                ci[target].update(record)
+    except Exception as e:
+        log_error(f"comp_vs_coins: {e}")
+
+    # 27. XRP vs SWIFT — update live XRPL transaction count
+    try:
+        stats = requests.get(
+            "https://api.xrpscan.com/api/v1/ledger/stats",
+            timeout=8).json()
+        daily_tx = int(stats.get("tx_count_24h", 0) or stats.get("transactions", 0) or 0)
+        ci["swift_vs"]["xrpl_daily_tx"] = daily_tx
+    except Exception as e:
+        log_error(f"comp_swift_tx: {e}")
+
+    ci["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
 # ── Executive & Developer Tracker Fetch (v3.0e) ────────────────────────────
 def fetch_exec_intel():
     import feedparser as _fp
@@ -1326,6 +1420,7 @@ def price_loop():
             fetch_onchain_intel()
             fetch_tech_intel()
             fetch_exec_intel()
+            fetch_comp_intel()
         except Exception as e: log_error(f"price_loop: {e}")
         time.sleep(PRICE_INTERVAL)
 
@@ -1375,6 +1470,7 @@ def api_data():
         "tech_intel":       STATE["tech_intel"],
         "reg_intel":        STATE["reg_intel"],
         "exec_intel":       STATE["exec_intel"],
+        "comp_intel":       STATE["comp_intel"],
         "ai_us":            STATE["ai_us"],
         "ai_global":        STATE["ai_global"],
         "ai_regions":       STATE["ai_regions"],
@@ -2091,6 +2187,99 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   </div>
 </div>
 
+<!-- SECTION 9c: COMPETITIVE INTELLIGENCE (v3.0f) -->
+<div style="margin-bottom:10px">
+
+  <!-- 24. XRP vs Competitors -->
+  <div class="score" style="margin-bottom:10px">
+    <div class="sec-title" style="color:var(--bl)">⚔️ Competitive Intelligence</div>
+
+    <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+      letter-spacing:1.5px;margin-bottom:8px">📊 XRP vs Major Competitors — Live Performance</div>
+    <div id="comp-vs-table" style="overflow-x:auto;margin-bottom:14px">
+      <table style="width:100%;border-collapse:collapse;font-family:var(--mn);font-size:12px">
+        <thead>
+          <tr style="background:var(--s2);border-bottom:1px solid var(--b)">
+            <th style="padding:8px 12px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Asset</th>
+            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Price</th>
+            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">24h %</th>
+            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">7d %</th>
+            <th style="padding:8px 12px;text-align:right;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">Market Cap</th>
+            <th style="padding:8px 12px;text-align:left;color:var(--tx);font-size:10px;text-transform:uppercase;letter-spacing:1px">XRP Edge</th>
+          </tr>
+        </thead>
+        <tbody id="comp-vs-body"></tbody>
+      </table>
+    </div>
+
+    <!-- 25 + 26. ODL Corridors + ISO 20022 side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+
+      <!-- 25. ODL Corridors -->
+      <div>
+        <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+          letter-spacing:1.5px;margin-bottom:8px">🌐 Active ODL Corridors</div>
+        <div id="comp-odl-list"></div>
+      </div>
+
+      <!-- 26. ISO 20022 Adoption -->
+      <div>
+        <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+          letter-spacing:1.5px;margin-bottom:8px">📋 ISO 20022 Adoption</div>
+        <div style="background:var(--s2);border:1px solid rgba(72,255,130,.25);border-radius:8px;
+          padding:10px;margin-bottom:8px">
+          <div style="font-size:11px;color:var(--gr);line-height:1.7;font-family:system-ui" id="comp-iso-advantage"></div>
+        </div>
+        <div id="comp-iso-list"></div>
+        <div style="margin-top:8px;padding:6px 10px;background:var(--s2);border-radius:5px;
+          border:1px solid var(--b);font-size:11px;font-family:var(--mn)">
+          Banks exploring ISO 20022 + Ripple:
+          <span id="comp-iso-banks" style="color:var(--yl);font-weight:700;font-size:14px">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 27. XRP vs SWIFT -->
+    <div>
+      <div style="font-size:11px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
+        letter-spacing:1.5px;margin-bottom:8px">⚡ XRP vs SWIFT — The Case for ODL</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="comp-swift-grid">
+
+        <div class="abox neg">
+          <div class="albl">SWIFT Daily Volume</div>
+          <div class="aval r" style="font-size:18px" id="cs-swift-vol">$5T</div>
+          <div class="asub">Traditional rails</div>
+        </div>
+        <div class="abox neg">
+          <div class="albl">SWIFT Settlement</div>
+          <div class="aval r" style="font-size:18px">1-5 days</div>
+          <div class="asub">Avg. cross-border time</div>
+        </div>
+        <div class="abox neg">
+          <div class="albl">SWIFT Avg Cost</div>
+          <div class="aval r" style="font-size:18px">2-10%</div>
+          <div class="asub">Remittance fees</div>
+        </div>
+        <div class="abox pos">
+          <div class="albl">XRPL Settlement</div>
+          <div class="aval g" style="font-size:18px">3-5 sec</div>
+          <div class="asub">Any corridor, 24/7</div>
+        </div>
+        <div class="abox pos">
+          <div class="albl">XRPL Cost</div>
+          <div class="aval g" style="font-size:18px">$0.0002</div>
+          <div class="asub">Per transaction</div>
+        </div>
+
+      </div>
+      <div style="margin-top:8px;padding:10px 14px;background:rgba(72,255,130,.04);
+        border:1px solid rgba(72,255,130,.2);border-radius:6px;font-size:12px;
+        color:var(--br);line-height:1.7;font-family:system-ui" id="cs-note"></div>
+    </div>
+
+  </div>
+</div>
+
 <!-- SECTION 9b: EXECUTIVE & DEVELOPER TRACKER (v3.0e) -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
 
@@ -2321,6 +2510,7 @@ async function fetchData(){
     updatePriceIntel(d);
     updateOnchainIntel(d);
     updateTechIntel(d);
+    updateCompIntel(d);
     updateRegIntel(d);
     updateExecIntel(d);
     updateAI(d);
@@ -2483,6 +2673,114 @@ function updateExecIntel(d){
         </div>
       </div>`).join("");
   }
+}
+
+
+// ── Competitive Intelligence (v3.0f) ──────────────────────────────────────
+function updateCompIntel(d){
+  const ci = d.comp_intel || {};
+
+  // ── 24. XRP vs Competitors ────────────────────────────────────────────
+  const tbody = document.getElementById("comp-vs-body");
+  if(tbody){
+    const xrp   = ci.xrp_vs || {};
+    const coins = ci.vs_coins || {};
+    const edges = {
+      "SOL": "Payment rails vs smart contract platform. XRP: instant settlement, 0.0002 USD fee.",
+      "ETH": "XRP 1,000x cheaper per tx. 3-sec vs 12-sec finality. Purpose-built for payments.",
+      "ADA": "XRP: live ODL corridors, bank partnerships, regulatory clarity vs research-phase.",
+      "XLM": "XRP: larger liquidity, more corridors, institutional adoption. Stellar: NGO focus.",
+    };
+    const rows = [
+      {id:"ripple",   sym:"XRP",  emoji:"🪙",  data: xrp,                  isSelf: true},
+      {id:"solana",   sym:"SOL",  emoji:"◎",   data: coins.solana  || {},   isSelf: false},
+      {id:"ethereum", sym:"ETH",  emoji:"⟠",   data: coins.ethereum|| {},   isSelf: false},
+      {id:"cardano",  sym:"ADA",  emoji:"₳",   data: coins.cardano || {},   isSelf: false},
+      {id:"stellar",  sym:"XLM",  emoji:"✦",   data: coins.stellar || {},   isSelf: false},
+    ];
+    tbody.innerHTML = rows.map((r,i)=>{
+      const ch24 = parseFloat(r.data.change_24h || 0);
+      const ch7d = parseFloat(r.data.change_7d  || 0);
+      const px   = parseFloat(r.data.price      || 0);
+      const mc   = parseFloat(r.data.mcap       || 0);
+      const c24c = ch24 >= 0 ? "var(--gr)" : "var(--rd)";
+      const c7dc = ch7d >= 0 ? "var(--gr)" : "var(--rd)";
+      const edge = edges[r.sym] || "";
+      const rowBg = r.isSelf
+        ? "background:rgba(117,188,255,.06);border-left:3px solid var(--bl)"
+        : i%2===0 ? "background:var(--s1)" : "";
+      return `<tr style="${rowBg};border-bottom:1px solid rgba(255,255,255,.03)">
+        <td style="padding:8px 12px">
+          <span style="font-size:16px;margin-right:6px">${r.emoji}</span>
+          <span style="font-weight:900;color:${r.isSelf?"var(--bl)":"var(--br)"};
+            font-family:var(--mn)">${r.sym}</span>
+        </td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;
+          color:var(--br);font-family:var(--mn)">
+          $${px < 1 ? px.toFixed(4) : px.toFixed(2)}
+        </td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;
+          color:${c24c};font-family:var(--mn)">
+          ${ch24>=0?"+":""}${ch24.toFixed(2)}%
+        </td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;
+          color:${c7dc};font-family:var(--mn)">
+          ${ch7d>=0?"+":""}${ch7d.toFixed(2)}%
+        </td>
+        <td style="padding:8px 12px;text-align:right;font-family:var(--mn);color:var(--tx)">
+          ${mc >= 1e9 ? "$"+(mc/1e9).toFixed(1)+"B" : mc >= 1e6 ? "$"+(mc/1e6).toFixed(1)+"M" : "--"}
+        </td>
+        <td style="padding:8px 12px;font-size:11px;color:${r.isSelf?"var(--bl)":"var(--tx)"};
+          max-width:220px">${r.isSelf ? "🎯 Tracking live" : edge}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // ── 25. ODL Corridors ─────────────────────────────────────────────────
+  const odlEl = document.getElementById("comp-odl-list");
+  if(odlEl && ci.odl_corridors){
+    const stColor = {"ACTIVE":"var(--gr)","GROWING":"var(--yl)","PENDING":"var(--tx)"};
+    odlEl.innerHTML = ci.odl_corridors.map(c=>`
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;
+        border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="font-size:8px;color:${stColor[c.status]||"var(--tx)"};
+          margin-top:5px;flex-shrink:0">●</span>
+        <div style="min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:700;color:var(--br);font-family:var(--mn)">
+              ${c.from_c} → ${c.to_c}
+            </span>
+            <span style="font-size:10px;color:${stColor[c.status]};font-weight:700;
+              font-family:var(--mn)">${c.status}</span>
+            <span style="font-size:10px;color:var(--tx);font-family:var(--mn)">${c.partner}</span>
+          </div>
+          <div style="font-size:11px;color:var(--tx);margin-top:2px;line-height:1.4">${c.vol_note}</div>
+        </div>
+      </div>`).join("");
+  }
+
+  // ── 26. ISO 20022 ─────────────────────────────────────────────────────
+  const isoAdv = document.getElementById("comp-iso-advantage");
+  if(isoAdv && ci.iso20022) isoAdv.textContent = ci.iso20022.xrp_advantage || "";
+
+  const isoBanks = document.getElementById("comp-iso-banks");
+  if(isoBanks && ci.iso20022) isoBanks.textContent = `${ci.iso20022.banks_exploring}+`;
+
+  const isoEl = document.getElementById("comp-iso-list");
+  if(isoEl && ci.iso20022 && ci.iso20022.adopted){
+    isoEl.innerHTML = ci.iso20022.adopted.map(a=>`
+      <div style="display:flex;align-items:center;gap:7px;padding:4px 0;
+        border-bottom:1px solid rgba(255,255,255,.03);font-family:var(--mn);font-size:11px">
+        <span style="color:var(--gr);font-size:12px">✅</span>
+        <span style="font-weight:700;color:var(--br)">${a.name}</span>
+        <span style="color:var(--tx)">${a.region}</span>
+        <span style="color:var(--tx);margin-left:auto;font-size:10px">${a.note.substring(0,40)}...</span>
+      </div>`).join("");
+  }
+
+  // ── 27. XRP vs SWIFT ─────────────────────────────────────────────────
+  const sv = ci.swift_vs || {};
+  if(sv.note) c("cs-note", sv.note);
 }
 
 // ── Regulatory Radar (v3.0d) ───────────────────────────────────────────────
