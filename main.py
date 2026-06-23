@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.0d"
+BOT_FILE          = "XRPRadar_v3.0e"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -339,6 +339,27 @@ REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
 # ── State ──────────────────────────────────────────────────────────────────────
 STATE = {
     "price":         {},
+    "exec_intel": {
+        "executives": [
+            {"name":"Brad Garlinghouse","title":"CEO, Ripple","handle":"bgarlinghouse","feed":"https://news.google.com/rss/search?q=Brad+Garlinghouse+XRP+Ripple&hl=en-US&gl=US&ceid=US:en"},
+            {"name":"Monica Long","title":"President, Ripple","handle":"monicalong","feed":"https://news.google.com/rss/search?q=Monica+Long+Ripple+XRP&hl=en-US&gl=US&ceid=US:en"},
+            {"name":"David Schwartz","title":"CTO, Ripple","handle":"JoelKatz","feed":"https://news.google.com/rss/search?q=David+Schwartz+Ripple+XRPL&hl=en-US&gl=US&ceid=US:en"},
+            {"name":"Stuart Alderoty","title":"Chief Legal Officer, Ripple","handle":"s_alderoty","feed":"https://news.google.com/rss/search?q=Stuart+Alderoty+Ripple+SEC&hl=en-US&gl=US&ceid=US:en"},
+        ],
+        "exec_stories":  [],
+        "github_commits": [],
+        "github_stats": {
+            "rippled_commits_7d": 0,
+            "xrpl_dev_commits_7d": 0,
+            "total_contributors": 0,
+            "last_commit_date": "",
+            "last_commit_msg": "",
+            "last_commit_author": "",
+            "open_issues": 0,
+            "stars": 0,
+        },
+        "ts": "",
+    },
     "reg_intel": {
         "countries": [
             {"country":"United States","flag":"🇺🇸","status":"CONTESTED","note":"SEC lawsuit settled; XRP non-security ruling in programmatic sales. Evolving regulatory clarity."},
@@ -850,6 +871,96 @@ def fetch_tech_intel():
 
     ti["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
 
+
+# ── Executive & Developer Tracker Fetch (v3.0e) ────────────────────────────
+def fetch_exec_intel():
+    import feedparser as _fp
+    ei = STATE["exec_intel"]
+
+    # 22. Executive Statement Tracker — Google News RSS
+    all_exec_stories = []
+    for exec_info in ei["executives"]:
+        try:
+            feed = _fp.parse(exec_info["feed"])
+            for entry in feed.entries[:3]:
+                pub = ""
+                try:
+                    from time import mktime
+                    import datetime as _dt
+                    pub_dt = _dt.datetime.fromtimestamp(mktime(entry.published_parsed), tz=timezone.utc)
+                    diff   = datetime.now(timezone.utc) - pub_dt
+                    pub    = f"{diff.days}d ago" if diff.days > 0 else f"{diff.seconds//3600}h ago" if diff.seconds >= 3600 else f"{diff.seconds//60}m ago"
+                except: pass
+                src = ""
+                try: src = entry.source.title
+                except: pass
+                all_exec_stories.append({
+                    "exec_name":  exec_info["name"],
+                    "exec_title": exec_info["title"],
+                    "title":      getattr(entry, "title", "")[:120],
+                    "link":       getattr(entry, "link", ""),
+                    "source":     src or "News",
+                    "age":        pub,
+                })
+        except Exception as e:
+            log_error(f"exec_feed_{exec_info['name']}: {e}")
+    ei["exec_stories"] = all_exec_stories[:12]
+
+    # 23. XRPL GitHub Activity
+    repos    = [("XRPLF","rippled"),("XRPLF","xrpl-dev-portal"),("XRPLF","xrpl.js")]
+    gh_hdr   = {"Accept":"application/vnd.github.v3+json","User-Agent":"XRPRadar/3.0"}
+    all_commits  = []
+    total_stars  = 0
+    total_issues = 0
+    for owner, repo in repos:
+        try:
+            commits = requests.get(
+                f"https://api.github.com/repos/{owner}/{repo}/commits?per_page=10",
+                headers=gh_hdr, timeout=10).json()
+            if isinstance(commits, list):
+                for c in commits[:5]:
+                    cm  = c.get("commit", {})
+                    au  = cm.get("author", {})
+                    gav = (c.get("author") or {}).get("avatar_url","")
+                    msg = cm.get("message","")[:80]
+                    nl  = msg.find(chr(10))
+                    if nl > 0: msg = msg[:nl]
+                    all_commits.append({
+                        "repo":   repo,
+                        "msg":    msg,
+                        "author": au.get("name","")[:30],
+                        "date":   au.get("date","")[:10],
+                        "url":    c.get("html_url",""),
+                    })
+        except Exception as e:
+            log_error(f"github_commits_{repo}: {e}")
+        try:
+            meta = requests.get(
+                f"https://api.github.com/repos/{owner}/{repo}",
+                headers=gh_hdr, timeout=8).json()
+            total_stars  += int(meta.get("stargazers_count", 0))
+            total_issues += int(meta.get("open_issues_count", 0))
+        except Exception as e:
+            log_error(f"github_meta_{repo}: {e}")
+
+    all_commits.sort(key=lambda c: c.get("date",""), reverse=True)
+    ei["github_commits"] = all_commits[:15]
+
+    import datetime as _dt2
+    cutoff = (_dt2.datetime.now(_dt2.timezone.utc) - _dt2.timedelta(days=7)).strftime("%Y-%m-%d")
+    recent = [c for c in all_commits if c.get("date","") >= cutoff]
+    gs = ei["github_stats"]
+    gs["rippled_commits_7d"]  = len([c for c in recent if c["repo"] == "rippled"])
+    gs["xrpl_dev_commits_7d"] = len([c for c in recent if c["repo"] != "rippled"])
+    gs["stars"]               = total_stars
+    gs["open_issues"]         = total_issues
+    if all_commits:
+        gs["last_commit_msg"]    = all_commits[0].get("msg","")
+        gs["last_commit_author"] = all_commits[0].get("author","")
+        gs["last_commit_date"]   = all_commits[0].get("date","")
+
+    ei["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
 # ── On-Chain Intelligence Fetch (v3.0b) ───────────────────────────────────
 def fetch_onchain_intel():
     hdr = {"User-Agent": "XRPRadar/3.0"}
@@ -1214,6 +1325,7 @@ def price_loop():
             fetch_price_intel()
             fetch_onchain_intel()
             fetch_tech_intel()
+            fetch_exec_intel()
         except Exception as e: log_error(f"price_loop: {e}")
         time.sleep(PRICE_INTERVAL)
 
@@ -1262,6 +1374,7 @@ def api_data():
         "onchain_intel":    STATE["onchain_intel"],
         "tech_intel":       STATE["tech_intel"],
         "reg_intel":        STATE["reg_intel"],
+        "exec_intel":       STATE["exec_intel"],
         "ai_us":            STATE["ai_us"],
         "ai_global":        STATE["ai_global"],
         "ai_regions":       STATE["ai_regions"],
@@ -1978,6 +2091,99 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   </div>
 </div>
 
+<!-- SECTION 9b: EXECUTIVE & DEVELOPER TRACKER (v3.0e) -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+
+  <!-- 22. Executive Statement Tracker -->
+  <div class="panel" style="border-color:rgba(255,153,0,.25)">
+    <div class="ph">
+      <span class="pt" style="color:var(--or);font-size:16px;font-weight:800;letter-spacing:2px">
+        🎙️ Ripple Exec Tracker
+      </span>
+      <span id="exec-ts" style="font-size:10px;font-family:var(--mn);color:var(--tx)">--</span>
+    </div>
+    <!-- Executive tabs -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--b);overflow-x:auto">
+      <button class="exec-tab on" onclick="setExecTab(this,'all')"
+        style="padding:6px 14px;background:transparent;border:none;color:var(--or);
+          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--or);white-space:nowrap">
+        ALL
+      </button>
+      <button class="exec-tab" onclick="setExecTab(this,'Brad Garlinghouse')"
+        style="padding:6px 12px;background:transparent;border:none;color:var(--tx);
+          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:2px solid transparent">
+        BRAD
+      </button>
+      <button class="exec-tab" onclick="setExecTab(this,'Monica Long')"
+        style="padding:6px 12px;background:transparent;border:none;color:var(--tx);
+          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:2px solid transparent">
+        MONICA
+      </button>
+      <button class="exec-tab" onclick="setExecTab(this,'David Schwartz')"
+        style="padding:6px 12px;background:transparent;border:none;color:var(--tx);
+          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:2px solid transparent">
+        DAVID
+      </button>
+      <button class="exec-tab" onclick="setExecTab(this,'Stuart Alderoty')"
+        style="padding:6px 12px;background:transparent;border:none;color:var(--tx);
+          font-family:var(--mn);font-size:10px;font-weight:700;cursor:pointer;
+          text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:2px solid transparent">
+        STUART
+      </button>
+    </div>
+    <div id="exec-feed" style="max-height:320px;overflow-y:auto;padding:8px 12px">
+      <div class="empty">Loading executive activity...</div>
+    </div>
+  </div>
+
+  <!-- 23. GitHub Developer Activity -->
+  <div class="panel" style="border-color:rgba(72,255,130,.2)">
+    <div class="ph">
+      <span class="pt" style="color:var(--gr);font-size:16px;font-weight:800;letter-spacing:2px">
+        💻 XRPL Dev Activity
+      </span>
+      <span id="gh-ts" style="font-size:10px;font-family:var(--mn);color:var(--tx)">--</span>
+    </div>
+    <!-- GitHub stats strip -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);
+      border-bottom:1px solid var(--b);background:var(--s2)">
+      <div style="padding:8px 10px;text-align:center;border-right:1px solid var(--b)">
+        <div style="font-size:16px;font-weight:900;font-family:var(--mn);color:var(--gr)" id="gh-rippled-7d">--</div>
+        <div style="font-size:9px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">rippled commits<br>7 days</div>
+      </div>
+      <div style="padding:8px 10px;text-align:center;border-right:1px solid var(--b)">
+        <div style="font-size:16px;font-weight:900;font-family:var(--mn);color:var(--bl)" id="gh-dev-7d">--</div>
+        <div style="font-size:9px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">other repos<br>7 days</div>
+      </div>
+      <div style="padding:8px 10px;text-align:center;border-right:1px solid var(--b)">
+        <div style="font-size:16px;font-weight:900;font-family:var(--mn);color:var(--yl)" id="gh-stars">--</div>
+        <div style="font-size:9px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">GitHub stars<br>3 repos</div>
+      </div>
+      <div style="padding:8px 10px;text-align:center">
+        <div style="font-size:16px;font-weight:900;font-family:var(--mn);color:var(--or)" id="gh-issues">--</div>
+        <div style="font-size:9px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;letter-spacing:.05em">open issues<br>3 repos</div>
+      </div>
+    </div>
+    <!-- Last commit banner -->
+    <div style="padding:8px 12px;border-bottom:1px solid var(--b);background:rgba(72,255,130,.04)">
+      <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-bottom:2px">Latest commit</div>
+      <div style="font-size:12px;font-weight:700;color:var(--gr)" id="gh-last-msg">Loading...</div>
+      <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+        <span id="gh-last-author"></span> &nbsp;·&nbsp; <span id="gh-last-date"></span>
+      </div>
+    </div>
+    <!-- Commit feed -->
+    <div id="gh-feed" style="max-height:220px;overflow-y:auto;padding:8px 12px">
+      <div class="empty">Loading commits...</div>
+    </div>
+  </div>
+
+</div>
+
 <!-- SECTION 10: REGULATORY RADAR (v3.0d) -->
 <div style="margin-bottom:10px">
 
@@ -2116,6 +2322,7 @@ async function fetchData(){
     updateOnchainIntel(d);
     updateTechIntel(d);
     updateRegIntel(d);
+    updateExecIntel(d);
     updateAI(d);
     updateScoreboard(d);
     updateAnalytics(d);
@@ -2190,6 +2397,93 @@ function c(id,v){const el=document.getElementById(id);if(el&&v!==undefined)el.te
 
 
 
+
+
+// ── Executive & Developer Tracker (v3.0e) ─────────────────────────────────
+let execStories = [];
+let activeExec  = "all";
+
+function setExecTab(btn, exec){
+  activeExec = exec;
+  document.querySelectorAll(".exec-tab").forEach(b=>{
+    b.style.color         = "var(--tx)";
+    b.style.borderBottom  = "2px solid transparent";
+  });
+  btn.style.color        = "var(--or)";
+  btn.style.borderBottom = "2px solid var(--or)";
+  renderExecFeed();
+}
+
+function renderExecFeed(){
+  const feed = document.getElementById("exec-feed");
+  if(!feed) return;
+  const stories = activeExec === "all"
+    ? execStories
+    : execStories.filter(s => s.exec_name === activeExec);
+  if(!stories.length){
+    feed.innerHTML = '<div class="empty">No recent statements found.</div>';
+    return;
+  }
+  feed.innerHTML = stories.map(s=>`
+    <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:10px;font-weight:700;font-family:var(--mn);
+          color:var(--or);background:rgba(255,153,0,.1);padding:2px 7px;
+          border-radius:3px;border:1px solid rgba(255,153,0,.3)">${s.exec_name||""}</span>
+        <span style="font-size:10px;font-family:var(--mn);color:var(--tx)">${s.exec_title||""}</span>
+        <span style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-left:auto">${s.age||""}</span>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:2px;
+        cursor:pointer" onclick="window.open('${s.link||"#"}','_blank')"
+        onmouseover="this.style.color='var(--gr)'" onmouseout="this.style.color='var(--bl)'">
+        ${s.title||""}
+      </div>
+      <div style="font-size:10px;font-family:var(--mn);color:var(--tx)">${s.source||""}</div>
+    </div>`).join("");
+}
+
+function updateExecIntel(d){
+  const ei = d.exec_intel || {};
+  if(ei.ts) c("exec-ts", ei.ts);
+
+  // 22. Executive Stories
+  if(ei.exec_stories && ei.exec_stories.length){
+    execStories = ei.exec_stories;
+    renderExecFeed();
+  }
+
+  // 23. GitHub Stats
+  const gs = ei.github_stats || {};
+  if(gs.rippled_commits_7d !== undefined) c("gh-rippled-7d", gs.rippled_commits_7d);
+  if(gs.xrpl_dev_commits_7d !== undefined) c("gh-dev-7d",  gs.xrpl_dev_commits_7d);
+  if(gs.stars)  c("gh-stars",  gs.stars.toLocaleString());
+  if(gs.open_issues !== undefined) c("gh-issues", gs.open_issues);
+  if(gs.last_commit_msg)    c("gh-last-msg",    gs.last_commit_msg);
+  if(gs.last_commit_author) c("gh-last-author", gs.last_commit_author);
+  if(gs.last_commit_date)   c("gh-last-date",   gs.last_commit_date);
+  if(ei.ts) c("gh-ts", ei.ts);
+
+  // GitHub commit feed
+  const ghFeed = document.getElementById("gh-feed");
+  if(ghFeed && ei.github_commits && ei.github_commits.length){
+    const repoColor = {"rippled":"var(--gr)","xrpl-dev-portal":"var(--bl)","xrpl.js":"var(--yl)"};
+    ghFeed.innerHTML = ei.github_commits.map(commit=>`
+      <div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);
+        cursor:pointer" onclick="window.open('${commit.url||"#"}','_blank')">
+        <div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;
+          background:${repoColor[commit.repo]||"var(--tx)"}"></div>
+        <div style="min-width:0">
+          <div style="font-size:11px;font-weight:600;color:var(--br);line-height:1.3;
+            overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${commit.msg||""}</div>
+          <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-top:1px">
+            <span style="color:${repoColor[commit.repo]||"var(--tx)"};font-weight:700">${commit.repo}</span>
+            &nbsp;·&nbsp;${commit.author||""}
+            &nbsp;·&nbsp;${commit.date||""}
+          </div>
+        </div>
+      </div>`).join("");
+  }
+}
 
 // ── Regulatory Radar (v3.0d) ───────────────────────────────────────────────
 function updateRegIntel(d){
