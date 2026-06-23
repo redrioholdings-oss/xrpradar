@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.0b"
+BOT_FILE          = "XRPRadar_v3.0c"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -339,6 +339,25 @@ REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
 # ── State ──────────────────────────────────────────────────────────────────────
 STATE = {
     "price":         {},
+    "tech_intel":    {
+        "rsi_1h":             0.0,
+        "rsi_1d":             0.0,
+        "rsi_1h_label":       "",
+        "rsi_1d_label":       "",
+        "week52_high":        0.0,
+        "week52_low":         0.0,
+        "week52_pct_high":    0.0,
+        "week52_pct_low":     0.0,
+        "week52_position":    0.0,
+        "support":            [],
+        "resistance":         [],
+        "price_1y_ago":       0.0,
+        "price_1y_change":    0.0,
+        "price_1y_date":      "",
+        "price_1m_ago":       0.0,
+        "price_1m_change":    0.0,
+        "ts":                 "",
+    },
     "price_intel":   {
         "dominance":        0.0,
         "funding_rate":     0.0,
@@ -628,6 +647,149 @@ def fetch_price_intel():
 
     pi["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
 
+
+
+# ── Technical Signal Helpers ───────────────────────────────────────────────
+def calc_rsi(closes, period=14):
+    """Wilder's RSI — industry standard calculation."""
+    if len(closes) < period + 2:
+        return None
+    deltas = [closes[i] - closes[i-1] for i in range(1, len(closes))]
+    gains  = [max(d, 0.0) for d in deltas]
+    losses = [abs(min(d, 0.0)) for d in deltas]
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    for i in range(period, len(gains)):
+        avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+        avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain / avg_loss
+    return round(100.0 - (100.0 / (1.0 + rs)), 2)
+
+def rsi_label(rsi):
+    if rsi is None:   return "N/A"
+    if rsi < 25:      return "Deeply Oversold"
+    if rsi < 35:      return "Oversold"
+    if rsi < 45:      return "Weakening"
+    if rsi < 55:      return "Neutral"
+    if rsi < 65:      return "Strengthening"
+    if rsi < 75:      return "Overbought"
+    return "Extremely Overbought"
+
+def find_sr_levels(prices, current, n=3):
+    """Find support and resistance from local price pivots — cluster nearby levels."""
+    import math
+    support = []
+    resistance = []
+    for i in range(2, len(prices) - 2):
+        p = prices[i]
+        # Local minimum (support)
+        if p <= prices[i-1] and p <= prices[i-2] and p <= prices[i+1] and p <= prices[i+2]:
+            support.append(round(p, 4))
+        # Local maximum (resistance)
+        if p >= prices[i-1] and p >= prices[i-2] and p >= prices[i+1] and p >= prices[i+2]:
+            resistance.append(round(p, 4))
+
+    # Cluster levels within 1.5% of each other
+    def cluster(levels):
+        if not levels: return []
+        levels = sorted(set(levels))
+        clustered = [levels[0]]
+        for lv in levels[1:]:
+            if abs(lv - clustered[-1]) / clustered[-1] > 0.015:
+                clustered.append(lv)
+        return clustered
+
+    sup_cl = cluster(support)
+    res_cl = cluster(resistance)
+
+    # Return closest levels to current price
+    sup_below = sorted([s for s in sup_cl if s < current], reverse=True)[:n]
+    res_above = sorted([r for r in res_cl if r > current])[:n]
+    return sup_below, res_above
+
+
+# ── Technical Signals Fetch (v3.0c) ───────────────────────────────────────
+def fetch_tech_intel():
+    hdr = {"User-Agent": "XRPRadar/3.0"}
+    ti  = STATE["tech_intel"]
+    current_px = float(STATE["price"].get("usd", 0) or 0)
+
+    # 13a. RSI — 1H (Binance hourly klines, 50 periods)
+    try:
+        kl1h = requests.get(
+            "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1h&limit=50",
+            timeout=10).json()
+        closes_1h = [float(k[4]) for k in kl1h]
+        rsi_1h    = calc_rsi(closes_1h)
+        if rsi_1h is not None:
+            ti["rsi_1h"]       = rsi_1h
+            ti["rsi_1h_label"] = rsi_label(rsi_1h)
+    except Exception as e:
+        log_error(f"rsi_1h: {e}")
+
+    # 13b. RSI — 1D (Binance daily klines, 50 periods)
+    try:
+        kl1d = requests.get(
+            "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=50",
+            timeout=10).json()
+        closes_1d = [float(k[4]) for k in kl1d]
+        rsi_1d    = calc_rsi(closes_1d)
+        if rsi_1d is not None:
+            ti["rsi_1d"]       = rsi_1d
+            ti["rsi_1d_label"] = rsi_label(rsi_1d)
+    except Exception as e:
+        log_error(f"rsi_1d: {e}")
+
+    # 14 + 15. 52-Week High/Low + Support & Resistance
+    # Reuse 365-day price history (also needed for #16)
+    try:
+        hist = requests.get(
+            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
+            "?vs_currency=usd&days=365&interval=daily",
+            headers=hdr, timeout=15).json()
+        prices_365 = [p[1] for p in hist.get("prices", [])]
+
+        if len(prices_365) >= 90:
+            # 14. 52-Week High/Low
+            w52_high = max(prices_365)
+            w52_low  = min(prices_365)
+            ti["week52_high"]     = round(w52_high, 4)
+            ti["week52_low"]      = round(w52_low,  4)
+            if w52_high > 0 and current_px > 0:
+                ti["week52_pct_high"] = round((current_px - w52_high) / w52_high * 100, 2)
+            if w52_low > 0 and current_px > 0:
+                ti["week52_pct_low"]  = round((current_px - w52_low)  / w52_low  * 100, 2)
+            rng = w52_high - w52_low
+            if rng > 0:
+                ti["week52_position"] = round((current_px - w52_low) / rng * 100, 1)
+
+            # 15. Support & Resistance from last 90 days of daily closes
+            prices_90 = prices_365[-90:]
+            sup, res  = find_sr_levels(prices_90, current_px, n=3)
+            ti["support"]    = [round(s, 4) for s in sup]
+            ti["resistance"] = [round(r, 4) for r in res]
+
+            # 16a. Price 1 year ago (first data point)
+            if len(prices_365) >= 365:
+                px_1y = prices_365[0]
+                ti["price_1y_ago"]    = round(px_1y, 4)
+                ti["price_1y_date"]   = "1 year ago"
+                if px_1y > 0 and current_px > 0:
+                    ti["price_1y_change"] = round((current_px - px_1y) / px_1y * 100, 2)
+
+            # 16b. Price 1 month ago (~30 data points back)
+            if len(prices_365) >= 30:
+                px_1m = prices_365[-30]
+                ti["price_1m_ago"]    = round(px_1m, 4)
+                if px_1m > 0 and current_px > 0:
+                    ti["price_1m_change"] = round((current_px - px_1m) / px_1m * 100, 2)
+
+    except Exception as e:
+        log_error(f"tech_52w_sr_1y: {e}")
+
+    ti["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
 
 # ── On-Chain Intelligence Fetch (v3.0b) ───────────────────────────────────
 def fetch_onchain_intel():
@@ -992,6 +1154,7 @@ def price_loop():
             fetch_price()
             fetch_price_intel()
             fetch_onchain_intel()
+            fetch_tech_intel()
         except Exception as e: log_error(f"price_loop: {e}")
         time.sleep(PRICE_INTERVAL)
 
@@ -1038,6 +1201,7 @@ def api_data():
         "escrow":           STATE["escrow"],
         "onchain":          STATE["onchain"],
         "onchain_intel":    STATE["onchain_intel"],
+        "tech_intel":       STATE["tech_intel"],
         "ai_us":            STATE["ai_us"],
         "ai_global":        STATE["ai_global"],
         "ai_regions":       STATE["ai_regions"],
@@ -1442,6 +1606,103 @@ footer{margin-top:10px;padding-top:8px;border-top:1px solid var(--b);
   </div>
 </div>
 
+<!-- SECTION 3d: TECHNICAL SIGNALS (v3.0c) -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+
+  <!-- Left col: RSI Gauges + 52-Week Range -->
+  <div>
+    <!-- RSI Panel -->
+    <div class="acct" style="border-color:rgba(117,188,255,.2);margin-bottom:10px">
+      <div class="sec-title" style="color:var(--bl)">📐 RSI Signals</div>
+
+      <!-- 1H RSI -->
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+          <span style="font-size:11px;font-family:var(--mn);color:var(--tx)">1H RSI</span>
+          <span style="font-size:13px;font-weight:700;font-family:var(--mn)" id="rsi-1h-val">--</span>
+          <span style="font-size:11px;font-family:var(--mn)" id="rsi-1h-lbl" style="color:var(--tx)">--</span>
+        </div>
+        <div style="height:10px;background:var(--s2);border-radius:5px;overflow:hidden;border:1px solid var(--b);position:relative">
+          <div style="position:absolute;top:0;bottom:0;left:30%;width:1px;background:rgba(255,255,255,.1)"></div>
+          <div style="position:absolute;top:0;bottom:0;left:70%;width:1px;background:rgba(255,255,255,.1)"></div>
+          <div id="rsi-1h-bar" style="height:100%;width:50%;border-radius:5px;transition:all .6s;background:var(--tx)"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+          <span>0 — Oversold</span><span>30</span><span>50</span><span>70</span><span>Overbought — 100</span>
+        </div>
+      </div>
+
+      <!-- 1D RSI -->
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+          <span style="font-size:11px;font-family:var(--mn);color:var(--tx)">1D RSI</span>
+          <span style="font-size:13px;font-weight:700;font-family:var(--mn)" id="rsi-1d-val">--</span>
+          <span style="font-size:11px;font-family:var(--mn)" id="rsi-1d-lbl">--</span>
+        </div>
+        <div style="height:10px;background:var(--s2);border-radius:5px;overflow:hidden;border:1px solid var(--b);position:relative">
+          <div style="position:absolute;top:0;bottom:0;left:30%;width:1px;background:rgba(255,255,255,.1)"></div>
+          <div style="position:absolute;top:0;bottom:0;left:70%;width:1px;background:rgba(255,255,255,.1)"></div>
+          <div id="rsi-1d-bar" style="height:100%;width:50%;border-radius:5px;transition:all .6s;background:var(--tx)"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;font-family:var(--mn);color:var(--tx);margin-top:2px">
+          <span>0 — Oversold</span><span>30</span><span>50</span><span>70</span><span>Overbought — 100</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 52-Week Range Panel -->
+    <div class="acct" style="border-color:rgba(255,204,0,.2);margin-bottom:0">
+      <div class="sec-title" style="color:var(--yl)">📅 52-Week Range</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-family:var(--mn);font-size:12px">
+        <span>Low: <strong id="w52-low" style="color:var(--rd)">--</strong></span>
+        <span style="color:var(--tx)">Current: <strong id="w52-cur" style="color:var(--br)">--</strong></span>
+        <span>High: <strong id="w52-high" style="color:var(--gr)">--</strong></span>
+      </div>
+      <div style="height:14px;background:linear-gradient(90deg,var(--rd),var(--yl),var(--gr));border-radius:7px;position:relative;border:1px solid var(--b)">
+        <div id="w52-needle" style="position:absolute;top:-4px;width:6px;height:22px;background:var(--br);border-radius:3px;border:2px solid var(--bg);transition:left .6s;transform:translateX(-50%)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:var(--mn);font-size:11px">
+        <span style="color:var(--tx)">From low: <strong id="w52-from-low" style="color:var(--gr)">--</strong></span>
+        <span style="color:var(--tx)">Position: <strong id="w52-pos" style="color:var(--yl)">--%</strong></span>
+        <span style="color:var(--tx)">From high: <strong id="w52-from-high" style="color:var(--rd)">--</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right col: Support/Resistance + 1-Year Comparison -->
+  <div>
+    <!-- Support & Resistance -->
+    <div class="panel" style="border-color:rgba(117,188,255,.2);margin-bottom:10px">
+      <div class="ph"><span class="pt" style="color:var(--bl);font-size:16px;font-weight:800;letter-spacing:2px">🎯 Support &amp; Resistance</span></div>
+      <div style="padding:10px 14px" id="sr-table">
+        <div class="empty">Calculating levels...</div>
+      </div>
+    </div>
+
+    <!-- 1-Year Comparison -->
+    <div class="acct" style="border-color:rgba(72,255,130,.2);margin-bottom:0">
+      <div class="sec-title" style="color:var(--gr)">📆 Price Time Machine</div>
+      <div class="agrid" style="grid-template-columns:repeat(2,1fr);gap:8px">
+        <div class="abox">
+          <div class="albl">1 Year Ago</div>
+          <div class="aval" style="font-size:20px" id="pt-1y-price">--</div>
+          <div class="asub" id="pt-1y-change" style="font-size:13px;font-weight:700">--</div>
+        </div>
+        <div class="abox">
+          <div class="albl">1 Month Ago</div>
+          <div class="aval" style="font-size:20px" id="pt-1m-price">--</div>
+          <div class="asub" id="pt-1m-change" style="font-size:13px;font-weight:700">--</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:8px 10px;background:var(--s2);border-radius:6px;border:1px solid var(--b)">
+        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Today vs 1 Year Ago</div>
+        <div id="pt-narrative" style="font-size:12px;color:var(--br);line-height:1.6;font-family:system-ui">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <!-- SECTION 4: CHART -->
 <div class="acct" style="padding:10px;border-color:rgba(117,188,255,.15)">
   <div class="sec-title" style="color:var(--bl)">📊 Live XRP/USD Chart</div>
@@ -1718,6 +1979,7 @@ async function fetchData(){
     updateMarket(d);
     updatePriceIntel(d);
     updateOnchainIntel(d);
+    updateTechIntel(d);
     updateAI(d);
     updateScoreboard(d);
     updateAnalytics(d);
@@ -1790,6 +2052,126 @@ function fmtUSD(v){
 function c(id,v){const el=document.getElementById(id);if(el&&v!==undefined)el.textContent=v;}
 
 
+
+
+// ── Technical Signals (v3.0c) ──────────────────────────────────────────────
+function updateTechIntel(d){
+  const ti  = d.tech_intel || {};
+  const cur = (d.price || {}).usd || 0;
+
+  // ── 13. RSI Gauges ─────────────────────────────────────────────────────
+  function renderRSI(valId, barId, lblId, rsi, label){
+    const valEl = document.getElementById(valId);
+    const barEl = document.getElementById(barId);
+    const lblEl = document.getElementById(lblId);
+    if(!valEl || !barEl) return;
+
+    const pct   = Math.min(Math.max(rsi, 0), 100);
+    const color = rsi < 30 ? "var(--gr)" :
+                  rsi < 45 ? "var(--yl)" :
+                  rsi < 65 ? "var(--bl)" :
+                  rsi < 75 ? "var(--or)" : "var(--rd)";
+
+    valEl.textContent = rsi.toFixed(1);
+    valEl.style.color = color;
+    barEl.style.width = `${pct}%`;
+    barEl.style.background = color;
+    if(lblEl){ lblEl.textContent = label || ""; lblEl.style.color = color; }
+  }
+
+  if(ti.rsi_1h) renderRSI("rsi-1h-val","rsi-1h-bar","rsi-1h-lbl", ti.rsi_1h, ti.rsi_1h_label);
+  if(ti.rsi_1d) renderRSI("rsi-1d-val","rsi-1d-bar","rsi-1d-lbl", ti.rsi_1d, ti.rsi_1d_label);
+
+  // ── 14. 52-Week Range ──────────────────────────────────────────────────
+  if(ti.week52_high && ti.week52_low){
+    c("w52-low",  `$${parseFloat(ti.week52_low).toFixed(4)}`);
+    c("w52-high", `$${parseFloat(ti.week52_high).toFixed(4)}`);
+    c("w52-cur",  `$${parseFloat(cur).toFixed(4)}`);
+
+    const needle = document.getElementById("w52-needle");
+    if(needle && ti.week52_position !== undefined){
+      needle.style.left = `${Math.min(Math.max(ti.week52_position, 1), 99)}%`;
+    }
+    c("w52-pos",       `${ti.week52_position}%`);
+
+    const fromLow  = ti.week52_pct_low;
+    const fromHigh = ti.week52_pct_high;
+    const flEl = document.getElementById("w52-from-low");
+    const fhEl = document.getElementById("w52-from-high");
+    if(flEl){ flEl.textContent=`+${parseFloat(fromLow).toFixed(1)}%`; flEl.style.color="var(--gr)"; }
+    if(fhEl){ fhEl.textContent=`${parseFloat(fromHigh).toFixed(1)}%`; fhEl.style.color="var(--rd)"; }
+  }
+
+  // ── 15. Support & Resistance Table ────────────────────────────────────
+  const srEl = document.getElementById("sr-table");
+  if(srEl){
+    const res = (ti.resistance || []).slice().reverse(); // show highest first
+    const sup = ti.support || [];
+    if(!res.length && !sup.length){
+      srEl.innerHTML = '<div class="empty">Calculating from 90-day price history...</div>';
+    } else {
+      let html = "";
+      res.forEach((r,i)=>{
+        const pct = cur > 0 ? ((r-cur)/cur*100).toFixed(2) : "--";
+        html += `<div style="display:flex;justify-content:space-between;padding:5px 0;
+          border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mn);font-size:12px">
+          <span style="color:var(--rd);font-weight:700">R${res.length-i}</span>
+          <span style="color:var(--br);font-weight:700">$${parseFloat(r).toFixed(4)}</span>
+          <span style="color:var(--rd)">+${pct}%</span>
+        </div>`;
+      });
+      // Current price divider
+      html += `<div style="display:flex;justify-content:space-between;padding:6px 0;
+        background:var(--bld);border-radius:4px;margin:4px 0;padding:5px 8px;
+        font-family:var(--mn);font-size:12px;border:1px solid rgba(117,188,255,.3)">
+        <span style="color:var(--bl);font-weight:700">NOW</span>
+        <span style="color:var(--br);font-weight:900">$${parseFloat(cur).toFixed(4)}</span>
+        <span style="color:var(--bl)">current</span>
+      </div>`;
+      sup.forEach((s,i)=>{
+        const pct = cur > 0 ? ((s-cur)/cur*100).toFixed(2) : "--";
+        html += `<div style="display:flex;justify-content:space-between;padding:5px 0;
+          border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mn);font-size:12px">
+          <span style="color:var(--gr);font-weight:700">S${i+1}</span>
+          <span style="color:var(--br);font-weight:700">$${parseFloat(s).toFixed(4)}</span>
+          <span style="color:var(--gr)">${pct}%</span>
+        </div>`;
+      });
+      srEl.innerHTML = html;
+    }
+  }
+
+  // ── 16. Price Time Machine ────────────────────────────────────────────
+  if(ti.price_1y_ago){
+    c("pt-1y-price", `$${parseFloat(ti.price_1y_ago).toFixed(4)}`);
+    const ch1y  = parseFloat(ti.price_1y_change || 0);
+    const ch1yEl= document.getElementById("pt-1y-change");
+    if(ch1yEl){
+      ch1yEl.textContent = `${ch1y>=0?"+":""}${ch1y.toFixed(2)}% vs today`;
+      ch1yEl.style.color = ch1y>=0?"var(--gr)":"var(--rd)";
+    }
+  }
+  if(ti.price_1m_ago){
+    c("pt-1m-price", `$${parseFloat(ti.price_1m_ago).toFixed(4)}`);
+    const ch1m  = parseFloat(ti.price_1m_change || 0);
+    const ch1mEl= document.getElementById("pt-1m-change");
+    if(ch1mEl){
+      ch1mEl.textContent = `${ch1m>=0?"+":""}${ch1m.toFixed(2)}% vs today`;
+      ch1mEl.style.color = ch1m>=0?"var(--gr)":"var(--rd)";
+    }
+  }
+
+  // Narrative
+  if(ti.price_1y_ago && cur){
+    const ch   = parseFloat(ti.price_1y_change || 0);
+    const dir  = ch >= 0 ? "gained" : "lost";
+    const emoji= ch >= 50 ? "🚀" : ch >= 20 ? "📈" : ch >= 0 ? "↗️" : ch >= -20 ? "↘️" : "📉";
+    const narr = document.getElementById("pt-narrative");
+    if(narr) narr.textContent =
+      `${emoji} XRP has ${dir} ${Math.abs(ch).toFixed(1)}% over the past year. ` +
+      `From $${parseFloat(ti.price_1y_ago).toFixed(4)} to $${parseFloat(cur).toFixed(4)} today.`;
+  }
+}
 
 // ── On-Chain Intelligence (v3.0b) ─────────────────────────────────────────
 function updateOnchainIntel(d){
