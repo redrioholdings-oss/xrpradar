@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v3.1d"
+BOT_FILE          = "XRPRadar_v4.0"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
