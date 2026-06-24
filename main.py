@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v4.0"
+BOT_FILE          = "XRPRadar_v4.0b"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -2166,9 +2166,9 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .lm{flex:1;color:var(--br)}
 .lm.bull{color:var(--gr)}.lm.bear{color:var(--rd)}.lm.break{color:var(--yl)}
 /* NEWS FEED */
-.nrow{display:grid;grid-template-columns:1fr 420px;gap:6px;margin-bottom:10px;align-items:start}
-.npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;align-self:start}
-.nfeed{max-height:900px;overflow-y:auto;padding:8px 12px}
+.nrow{display:grid;grid-template-columns:1fr 420px;gap:6px;margin-bottom:10px;align-items:stretch}
+.npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.nfeed{flex:1;overflow-y:auto;padding:8px 12px;min-height:300px}
 .ncard{background:var(--s2);border:1px solid var(--b);border-radius:6px;
   padding:9px;margin-bottom:7px;cursor:pointer;transition:border-color .2s}
 .ncard:hover{border-color:var(--bl)}
@@ -2195,9 +2195,9 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .nsent.bear{background:var(--rdd);color:var(--rd);border:1px solid rgba(255,64,96,.2)}
 .nsent.neut{background:rgba(128,153,179,.08);color:var(--tx);border:1px solid var(--b)}
 .nage{font-size:13px;color:var(--b);margin-left:auto;font-family:var(--mn)}
-.ncount{font-size:13px;color:var(--tx);padding:6px 12px 8px;font-family:var(--mn)}
+.ncount{font-size:13px;color:var(--tx);padding:6px 12px 8px;font-family:var(--mn);flex-shrink:0}
 /* SEARCH + FILTERS */
-.nctrl{padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);display:flex;flex-direction:column;gap:6px}
+.nctrl{padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
 .nsearch{width:100%;background:var(--bg);border:1px solid var(--b);color:var(--br);
   padding:10px 16px;border-radius:5px;font-size:14px;font-family:var(--mn);outline:none}
 .nsearch:focus{border-color:var(--bl)}
@@ -2207,7 +2207,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
   font-family:var(--mn);letter-spacing:.05em;text-transform:uppercase;transition:all .2s;white-space:nowrap}
 .nbtn:hover,.nbtn.on{background:var(--bld);border-color:var(--bl);color:var(--bl)}
 /* RIGHT PANEL */
-.rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;min-width:0;align-self:start}
+.rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;min-width:0}
 .rcard{padding:10px 14px;border-bottom:1px solid var(--b);font-size:13px;font-family:var(--mn)}
 .rtitle{font-size:13px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:700}
 .rrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;align-items:center;min-height:24px}
@@ -2924,7 +2924,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
   <div class="score">
     <div class="sec-title" style="color:var(--tq)">🛠️ Practical Tools</div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch">
 
       <!-- LEFT COL: P&L Calc + Multi-Currency -->
       <div style="display:flex;flex-direction:column;gap:10px">
@@ -3055,7 +3055,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
       </div>
 
       <!-- RIGHT COL: Wallet Checker + Portfolio Tracker -->
-      <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;flex-direction:column;gap:10px;height:100%">
 
         <!-- 34. XRPL Wallet Value Checker -->
         <div class="panel" style="border-color:rgba(117,188,255,.25)">
@@ -3146,14 +3146,14 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
 
 
         <!-- 36b. XRP Remittance Savings Calculator -->
-        <div class="panel" style="border-color:rgba(0,229,204,.25)">
+        <div class="panel" style="border-color:rgba(0,229,204,.25);flex:1;display:flex;flex-direction:column">
           <div class="ph">
             <span class="pt" style="color:var(--tq);font-size:14px;font-weight:800;letter-spacing:1.5px">
               💸 Remittance Calculator
             </span>
             <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">SWIFT vs XRP</span>
           </div>
-          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;flex:1">
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
               <div>
