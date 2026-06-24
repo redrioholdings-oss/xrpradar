@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v4.0e"
+BOT_FILE          = "XRPRadar_v4.0f"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -4314,7 +4314,27 @@ function updateSentIntel(d){
 
   // ── 28. 30-Day Sentiment Chart ────────────────────────────────────────
   const dayEl = document.getElementById("sg-daily-chart");
-  if(dayEl && si.daily_sentiment && si.daily_sentiment.length){
+  const di2   = d.disp_intel || {};
+  const fgHist= di2.fg_history || [];
+
+  // Use story sentiment if we have 3+ days; otherwise fall back to F&G history
+  const hasSentDays = si.daily_sentiment && si.daily_sentiment.length >= 3;
+
+  if(dayEl && !hasSentDays && fgHist.length){
+    // Fallback: render Fear & Greed 30-day as the trend chart
+    const labelEl = document.getElementById("sg-daily-labels");
+    if(labelEl) labelEl.innerHTML = '<span>30d ago</span><span>20d ago</span><span>10d ago</span><span style="color:var(--bl)">today (F&G)</span>';
+    const fgColor = v => v<=25?"var(--rd)":v<=45?"var(--or)":v<=55?"var(--yl)":v<=75?"var(--gr)":"#00ffcc";
+    dayEl.innerHTML = fgHist.map((f,i)=>{
+      const isToday = i === fgHist.length-1;
+      return `<div title="${f.label||''}: ${f.value}"
+        style="flex:1;background:${fgColor(f.value)};border-radius:2px 2px 0 0;
+          min-height:3px;height:${f.value}%;cursor:default;
+          ${isToday?"outline:2px solid #fff;outline-offset:-1px":""}
+          opacity:0.8">
+      </div>`;
+    }).join("");
+  } else if(dayEl && hasSentDays){
     const days = si.daily_sentiment;
     const maxD = Math.max(...days.map(d=>d.total), 1);
     dayEl.innerHTML = days.map((day,i)=>{
@@ -4332,6 +4352,8 @@ function updateSentIntel(d){
         <div style="flex:${rPct};background:var(--rd);min-height:${rPct>0?1:0}px"></div>
       </div>`;
     }).join("");
+  } else if(dayEl){
+    dayEl.innerHTML = '<div style="font-size:13px;font-family:var(--mn);color:var(--tx);padding:20px;text-align:center">📡 Sentiment history accumulates over time as stories are collected.</div>';
   }
 
   // ── 30. Source Leaderboard ────────────────────────────────────────────
