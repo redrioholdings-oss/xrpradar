@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v4.0b"
+BOT_FILE          = "XRPRadar_v4.0c"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -2166,9 +2166,9 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .lm{flex:1;color:var(--br)}
 .lm.bull{color:var(--gr)}.lm.bear{color:var(--rd)}.lm.break{color:var(--yl)}
 /* NEWS FEED */
-.nrow{display:grid;grid-template-columns:1fr 420px;gap:6px;margin-bottom:10px;align-items:stretch}
-.npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
-.nfeed{flex:1;overflow-y:auto;padding:8px 12px;min-height:300px}
+.nrow{display:grid;grid-template-columns:1fr 420px;gap:6px;margin-bottom:10px;align-items:start}
+.npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
+.nfeed{overflow-y:auto;padding:8px 12px;max-height:580px}
 .ncard{background:var(--s2);border:1px solid var(--b);border-radius:6px;
   padding:9px;margin-bottom:7px;cursor:pointer;transition:border-color .2s}
 .ncard:hover{border-color:var(--bl)}
@@ -2195,9 +2195,9 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .nsent.bear{background:var(--rdd);color:var(--rd);border:1px solid rgba(255,64,96,.2)}
 .nsent.neut{background:rgba(128,153,179,.08);color:var(--tx);border:1px solid var(--b)}
 .nage{font-size:13px;color:var(--b);margin-left:auto;font-family:var(--mn)}
-.ncount{font-size:13px;color:var(--tx);padding:6px 12px 8px;font-family:var(--mn);flex-shrink:0}
+.ncount{font-size:13px;color:var(--tx);padding:6px 12px 8px;font-family:var(--mn)}
 /* SEARCH + FILTERS */
-.nctrl{padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.nctrl{padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);display:flex;flex-direction:column;gap:6px}
 .nsearch{width:100%;background:var(--bg);border:1px solid var(--b);color:var(--br);
   padding:10px 16px;border-radius:5px;font-size:14px;font-family:var(--mn);outline:none}
 .nsearch:focus{border-color:var(--bl)}
