@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v4.0c"
+BOT_FILE          = "XRPRadar_v4.0e"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -2168,7 +2168,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 /* NEWS FEED */
 .nrow{display:grid;grid-template-columns:1fr 420px;gap:6px;margin-bottom:10px;align-items:start}
 .npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
-.nfeed{overflow-y:auto;padding:8px 12px;max-height:580px}
+.nfeed{overflow-y:auto;padding:8px 12px;height:650px}
 .ncard{background:var(--s2);border:1px solid var(--b);border-radius:6px;
   padding:9px;margin-bottom:7px;cursor:pointer;transition:border-color .2s}
 .ncard:hover{border-color:var(--bl)}
@@ -2207,7 +2207,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
   font-family:var(--mn);letter-spacing:.05em;text-transform:uppercase;transition:all .2s;white-space:nowrap}
 .nbtn:hover,.nbtn.on{background:var(--bld);border-color:var(--bl);color:var(--bl)}
 /* RIGHT PANEL */
-.rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden;min-width:0}
+.rpanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow-y:auto;min-width:0;height:650px}
 .rcard{padding:10px 14px;border-bottom:1px solid var(--b);font-size:13px;font-family:var(--mn)}
 .rtitle{font-size:13px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:700}
 .rrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;align-items:center;min-height:24px}
