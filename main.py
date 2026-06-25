@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v4.0f"
+BOT_FILE          = "XRPRadar_v4.0h"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -3608,6 +3608,9 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
   <div style="color:var(--yl)">⚠️ Not Financial Advice — XRPRadar is for informational purposes only. DYOR.</div>
   <div>Feeds: <span id="ft-feeds" style="color:var(--br)">--</span> &nbsp;|&nbsp; Maintenance: <span id="ft-maint" style="color:var(--br)">--</span> &nbsp;|&nbsp; Preflight: <span id="ft-qa-status" style="font-weight:700">--</span> &nbsp;&nbsp;<button onclick="openPFModal()" style="color:var(--bl);font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--bl);padding:1px 8px;border-radius:3px;background:var(--bld);cursor:pointer;font-family:var(--mn)">🔍 DETAILS</button></div>
   <div style="height:16px"></div>
+  <div style="padding-bottom:14px;font-size:13px;font-family:var(--mn);color:var(--tx);text-align:center;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;margin-top:4px">
+    ©️ Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally.
+  </div>
 </footer>
 
 <!-- PRECHECK DETAILS MODAL -->
