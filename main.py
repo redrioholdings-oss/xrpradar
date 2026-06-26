@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v4.2"
+BOT_FILE          = "XRPRadar_v4.3"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -331,6 +331,90 @@ RSS_FEEDS = [
     {"name": "SEC Press Releases",     "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=&dateb=&owner=include&count=20&search_text=&action=getcompany",  "type": "legal","region": "US","filter": True},
     {"name": "GN: SEC Crypto XRP",    "url": "https://news.google.com/rss/search?q=SEC+XRP+%22digital+asset%22+enforcement+2026","type": "legal","region": "US","filter": False},
     {"name": "GN: BIS XRP Research",  "url": "https://news.google.com/rss/search?q=XRP+%22Bank+for+International+Settlements%22+BIS+settlement","type": "institutional","region": "Europe","filter": False},
+
+    # ── Institutional & Banking ──────────────────────────────────────────
+    {"name":"GN: XRP BIS Research",    "url":"https://news.google.com/rss/search?q=XRP+%22Bank+for+International+Settlements%22+BIS+CBDC","type":"institutional","region":"Europe","filter":False},
+    {"name":"GN: XRP IMF",             "url":"https://news.google.com/rss/search?q=XRP+Ripple+IMF+%22International+Monetary%22+digital","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP World Bank",      "url":"https://news.google.com/rss/search?q=XRP+Ripple+%22World+Bank%22+financial+inclusion+payments","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Federal Reserve", "url":"https://news.google.com/rss/search?q=XRP+%22Federal+Reserve%22+CBDC+digital+dollar+Ripple","type":"legal","region":"US","filter":False},
+    {"name":"GN: XRP ECB Digital",     "url":"https://news.google.com/rss/search?q=XRP+%22European+Central+Bank%22+digital+euro+CBDC","type":"legal","region":"Europe","filter":False},
+    {"name":"GN: XRP JPMorgan",        "url":"https://news.google.com/rss/search?q=XRP+JPMorgan+%22JPM+Coin%22+blockchain+payment","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Goldman",         "url":"https://news.google.com/rss/search?q=XRP+%22Goldman+Sachs%22+crypto+digital+assets","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP BlackRock ETF",   "url":"https://news.google.com/rss/search?q=XRP+BlackRock+ETF+%22digital+assets%22+Ripple","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Fidelity",        "url":"https://news.google.com/rss/search?q=XRP+Fidelity+%22digital+assets%22+custody+crypto","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Nasdaq",          "url":"https://news.google.com/rss/search?q=XRP+Nasdaq+%22spot+ETF%22+listing+custody","type":"institutional","region":"US","filter":False},
+    # ── More Regional Coverage ────────────────────────────────────────────
+    {"name":"GN: XRP Turkey",          "url":"https://news.google.com/rss/search?q=XRP+Ripple+Turkey+%22Turkish+Lira%22+crypto","type":"international","region":"Europe","filter":False},
+    {"name":"GN: XRP Egypt",           "url":"https://news.google.com/rss/search?q=XRP+Ripple+Egypt+%22Central+Bank%22+remittance","type":"international","region":"Africa","filter":False},
+    {"name":"GN: XRP Argentina",       "url":"https://news.google.com/rss/search?q=XRP+Ripple+Argentina+%22peso%22+inflation+crypto","type":"international","region":"LatAm","filter":False},
+    {"name":"GN: XRP Colombia",        "url":"https://news.google.com/rss/search?q=XRP+Ripple+Colombia+%22Banco+de+la+Republica%22+CBDC","type":"international","region":"LatAm","filter":False},
+    {"name":"GN: XRP Chile",           "url":"https://news.google.com/rss/search?q=XRP+Ripple+Chile+crypto+payment+adoption","type":"international","region":"LatAm","filter":False},
+    {"name":"GN: XRP South Africa",    "url":"https://news.google.com/rss/search?q=XRP+Ripple+%22South+Africa%22+SARB+remittance","type":"international","region":"Africa","filter":False},
+    {"name":"GN: XRP Kenya",           "url":"https://news.google.com/rss/search?q=XRP+Ripple+Kenya+%22M-Pesa%22+remittance+Africa","type":"international","region":"Africa","filter":False},
+    {"name":"GN: XRP Tanzania",        "url":"https://news.google.com/rss/search?q=XRP+Ripple+Tanzania+Africa+remittance+payment","type":"international","region":"Africa","filter":False},
+    {"name":"GN: XRP Ghana",           "url":"https://news.google.com/rss/search?q=XRP+Ripple+Ghana+%22Bank+of+Ghana%22+digital","type":"international","region":"Africa","filter":False},
+    {"name":"GN: XRP Vietnam",         "url":"https://news.google.com/rss/search?q=XRP+Ripple+Vietnam+%22State+Bank%22+crypto","type":"international","region":"SEA","filter":False},
+    {"name":"GN: XRP Thailand",        "url":"https://news.google.com/rss/search?q=XRP+Ripple+Thailand+%22Bank+of+Thailand%22+crypto","type":"international","region":"SEA","filter":False},
+    {"name":"GN: XRP Pakistan",        "url":"https://news.google.com/rss/search?q=XRP+Ripple+Pakistan+%22State+Bank%22+remittance","type":"international","region":"India","filter":False},
+    {"name":"GN: XRP Bangladesh",      "url":"https://news.google.com/rss/search?q=XRP+Ripple+Bangladesh+remittance+payment","type":"international","region":"India","filter":False},
+    {"name":"GN: XRP Bahrain",         "url":"https://news.google.com/rss/search?q=XRP+Ripple+Bahrain+%22Central+Bank%22+fintech","type":"international","region":"UAE","filter":False},
+    {"name":"GN: XRP Israel",          "url":"https://news.google.com/rss/search?q=XRP+Ripple+Israel+%22Bank+of+Israel%22+crypto","type":"international","region":"UAE","filter":False},
+    # ── On-Chain & Data Providers ─────────────────────────────────────────
+    {"name":"GN: XRP Nansen",          "url":"https://news.google.com/rss/search?q=XRP+Ripple+%22Nansen%22+on-chain+analytics","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Chainalysis",     "url":"https://news.google.com/rss/search?q=XRP+%22Chainalysis%22+compliance+blockchain","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Coin Metrics",    "url":"https://news.google.com/rss/search?q=XRP+%22Coin+Metrics%22+network+data+analytics","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Token Terminal",  "url":"https://news.google.com/rss/search?q=XRP+XRPL+%22Token+Terminal%22+revenue+fees","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Dune Analytics",  "url":"https://news.google.com/rss/search?q=XRP+XRPL+%22Dune+Analytics%22+on-chain+data","type":"institutional","region":"US","filter":False},
+    # ── Legal & Regulatory ────────────────────────────────────────────────
+    {"name":"GN: XRP FinCEN",          "url":"https://news.google.com/rss/search?q=XRP+FinCEN+%22financial+crimes%22+crypto+regulation","type":"legal","region":"US","filter":False},
+    {"name":"GN: XRP CFTC Crypto",     "url":"https://news.google.com/rss/search?q=XRP+Ripple+CFTC+%22commodity%22+digital+asset+2026","type":"legal","region":"US","filter":False},
+    {"name":"GN: XRP OCC Bank",        "url":"https://news.google.com/rss/search?q=XRP+OCC+%22national+bank%22+crypto+custody+license","type":"legal","region":"US","filter":False},
+    {"name":"GN: XRP UK FCA",          "url":"https://news.google.com/rss/search?q=XRP+Ripple+%22FCA%22+%22Financial+Conduct%22+UK+crypto","type":"legal","region":"Europe","filter":False},
+    {"name":"GN: XRP MAS Singapore",   "url":"https://news.google.com/rss/search?q=XRP+MAS+Singapore+%22Monetary+Authority%22+crypto","type":"legal","region":"SEA","filter":False},
+    {"name":"GN: XRP ASIC Australia",  "url":"https://news.google.com/rss/search?q=XRP+ASIC+Australia+%22crypto+asset%22+regulation","type":"legal","region":"SEA","filter":False},
+    {"name":"GN: XRP FSA Japan Reg",   "url":"https://news.google.com/rss/search?q=XRP+%22FSA%22+Japan+%22Virtual+Currency%22+regulation","type":"legal","region":"Japan","filter":False},
+    {"name":"GN: XRP FATF",            "url":"https://news.google.com/rss/search?q=XRP+Ripple+FATF+%22travel+rule%22+crypto+compliance","type":"legal","region":"Europe","filter":False},
+    # ── Trading & Markets ─────────────────────────────────────────────────
+    {"name":"GN: XRP Options",         "url":"https://news.google.com/rss/search?q=XRP+options+%22implied+volatility%22+derivatives","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP CME",             "url":"https://news.google.com/rss/search?q=XRP+CME+%22Chicago+Mercantile%22+futures+ETF","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Wintermute",      "url":"https://news.google.com/rss/search?q=XRP+Wintermute+%22market+maker%22+liquidity","type":"institutional","region":"Europe","filter":False},
+    {"name":"GN: XRP Cumberland",      "url":"https://news.google.com/rss/search?q=XRP+Cumberland+%22DRW%22+OTC+trading+crypto","type":"institutional","region":"US","filter":False},
+    # ── XRP Ecosystem Specific ────────────────────────────────────────────
+    {"name":"GN: XRP Evernode",        "url":"https://news.google.com/rss/search?q=Evernode+XRPL+%22smart+contracts%22+Hooks","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP Sologenic",       "url":"https://news.google.com/rss/search?q=Sologenic+XRPL+%22tokenized+stocks%22+DEX","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP XUMM",            "url":"https://news.google.com/rss/search?q=XUMM+XRPL+wallet+%22Xaman%22+app","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP Hooks",           "url":"https://news.google.com/rss/search?q=XRPL+Hooks+%22smart+contract%22+amendment+testnet","type":"major","region":"US","filter":False},
+    {"name":"GN: XRPL NFT",            "url":"https://news.google.com/rss/search?q=XRPL+NFT+%22XLS-20%22+marketplace+mint","type":"major","region":"US","filter":False},
+    {"name":"GN: XRPL AMM",            "url":"https://news.google.com/rss/search?q=XRPL+AMM+%22automated+market+maker%22+liquidity+pool","type":"major","region":"US","filter":False},
+    {"name":"GN: XRPL DeFi",           "url":"https://news.google.com/rss/search?q=XRPL+DeFi+%22decentralized+finance%22+protocol+2026","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP Peersyst",        "url":"https://news.google.com/rss/search?q=Peersyst+XRPL+%22EVM+sidechain%22+Ethereum","type":"major","region":"Europe","filter":False},
+    # ── Mainstream Media XRP Coverage ─────────────────────────────────────
+    {"name":"GN: XRP WSJ",             "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:wsj.com+%22Wall+Street%22","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP Bloomberg",       "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:bloomberg.com+payments","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP Reuters",         "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:reuters.com+finance","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP FT",              "url":"https://news.google.com/rss/search?q=XRP+Ripple+%22Financial+Times%22+payments+banking","type":"major","region":"Europe","filter":False},
+    {"name":"GN: XRP CNBC",            "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:cnbc.com+crypto","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP Forbes",          "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:forbes.com+crypto","type":"major","region":"US","filter":False},
+    {"name":"GN: XRP Fortune",         "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:fortune.com+crypto+payments","type":"major","region":"US","filter":False},
+    # ── More Direct RSS Feeds ─────────────────────────────────────────────
+    {"name":"CoinDesk XRP",            "url":"https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=article","type":"major","region":"US","filter":True},
+    {"name":"Ledger Insights",         "url":"https://www.ledgerinsights.com/feed/","type":"major","region":"Europe","filter":True},
+    {"name":"Finextra Finance",        "url":"https://www.finextra.com/rss/channel.aspx?channel=news","type":"major","region":"Europe","filter":True},
+    {"name":"PYMNTS Blockchain",       "url":"https://www.pymnts.com/feed/","type":"major","region":"US","filter":True},
+    {"name":"The Fintech Times",       "url":"https://thefintechtimes.com/feed/","type":"major","region":"Europe","filter":True},
+    {"name":"InsideBitcoins",          "url":"https://insidebitcoins.com/feed","type":"major","region":"US","filter":True},
+    {"name":"UseTheBitcoin",           "url":"https://usethebitcoin.com/feed/","type":"major","region":"US","filter":True},
+    {"name":"Invezz Crypto",           "url":"https://invezz.com/feed/","type":"major","region":"Europe","filter":True},
+    {"name":"Bitcoinist XRP",          "url":"https://bitcoinist.com/feed/","type":"major","region":"US","filter":True},
+    {"name":"NewsBTC XRP",             "url":"https://www.newsbtc.com/feed/","type":"major","region":"US","filter":True},
+    {"name":"CoinJournal XRP",         "url":"https://coinjournal.net/feed/","type":"major","region":"Europe","filter":True},
+    {"name":"ZyCrypto XRP",            "url":"https://zycrypto.com/feed/","type":"major","region":"US","filter":True},
+    {"name":"Crypto Daily",            "url":"https://cryptodaily.co.uk/feed","type":"major","region":"Europe","filter":True},
+    {"name":"Santiment Blog",          "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:santiment.net+analytics","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Seeking Alpha",   "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:seekingalpha.com+investment","type":"institutional","region":"US","filter":False},
+    {"name":"GN: XRP Motley Fool",     "url":"https://news.google.com/rss/search?q=XRP+Ripple+%22Motley+Fool%22+investment+crypto","type":"institutional","region":"US","filter":False},
+    {"name":"Reddit r/XRPtrader",      "url":"https://www.reddit.com/r/XRPtrader/.rss","type":"community","region":"US","filter":False},
+    {"name":"Reddit r/Ripple",         "url":"https://www.reddit.com/r/Ripple/.rss","type":"community","region":"US","filter":False},
 
 ]
 
@@ -1195,27 +1279,30 @@ def fetch_disp_intel():
 
     # 36. Price History Heatmap — 90 days of daily % changes
     try:
+        import datetime as _dt
         hist = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
             "?vs_currency=usd&days=90&interval=daily",
-            headers=hdr, timeout=15).json()
-        prices = [p[1] for p in hist.get("prices", [])]
+            headers=hdr, timeout=20).json()
+        raw_prices = hist.get("prices", [])
+        if not raw_prices:
+            raise ValueError("No price data returned")
+        prices = [float(p[1]) for p in raw_prices]
         heatmap = []
         for i in range(1, len(prices)):
             if prices[i-1] > 0:
                 pct_change = (prices[i] - prices[i-1]) / prices[i-1] * 100
-                # Date for this entry
-                ts_ms = hist["prices"][i][0]
-                import datetime as _dt
+                ts_ms = raw_prices[i][0]
                 day = _dt.datetime.fromtimestamp(ts_ms/1000, tz=_dt.timezone.utc)
                 heatmap.append({
-                    "date":    day.strftime("%Y-%m-%d"),
-                    "dow":     day.weekday(),        # 0=Mon 6=Sun
-                    "week":    day.isocalendar()[1],
-                    "price":   round(prices[i], 4),
-                    "change":  round(pct_change, 2),
+                    "date":   day.strftime("%Y-%m-%d"),
+                    "dow":    day.weekday(),
+                    "week":   int(day.strftime("%W")),
+                    "price":  round(prices[i], 4),
+                    "change": round(pct_change, 2),
                 })
         di["price_heatmap"] = heatmap[-90:]
+        log_error(f"price_heatmap: loaded {len(di['price_heatmap'])} days")
     except Exception as e:
         log_error(f"price_heatmap: {e}")
 
@@ -1377,21 +1464,24 @@ def fetch_sent_intel():
 
     # 29. News Velocity — stories per hour for last 24h
     try:
-        stories = STATE.get("stories", [])
+        import datetime as _vdt
+        stories   = STATE.get("stories", [])
         hour_buckets = {h: 0 for h in range(24)}
+        cutoff_v  = now - _vdt.timedelta(hours=24)
         for s in stories:
             pub = s.get("pub","") or s.get("published","")
             if not pub: continue
             try:
-                if "T" in pub:
-                    hr_str = pub[11:13]
-                    if hr_str.isdigit():
-                        pub_hr  = int(hr_str)
-                        cur_hr  = now.hour
-                        hrs_ago = (cur_hr - pub_hr) % 24
-                        if hrs_ago < 24:
-                            bucket = 23 - hrs_ago
-                            hour_buckets[bucket] = hour_buckets.get(bucket, 0) + 1
+                # Parse ISO format pub date
+                pub_clean = pub[:19].replace("T"," ")
+                pub_dt = _vdt.datetime.strptime(pub_clean, "%Y-%m-%d %H:%M:%S")
+                pub_dt = pub_dt.replace(tzinfo=_vdt.timezone.utc)
+                if pub_dt < cutoff_v: continue
+                # How many hours ago was this story?
+                hrs_ago = int((now - pub_dt).total_seconds() / 3600)
+                if 0 <= hrs_ago < 24:
+                    bucket = 23 - hrs_ago
+                    hour_buckets[bucket] = hour_buckets.get(bucket, 0) + 1
             except: continue
         si["velocity_hours"] = [
             {"hour": h, "count": hour_buckets[h]}
@@ -1463,31 +1553,32 @@ def fetch_comp_intel():
     hdr = {"User-Agent": "XRPRadar/3.0"}
     ci  = STATE["comp_intel"]
 
-    # 24. XRP vs SOL / ETH / ADA / XLM — CoinGecko multi-coin
+    # 24. XRP vs SOL / ETH / ADA / XLM — CoinGecko /coins/markets (free tier reliable)
     try:
         ids = "ripple,solana,ethereum,cardano,stellar"
-        resp = requests.get(
-            f"https://api.coingecko.com/api/v3/simple/price"
-            f"?ids={ids}&vs_currencies=usd"
-            f"&include_market_cap=true"
-            f"&include_24hr_change=true"
-            f"&include_7d_change=true",
+        markets = requests.get(
+            f"https://api.coingecko.com/api/v3/coins/markets"
+            f"?vs_currency=usd&ids={ids}&order=market_cap_desc"
+            f"&per_page=5&page=1&sparkline=false"
+            f"&price_change_percentage=24h%2C7d",
             headers=hdr, timeout=12).json()
 
-        coin_map = {
+        id_map = {
             "ripple":   "xrp_vs",
             "solana":   ("vs_coins","solana"),
             "ethereum": ("vs_coins","ethereum"),
             "cardano":  ("vs_coins","cardano"),
             "stellar":  ("vs_coins","stellar"),
         }
-        for cid, target in coin_map.items():
-            data = resp.get(cid, {})
+        for coin in (markets if isinstance(markets, list) else []):
+            cid    = coin.get("id","")
+            target = id_map.get(cid)
+            if not target: continue
             record = {
-                "price":      round(float(data.get("usd", 0)),          6),
-                "change_24h": round(float(data.get("usd_24h_change", 0)), 2),
-                "change_7d":  round(float(data.get("usd_7d_change", 0)),  2),
-                "mcap":       round(float(data.get("usd_market_cap", 0)), 0),
+                "price":      round(float(coin.get("current_price") or 0), 6),
+                "change_24h": round(float(coin.get("price_change_percentage_24h") or 0), 2),
+                "change_7d":  round(float(coin.get("price_change_percentage_7d_in_currency") or 0), 2),
+                "mcap":       round(float(coin.get("market_cap") or 0), 0),
             }
             if isinstance(target, tuple):
                 ci[target[0]][target[1]].update(record)
@@ -2100,8 +2191,8 @@ DASHBOARD = """<!DOCTYPE html>
   --or:#ff9900;--tx:#8099b3;--br:#cce0ff;
   --mn:'Courier New',monospace
 }
-body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-height:100vh}
-.w{max-width:1500px;margin:0 auto;padding:10px 16px}
+body{background:var(--bg);color:var(--br);font-family:system-ui,sans-serif;font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased}
+.w{max-width:1900px;margin:0 auto;padding:10px 20px}
 /* HEADER */
 .hdr{display:flex;align-items:center;justify-content:space-between;
   margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--bl);flex-wrap:wrap;gap:6px}
@@ -2132,7 +2223,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 /* ACCOUNT / MARKET OVERVIEW */
 .acct{background:var(--s1);border:1px solid rgba(117,188,255,.25);
   border-radius:10px;padding:12px;margin-bottom:10px}
-.sec-title{font-size:17px;text-transform:uppercase;letter-spacing:2px;
+.sec-title{font-size:18px;text-transform:uppercase;letter-spacing:2px;
   font-family:var(--mn);color:#ffffff;margin-bottom:10px;font-weight:800}
 .agrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .abox{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px;text-align:center}
@@ -2142,7 +2233,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .abox.yl{border-color:rgba(255,204,0,.3);background:var(--yld)}
 .albl{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;
   font-family:var(--mn);color:var(--tx);margin-bottom:5px}
-.aval{font-size:24px;font-weight:900;font-family:var(--mn);color:var(--br);line-height:1}
+.aval{font-size:26px;font-weight:900;font-family:var(--mn);color:var(--br);line-height:1}
 .aval.g{color:var(--gr)}.aval.r{color:var(--rd)}.aval.y{color:var(--yl)}.aval.b{color:var(--bl)}
 .asub{font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:4px}
 /* SLOTS — Regional Intelligence Cards */
@@ -2212,7 +2303,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .lm.bull{color:var(--gr)}.lm.bear{color:var(--rd)}.lm.break{color:var(--yl)}
 /* NEWS FEED */
 .nrow{display:grid;grid-template-columns:1fr 420px;gap:6px;margin-bottom:10px;align-items:start}
-.npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow:hidden}
+.npanel{background:var(--s1);border:1px solid var(--b);border-radius:10px;overflow-y:auto;height:650px}
 .nfeed{overflow-y:auto;padding:8px 12px;height:650px}
 .ncard{background:var(--s2);border:1px solid var(--b);border-radius:6px;
   padding:9px;margin-bottom:7px;cursor:pointer;transition:border-color .2s}
@@ -2243,8 +2334,9 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .ncount{font-size:13px;color:var(--tx);padding:6px 12px 8px;font-family:var(--mn)}
 /* SEARCH + FILTERS */
 .nctrl{padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);display:flex;flex-direction:column;gap:6px}
-.nsearch{width:100%;background:var(--bg);border:1px solid var(--b);color:var(--br);
-  padding:10px 16px;border-radius:5px;font-size:14px;font-family:var(--mn);outline:none}
+.nsearch{width:100%;background:var(--s2);border:2px solid rgba(117,188,255,.4);color:var(--br);
+  padding:12px 18px;border-radius:6px;font-size:15px;font-family:var(--mn);outline:none;
+  transition:border-color .2s}
 .nsearch:focus{border-color:var(--bl)}
 .nbtns{display:flex;gap:5px;flex-wrap:nowrap}
 .nbtn{background:var(--s2);border:1px solid var(--b);color:var(--br);
@@ -2287,14 +2379,12 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;min-h
 .sdot.g{background:var(--gr)}.sdot.r{background:var(--rd)}
 .sdot.y{background:var(--yl)}.sdot.q{background:#333}
 /* BREAKING NEWS */
-#breaking{background:var(--s1);border-bottom:1px solid var(--b);
-  padding:5px 0;display:none;align-items:center;overflow:hidden}
-.bkinner{max-width:1500px;margin:0 auto;padding:0 12px;display:flex;align-items:center;width:100%}
-.bklbl{color:var(--br);font-weight:700;font-size:13px;font-family:var(--mn);
-  flex-shrink:0;padding-right:12px;border-right:1px solid var(--b);margin-right:12px;letter-spacing:.08em}
+#breaking{background:var(--s1);border-bottom:2px solid rgba(255,153,0,.4);
+  padding:8px 0;display:flex;align-items:center;overflow:hidden}
+.bkinner{max-width:1900px;margin:0 auto;padding:0 16px;display:flex;align-items:center;width:100%}
+.bklbl{color:var(--or);font-weight:900;font-size:16px;font-family:var(--mn);flex-shrink:0;padding-right:14px;margin-right:14px;border-right:2px solid rgba(255,153,0,.5);text-transform:uppercase;letter-spacing:.08em}
 .bkscroll{flex:1;overflow:hidden;height:18px;position:relative}
-.bktext{color:var(--tx);font-size:13px;font-family:var(--mn);white-space:nowrap;
-  position:absolute;animation:marquee 40s linear infinite}
+.bktext{font-size:15px;color:var(--br);white-space:nowrap;font-family:system-ui;font-weight:500}
 @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 /* STORY POPUP */
 #story-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;
@@ -2359,7 +2449,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
     <div>
       <div class="title">XRPRadar</div>
       <div class="sub" style="font-size:13px;color:#ffffff;letter-spacing:1.5px">Signals Over Noise 24/7</div>
-      <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">● 230 Sources Live</div>
+      <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">● 306 Sources Live</div>
     </div>
   </div>
   <div class="hright">
@@ -2619,7 +2709,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           font-family:var(--mn);text-transform:uppercase;letter-spacing:2px">
           XRP Ecosystem
         </div>
-        <div style="font-size:12px;font-family:system-ui;color:var(--bl);margin-top:2px">
+        <div style="font-size:13px;font-family:system-ui;color:var(--bl);margin-top:2px">
           Seven interconnected layers powering the future of global finance
         </div>
       </div>
@@ -2638,25 +2728,25 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           <div style="font-size:20px;margin-bottom:6px">🔗</div>
           <div style="font-size:13px;font-weight:900;color:#fff;
             font-family:var(--mn);margin-bottom:4px">XRPL</div>
-          <div style="font-size:11px;font-weight:700;color:var(--tq);
+          <div style="font-size:13px;font-weight:700;color:var(--tq);
             font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
             letter-spacing:1px">The Foundation</div>
-          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+          <div style="font-size:13px;color:var(--tx);line-height:1.6;
             font-family:system-ui;margin-bottom:8px">
             Open-source, decentralised blockchain. Maintained by the independent XRPL Foundation.
             Consensus protocol settles in 3-5 seconds. Native DEX, AMM pools, escrow, and
             payment channels built in at the protocol level.
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Total Accounts</span>
               <span style="color:var(--tq);font-weight:700" id="eco-accounts">--</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Settlement</span>
               <span style="color:var(--tq);font-weight:700">3-5 seconds</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Tx Fee</span>
               <span style="color:var(--tq);font-weight:700">~$0.0002</span>
             </div>
@@ -2671,25 +2761,25 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           <div style="font-size:20px;margin-bottom:6px">🏢</div>
           <div style="font-size:13px;font-weight:900;color:#fff;
             font-family:var(--mn);margin-bottom:4px">Ripple Labs</div>
-          <div style="font-size:11px;font-weight:700;color:var(--bl);
+          <div style="font-size:13px;font-weight:700;color:var(--bl);
             font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
             letter-spacing:1px">The Company</div>
-          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+          <div style="font-size:13px;color:var(--tx);line-height:1.6;
             font-family:system-ui;margin-bottom:8px">
             Private San Francisco company that created XRP and builds enterprise
             blockchain solutions. NOT the same as XRPL. Revenue from ODL, software
             licensing, and XRP sales. Led by Brad Garlinghouse.
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Founded</span>
               <span style="color:var(--bl);font-weight:700">2012</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">HQ</span>
               <span style="color:var(--bl);font-weight:700">San Francisco + Dubai</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">SEC Case</span>
               <span style="color:var(--gr);font-weight:700">✅ Settled 2025</span>
             </div>
@@ -2704,25 +2794,25 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           <div style="font-size:20px;margin-bottom:6px">💎</div>
           <div style="font-size:13px;font-weight:900;color:#fff;
             font-family:var(--mn);margin-bottom:4px">XRP</div>
-          <div style="font-size:11px;font-weight:700;color:var(--gr);
+          <div style="font-size:13px;font-weight:700;color:var(--gr);
             font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
             letter-spacing:1px">The Asset</div>
-          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+          <div style="font-size:13px;color:var(--tx);line-height:1.6;
             font-family:system-ui;margin-bottom:8px">
             Native digital asset of the XRPL. Used as bridge currency in ODL,
             transaction gas, and wallet reserve. Fixed supply of 100 billion —
             no mining, no inflation. Burned slightly with every transaction.
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Total Supply</span>
               <span style="color:var(--gr);font-weight:700">100B XRP</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Circulating</span>
               <span style="color:var(--gr);font-weight:700" id="eco-supply">--</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">In Escrow</span>
               <span style="color:var(--gr);font-weight:700">~43B XRP</span>
             </div>
@@ -2737,25 +2827,25 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           <div style="font-size:20px;margin-bottom:6px">🌐</div>
           <div style="font-size:13px;font-weight:900;color:#fff;
             font-family:var(--mn);margin-bottom:4px">RippleNet</div>
-          <div style="font-size:11px;font-weight:700;color:var(--or);
+          <div style="font-size:13px;font-weight:700;color:var(--or);
             font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
             letter-spacing:1px">The Network</div>
-          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+          <div style="font-size:13px;color:var(--tx);line-height:1.6;
             font-family:system-ui;margin-bottom:8px">
             Ripple's B2B payment network connecting 300+ financial institutions
             globally. Three tiers: Direct (messaging), Multi-hop (routing),
             and ODL (XRP bridge). Banks choose their level of XRP integration.
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Partners</span>
               <span style="color:var(--or);font-weight:700">300+ institutions</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Countries</span>
               <span style="color:var(--or);font-weight:700">55+</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Type</span>
               <span style="color:var(--or);font-weight:700">Enterprise B2B</span>
             </div>
@@ -2775,10 +2865,10 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           <div style="font-size:20px;margin-bottom:6px">⚡</div>
           <div style="font-size:13px;font-weight:900;color:#fff;
             font-family:var(--mn);margin-bottom:4px">ODL</div>
-          <div style="font-size:11px;font-weight:700;color:var(--rd);
+          <div style="font-size:13px;font-weight:700;color:var(--rd);
             font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
             letter-spacing:1px">On-Demand Liquidity</div>
-          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+          <div style="font-size:13px;color:var(--tx);line-height:1.6;
             font-family:system-ui;margin-bottom:8px">
             The flagship product. Uses XRP as a bridge currency to move value
             cross-border in seconds — eliminating the need for pre-funded nostro
@@ -2786,15 +2876,15 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
             Powers the USA→Mexico, Japan→Philippines and 6+ other active corridors.
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Active Corridors</span>
               <span style="color:var(--rd);font-weight:700">8+</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Settlement</span>
               <span style="color:var(--rd);font-weight:700">3-5 seconds</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Savings vs SWIFT</span>
               <span style="color:var(--rd);font-weight:700">Up to 60%</span>
             </div>
@@ -2809,10 +2899,10 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           <div style="font-size:20px;margin-bottom:6px">💵</div>
           <div style="font-size:13px;font-weight:900;color:#fff;
             font-family:var(--mn);margin-bottom:4px">RLUSD</div>
-          <div style="font-size:11px;font-weight:700;color:var(--bl);
+          <div style="font-size:13px;font-weight:700;color:var(--bl);
             font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
             letter-spacing:1px">The Stablecoin</div>
-          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+          <div style="font-size:13px;color:var(--tx);line-height:1.6;
             font-family:system-ui;margin-bottom:8px">
             Ripple's USD-pegged stablecoin launched December 2024. Runs natively
             on XRPL and Ethereum. NYDFS regulated — one of the most strictly
@@ -2820,15 +2910,15 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
             settlement while XRP handles the bridge function.
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Peg</span>
               <span style="color:var(--bl);font-weight:700">1:1 USD</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Regulator</span>
               <span style="color:var(--bl);font-weight:700">NYDFS</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">Supply</span>
               <span style="color:var(--bl);font-weight:700" id="eco-rlusd">--</span>
             </div>
@@ -2843,10 +2933,10 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           <div style="font-size:20px;margin-bottom:6px">🛠️</div>
           <div style="font-size:13px;font-weight:900;color:#fff;
             font-family:var(--mn);margin-bottom:4px">XRPL Ecosystem</div>
-          <div style="font-size:11px;font-weight:700;color:var(--yl);
+          <div style="font-size:13px;font-weight:700;color:var(--yl);
             font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
             letter-spacing:1px">Developer Layer</div>
-          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+          <div style="font-size:13px;color:var(--tx);line-height:1.6;
             font-family:system-ui;margin-bottom:8px">
             Third-party builders on the XRPL. NFT marketplaces, DeFi protocols,
             AMM pools, tokenized real-world assets, CBDCs, gaming, and the EVM
@@ -2854,15 +2944,15 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
             Sologenic enables tokenized stocks on XRPL.
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">DEX Vol 24h</span>
               <span style="color:var(--yl);font-weight:700" id="eco-dex">--</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">EVM Sidechain</span>
               <span style="color:var(--yl);font-weight:700">✅ Live 2024</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-family:var(--mn)">
               <span style="color:var(--tx)">CBDC Projects</span>
               <span style="color:var(--yl);font-weight:700">6 Live/Pilot</span>
             </div>
@@ -2873,7 +2963,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
 
       <!-- Ecosystem Flow Diagram -->
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--bl);font-family:var(--mn);
+        <div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn);
           text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
           How the Layers Connect
         </div>
@@ -2882,63 +2972,63 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           <div style="display:flex;flex-direction:column;align-items:center;
             min-width:100px;text-align:center">
             <div style="font-size:14px;margin-bottom:4px">🔗</div>
-            <div style="font-size:11px;font-weight:700;color:var(--tq);
+            <div style="font-size:13px;font-weight:700;color:var(--tq);
               font-family:var(--mn)">XRPL</div>
-            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Foundation</div>
+            <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Foundation</div>
           </div>
           <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
             min-width:100px;text-align:center">
             <div style="font-size:14px;margin-bottom:4px">💎</div>
-            <div style="font-size:11px;font-weight:700;color:var(--gr);
+            <div style="font-size:13px;font-weight:700;color:var(--gr);
               font-family:var(--mn)">XRP</div>
-            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Native Asset</div>
+            <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Native Asset</div>
           </div>
           <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
             min-width:100px;text-align:center">
             <div style="font-size:14px;margin-bottom:4px">🏢</div>
-            <div style="font-size:11px;font-weight:700;color:var(--bl);
+            <div style="font-size:13px;font-weight:700;color:var(--bl);
               font-family:var(--mn)">Ripple Labs</div>
-            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Builder</div>
+            <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Builder</div>
           </div>
           <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
             min-width:100px;text-align:center">
             <div style="font-size:14px;margin-bottom:4px">🌐</div>
-            <div style="font-size:11px;font-weight:700;color:var(--or);
+            <div style="font-size:13px;font-weight:700;color:var(--or);
               font-family:var(--mn)">RippleNet</div>
-            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Network</div>
+            <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Network</div>
           </div>
           <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
             min-width:100px;text-align:center">
             <div style="font-size:14px;margin-bottom:4px">⚡</div>
-            <div style="font-size:11px;font-weight:700;color:var(--rd);
+            <div style="font-size:13px;font-weight:700;color:var(--rd);
               font-family:var(--mn)">ODL</div>
-            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Liquidity</div>
+            <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Liquidity</div>
           </div>
           <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">+</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
             min-width:100px;text-align:center">
             <div style="font-size:14px;margin-bottom:4px">💵</div>
-            <div style="font-size:11px;font-weight:700;color:var(--bl);
+            <div style="font-size:13px;font-weight:700;color:var(--bl);
               font-family:var(--mn)">RLUSD</div>
-            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Stablecoin</div>
+            <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Stablecoin</div>
           </div>
           <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
             min-width:110px;text-align:center">
             <div style="font-size:14px;margin-bottom:4px">🛠️</div>
-            <div style="font-size:11px;font-weight:700;color:var(--yl);
+            <div style="font-size:13px;font-weight:700;color:var(--yl);
               font-family:var(--mn)">Ecosystem</div>
-            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Builders</div>
+            <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Builders</div>
           </div>
 
         </div>
@@ -2946,20 +3036,20 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
 
       <!-- Common Misconceptions -->
       <div>
-        <div style="font-size:12px;font-weight:700;color:var(--bl);font-family:var(--mn);
+        <div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn);
           text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">
           ⚠️ Common Misconceptions — Set the Record Straight
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
 
           <div style="background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:10px">
-            <div style="font-size:11px;font-weight:700;color:var(--rd);
+            <div style="font-size:13px;font-weight:700;color:var(--rd);
               font-family:var(--mn);margin-bottom:4px">❌ MYTH</div>
-            <div style="font-size:12px;color:var(--br);font-weight:700;
+            <div style="font-size:13px;color:var(--br);font-weight:700;
               margin-bottom:6px">"Ripple controls XRP"</div>
-            <div style="font-size:11px;font-weight:700;color:var(--gr);
+            <div style="font-size:13px;font-weight:700;color:var(--gr);
               font-family:var(--mn);margin-bottom:4px">✅ REALITY</div>
-            <div style="font-size:12px;color:var(--tx);line-height:1.5">
+            <div style="font-size:13px;color:var(--tx);line-height:1.5">
               XRP runs on the XRPL which is decentralised and maintained by the
               independent XRPL Foundation. Ripple holds XRP but cannot create,
               destroy, or freeze it.
@@ -2967,13 +3057,13 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           </div>
 
           <div style="background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:10px">
-            <div style="font-size:11px;font-weight:700;color:var(--rd);
+            <div style="font-size:13px;font-weight:700;color:var(--rd);
               font-family:var(--mn);margin-bottom:4px">❌ MYTH</div>
-            <div style="font-size:12px;color:var(--br);font-weight:700;
+            <div style="font-size:13px;color:var(--br);font-weight:700;
               margin-bottom:6px">"Ripple can print more XRP"</div>
-            <div style="font-size:11px;font-weight:700;color:var(--gr);
+            <div style="font-size:13px;font-weight:700;color:var(--gr);
               font-family:var(--mn);margin-bottom:4px">✅ REALITY</div>
-            <div style="font-size:12px;color:var(--tx);line-height:1.5">
+            <div style="font-size:13px;color:var(--tx);line-height:1.5">
               XRP has a fixed maximum supply of 100 billion — hardcoded into the
               protocol. No mining, no inflation, no new XRP can ever be created.
               Supply only decreases as tiny amounts are burned per transaction.
@@ -2981,13 +3071,13 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           </div>
 
           <div style="background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:10px">
-            <div style="font-size:11px;font-weight:700;color:var(--rd);
+            <div style="font-size:13px;font-weight:700;color:var(--rd);
               font-family:var(--mn);margin-bottom:4px">❌ MYTH</div>
-            <div style="font-size:12px;color:var(--br);font-weight:700;
+            <div style="font-size:13px;color:var(--br);font-weight:700;
               margin-bottom:6px">"XRP is a security"</div>
-            <div style="font-size:11px;font-weight:700;color:var(--gr);
+            <div style="font-size:13px;font-weight:700;color:var(--gr);
               font-family:var(--mn);margin-bottom:4px">✅ REALITY</div>
-            <div style="font-size:12px;color:var(--tx);line-height:1.5">
+            <div style="font-size:13px;color:var(--tx);line-height:1.5">
               Judge Torres ruled in 2023 that XRP is NOT a security in programmatic
               sales. The SEC settled with Ripple in 2025. XRP now operates with
               full US regulatory clarity for the first time.
@@ -3015,13 +3105,13 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
         <div>
           <div style="font-size:17px;font-weight:900;color:#fff;font-family:var(--mn);
             text-transform:uppercase;letter-spacing:2px">Mainstream Integration Monitor</div>
-          <div style="font-size:12px;font-family:system-ui;color:var(--yl);
+          <div style="font-size:13px;font-family:system-ui;color:var(--yl);
             margin-top:3px;font-style:italic">
             XRP is no longer knocking on the door of traditional finance — it's building new springboards for growth and utilization.
           </div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;font-family:var(--mn)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:13px;font-family:var(--mn)">
         <span style="background:rgba(72,255,130,.1);color:var(--gr);padding:3px 10px;border-radius:3px;border:1px solid rgba(72,255,130,.3);font-weight:700">✅ CONFIRMED</span>
         <span style="background:rgba(117,188,255,.1);color:var(--bl);padding:3px 10px;border-radius:3px;border:1px solid rgba(117,188,255,.3);font-weight:700">🔍 EXPLORING</span>
         <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:3px 10px;border-radius:3px;border:1px solid rgba(255,204,0,.3);font-weight:700">💬 RUMORED</span>
@@ -3033,7 +3123,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
     <div style="padding:14px 18px">
 
       <!-- Partnership Grid -->
-      <div style="font-size:12px;font-weight:700;color:var(--yl);font-family:var(--mn);
+      <div style="font-size:13px;font-weight:700;color:var(--yl);font-family:var(--mn);
         text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
         🏦 Institutional Partnership Tracker
       </div>
@@ -3041,7 +3131,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
         gap:8px;margin-bottom:16px"></div>
 
       <!-- Integration Timeline -->
-      <div style="font-size:12px;font-weight:700;color:var(--yl);font-family:var(--mn);
+      <div style="font-size:13px;font-weight:700;color:var(--yl);font-family:var(--mn);
         text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
         📅 XRP × Traditional Finance — Integration Timeline
       </div>
@@ -4169,6 +4259,7 @@ async function fetchNews(){
   try{
     const d = await fetch("/api/news").then(r=>r.json());
     allStories = d.stories||[];
+    window.allStories = allStories;
     allStories.forEach(s=>{storyData[s.id]=s;});
     renderNews(d.total_all||0);
     renderTop20();
@@ -4466,10 +4557,10 @@ function updateDispIntel(d){
   // ── 36. Price History Heatmap ─────────────────────────────────────────
   const hmEl = document.getElementById("heatmap-grid");
   if(hmEl && di.price_heatmap && di.price_heatmap.length){
-    // Group by week
+    // Group by week number (use date-based week key)
     const weeks = {};
     di.price_heatmap.forEach(day=>{
-      const wk = day.week;
+      const wk = day.week || day.date.substring(0,7);
       if(!weeks[wk]) weeks[wk] = {};
       weeks[wk][day.dow] = day;
     });
@@ -5780,7 +5871,7 @@ function renderNews(totalAll){
   const tot=totalAll||allStories.length;
   const fa=document.getElementById("feed-active");
   const faText=fa?fa.textContent:"--";
-  if(cnt) cnt.innerHTML=`<span style="color:var(--bl);font-weight:700">${stories.length}</span> stories shown &nbsp;|&nbsp; <span style="color:var(--gr);font-weight:700">${tot}</span> total &nbsp;|&nbsp; <span style="color:var(--bl);font-weight:700">${faText}</span> of <span style="color:var(--gr);font-weight:700">230</span> sources online`;
+  if(cnt) cnt.innerHTML=`<span style="color:var(--bl);font-weight:700">${stories.length}</span> stories shown &nbsp;|&nbsp; <span style="color:var(--gr);font-weight:700">${tot}</span> total &nbsp;|&nbsp; <span style="color:var(--bl);font-weight:700">${faText}</span> of <span style="color:var(--gr);font-weight:700">306</span> sources online`;
   if(!stories.length){
     if(allStories.length===0){
       feed.innerHTML='<div class="empty" style="padding:20px;line-height:2">📡 Scanning 230 sources...<br>Stories will appear shortly after first feed scan completes.</div>';
