@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v4.0h"
+BOT_FILE          = "XRPRadar_v4.2"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -346,6 +346,7 @@ STATE = {
             "domino_effect":       "",
             "regional_flashpoints":"",
             "watchlist":           "",
+            "tradfi_outlook":      "",
         },
         "generated_at":   "",
         "next_run_cst":   "Daily at 11:50 AM CST",
@@ -386,6 +387,45 @@ STATE = {
         "google_trend_label": "",
         "trend_keywords":  [],
         "ts":              "",
+    },
+    "mainstream_intel": {
+        "partnerships": [
+            {"institution":"Bank of America","type":"Bank","country":"🇺🇸 USA","status":"RUMORED","detail":"Multiple reports suggest BOA exploring Ripple ODL for cross-border settlement. Not officially confirmed.","source":"Industry reports 2025-2026"},
+            {"institution":"JPMorgan Chase","type":"Bank","country":"🇺🇸 USA","status":"EXPLORING","detail":"JPM Coin runs on private blockchain but JPMorgan has engaged with ISO 20022 standards compatible with XRPL. Watching closely.","source":"Bloomberg 2025"},
+            {"institution":"SBI Holdings","type":"Bank","country":"🇯🇵 Japan","status":"CONFIRMED","detail":"SBI Ripple Asia — joint venture fully operational. SBI VC Trade, SBI Remit, and MoneyTap all run on Ripple technology.","source":"SBI Holdings IR 2024"},
+            {"institution":"Santander","type":"Bank","country":"🇪🇸 Spain","status":"CONFIRMED","detail":"One Pay FX powered by Ripple since 2018. Expanded to multiple markets. One of the earliest major bank adopters.","source":"Santander Press Release"},
+            {"institution":"Standard Chartered","type":"Bank","country":"🇬🇧 UK","status":"CONFIRMED","detail":"SC Ventures partnership with Ripple for cross-border payments in Asia-Pacific corridors.","source":"Standard Chartered 2023"},
+            {"institution":"PNC Bank","type":"Bank","country":"🇺🇸 USA","status":"CONFIRMED","detail":"PNC joined RippleNet for cross-border payment capabilities. One of the largest US banks on the network.","source":"Ripple Press Release"},
+            {"institution":"Itaú Unibanco","type":"Bank","country":"🇧🇷 Brazil","status":"CONFIRMED","detail":"Brazil's largest private bank partnered with Ripple for international transfers via RippleNet.","source":"Ripple Blog 2023"},
+            {"institution":"Axis Bank","type":"Bank","country":"🇮🇳 India","status":"CONFIRMED","detail":"Axis Bank uses RippleNet for inbound remittances into India. Major corridor from Gulf states.","source":"Ripple Partner Network"},
+            {"institution":"Tranglo","type":"Payments","country":"🇸🇬 Singapore","status":"CONFIRMED","detail":"Ripple acquired 40% stake in Tranglo. Powers ODL across SE Asia including Philippines, Malaysia, Indonesia.","source":"Ripple Acquisition 2021"},
+            {"institution":"Coins.ph","type":"Payments","country":"🇵🇭 Philippines","status":"CONFIRMED","detail":"Philippines-based wallet using ODL for US-Philippines corridor. Millions of OFW remittances monthly.","source":"Ripple ODL Partner"},
+            {"institution":"Bitso","type":"Exchange","country":"🇲🇽 Mexico","status":"CONFIRMED","detail":"Mexico's largest crypto exchange. Primary ODL partner for USA-Mexico corridor — the largest ODL corridor globally.","source":"Bitso/Ripple 2021"},
+            {"institution":"Western Union","type":"Payments","country":"🇺🇸 USA","status":"EXPLORING","detail":"WU tested Ripple technology in 2018 pilots. No full deployment but ongoing ISO 20022 alignment is notable.","source":"WU Annual Report 2023"},
+            {"institution":"MoneyGram","type":"Payments","country":"🇺🇸 USA","status":"EXPLORING","detail":"Former deep Ripple partner (2019-2021). Regulatory pressure caused pause. Re-engagement rumored post-SEC settlement.","source":"Industry reports 2025"},
+            {"institution":"Modulr","type":"Fintech","country":"🇬🇧 UK","status":"CONFIRMED","detail":"UK fintech using RippleNet for European payment infrastructure. Backed by PayPal Ventures.","source":"Ripple Partner 2023"},
+            {"institution":"Bank of Bhutan","type":"Central Bank","country":"🇧🇹 Bhutan","status":"CONFIRMED","detail":"National digital currency (Druk) built on XRPL. First sovereign digital currency on the XRP Ledger.","source":"Royal Monetary Authority 2023"},
+            {"institution":"SWIFT","type":"Network","country":"🌐 Global","status":"COMPETING","detail":"SWIFT gpi is ISO 20022 compliant — same standard as XRPL. Direct competitive overlap. SWIFT Connect explores DLT bridges.","source":"SWIFT 2024"},
+            {"institution":"Nasdaq","type":"Exchange","country":"🇺🇸 USA","status":"EXPLORING","detail":"Nasdaq applied for XRP ETF custody services. Potential listing venue for spot XRP ETF products.","source":"SEC Filings 2025"},
+            {"institution":"Fidelity","type":"Asset Manager","country":"🇺🇸 USA","status":"EXPLORING","detail":"Fidelity Digital Assets expanding custody. XRP support rumored post-SEC settlement clarity.","source":"Industry reports 2026"},
+            {"institution":"BlackRock","type":"Asset Manager","country":"🇺🇸 USA","status":"EXPLORING","detail":"BlackRock BUIDL fund uses blockchain infrastructure. XRP Ledger compatibility being evaluated.","source":"BlackRock Digital 2025"},
+            {"institution":"Ripple x BIS","type":"Research","country":"🌐 Global","status":"CONFIRMED","detail":"Bank for International Settlements Project Nexus exploring XRPL for multi-CBDC settlements between central banks.","source":"BIS Innovation Hub 2024"},
+        ],
+        "integration_timeline": [
+            {"year":"2012","event":"Ripple Founded","detail":"OpenCoin (later Ripple) created with mission to replace correspondent banking.","major":False},
+            {"year":"2018","event":"First Bank Partnerships","detail":"Santander One Pay FX, American Express FX International Payments launch on RippleNet.","major":True},
+            {"year":"2019","event":"ODL Goes Live","detail":"On-Demand Liquidity launches commercially. XRP used as bridge currency for the first time at scale.","major":True},
+            {"year":"2020","event":"SEC Lawsuit","detail":"SEC files suit — temporarily freezes institutional adoption in the US. Global expansion continues.","major":False},
+            {"year":"2021","event":"SBI + Tranglo","detail":"SBI Holdings scales Japan operations. Ripple acquires 40% of Tranglo — SE Asia ODL hub established.","major":True},
+            {"year":"2022","event":"SWIFT ISO 20022","detail":"SWIFT mandates ISO 20022 migration — the same standard XRPL natively supports. Alignment begins.","major":True},
+            {"year":"2023","event":"Bhutan CBDC Live","detail":"Bank of Bhutan launches national digital currency on XRPL. First sovereign CBDC on the ledger.","major":True},
+            {"year":"2023","event":"Partial Legal Victory","detail":"Judge Torres: XRP not a security in programmatic sales. Institutional US adoption begins thawing.","major":True},
+            {"year":"2024","event":"XRPL EVM Sidechain","detail":"Ethereum-compatible sidechain launches on XRPL — opens DeFi and smart contract integration.","major":True},
+            {"year":"2025","event":"SEC Settlement","detail":"SEC drops case. $50M settlement. Full US regulatory clarity arrives. Institutional floodgates open.","major":True},
+            {"year":"2025","event":"ETF Filings Wave","detail":"Bitwise, WisdomTree, Canary Capital file US spot XRP ETF applications. European ETPs already live.","major":True},
+            {"year":"2026","event":"TradFi Integration Era","detail":"Banks, asset managers, and payment networks actively building on XRPL. Post-lawsuit adoption accelerating.","major":True},
+        ],
+        "ts": "",
     },
     "comp_intel": {
         "vs_coins": {
@@ -1050,6 +1090,10 @@ def fetch_prediction(force=False):
             "Which geographic markets are generating the most meaningful signal today and why? Which country-level development has the highest potential to move XRP in the next week? Name specific countries, regulators, and institutions.",
             "",
             "## WATCHLIST",
+            "List exactly 4-5 specific things to monitor in the next 24-72 hours. Each item must name a concrete catalyst: a price level, a regulatory decision, a scheduled event, an on-chain threshold. State what outcome would be bullish and what would be bearish for each.",
+            "",
+            "## TRADFI INTEGRATION OUTLOOK",
+            "Analyse the trajectory of XRP's integration into traditional finance specifically. Which named institution is closest to a confirmed announcement? What regulatory or legal development in the next 30-90 days could accelerate or delay mainstream banking adoption? Name specific banks, payment networks, or asset managers and what their next move likely is.",
             "List exactly 4-5 specific things to monitor in the next 24-72 hours. Each item must name a concrete catalyst: a price level, a regulatory decision, a scheduled event, an on-chain threshold. State what outcome would be bullish and what would be bearish for each.",
         ]
         prompt = chr(10).join(prompt_parts)
@@ -1980,6 +2024,7 @@ def api_data():
         "disp_intel":       STATE["disp_intel"],
         "tools_intel":      STATE["tools_intel"],
         "sent_intel":       STATE["sent_intel"],
+        "mainstream_intel": STATE["mainstream_intel"],
         "comp_intel":       STATE["comp_intel"],
         "ai_us":            STATE["ai_us"],
         "ai_global":        STATE["ai_global"],
@@ -2557,6 +2602,459 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
     </div>
   </div>
 
+</div>
+
+<!-- SECTION 3e2: XRP ECOSYSTEM MAP -->
+<div style="margin-bottom:10px">
+  <div style="background:linear-gradient(135deg,#06060f 0%,#0a0a18 100%);
+    border:1px solid rgba(117,188,255,.3);border-radius:12px;overflow:hidden">
+
+    <!-- Header -->
+    <div style="padding:14px 18px;background:rgba(117,188,255,.06);
+      border-bottom:1px solid rgba(117,188,255,.2);
+      display:flex;align-items:center;gap:14px">
+      <span style="font-size:30px;filter:drop-shadow(0 0 10px rgba(117,188,255,.6))">🌐</span>
+      <div>
+        <div style="font-size:17px;font-weight:900;color:#fff;
+          font-family:var(--mn);text-transform:uppercase;letter-spacing:2px">
+          XRP Ecosystem
+        </div>
+        <div style="font-size:12px;font-family:system-ui;color:var(--bl);margin-top:2px">
+          Seven interconnected layers powering the future of global finance
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:14px 18px">
+
+      <!-- 7 Ecosystem Cards — 4 top, 3 bottom -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
+
+        <!-- Card 1: XRPL -->
+        <div style="background:rgba(0,229,204,.06);border:1px solid rgba(0,229,204,.3);
+          border-radius:8px;padding:12px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,var(--tq),transparent)"></div>
+          <div style="font-size:20px;margin-bottom:6px">🔗</div>
+          <div style="font-size:13px;font-weight:900;color:#fff;
+            font-family:var(--mn);margin-bottom:4px">XRPL</div>
+          <div style="font-size:11px;font-weight:700;color:var(--tq);
+            font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
+            letter-spacing:1px">The Foundation</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+            font-family:system-ui;margin-bottom:8px">
+            Open-source, decentralised blockchain. Maintained by the independent XRPL Foundation.
+            Consensus protocol settles in 3-5 seconds. Native DEX, AMM pools, escrow, and
+            payment channels built in at the protocol level.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Total Accounts</span>
+              <span style="color:var(--tq);font-weight:700" id="eco-accounts">--</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Settlement</span>
+              <span style="color:var(--tq);font-weight:700">3-5 seconds</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Tx Fee</span>
+              <span style="color:var(--tq);font-weight:700">~$0.0002</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Ripple Labs -->
+        <div style="background:rgba(117,188,255,.06);border:1px solid rgba(117,188,255,.3);
+          border-radius:8px;padding:12px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,var(--bl),transparent)"></div>
+          <div style="font-size:20px;margin-bottom:6px">🏢</div>
+          <div style="font-size:13px;font-weight:900;color:#fff;
+            font-family:var(--mn);margin-bottom:4px">Ripple Labs</div>
+          <div style="font-size:11px;font-weight:700;color:var(--bl);
+            font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
+            letter-spacing:1px">The Company</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+            font-family:system-ui;margin-bottom:8px">
+            Private San Francisco company that created XRP and builds enterprise
+            blockchain solutions. NOT the same as XRPL. Revenue from ODL, software
+            licensing, and XRP sales. Led by Brad Garlinghouse.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Founded</span>
+              <span style="color:var(--bl);font-weight:700">2012</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">HQ</span>
+              <span style="color:var(--bl);font-weight:700">San Francisco + Dubai</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">SEC Case</span>
+              <span style="color:var(--gr);font-weight:700">✅ Settled 2025</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: XRP Asset -->
+        <div style="background:rgba(72,255,130,.06);border:1px solid rgba(72,255,130,.3);
+          border-radius:8px;padding:12px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,var(--gr),transparent)"></div>
+          <div style="font-size:20px;margin-bottom:6px">💎</div>
+          <div style="font-size:13px;font-weight:900;color:#fff;
+            font-family:var(--mn);margin-bottom:4px">XRP</div>
+          <div style="font-size:11px;font-weight:700;color:var(--gr);
+            font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
+            letter-spacing:1px">The Asset</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+            font-family:system-ui;margin-bottom:8px">
+            Native digital asset of the XRPL. Used as bridge currency in ODL,
+            transaction gas, and wallet reserve. Fixed supply of 100 billion —
+            no mining, no inflation. Burned slightly with every transaction.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Total Supply</span>
+              <span style="color:var(--gr);font-weight:700">100B XRP</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Circulating</span>
+              <span style="color:var(--gr);font-weight:700" id="eco-supply">--</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">In Escrow</span>
+              <span style="color:var(--gr);font-weight:700">~43B XRP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: RippleNet -->
+        <div style="background:rgba(255,153,0,.06);border:1px solid rgba(255,153,0,.3);
+          border-radius:8px;padding:12px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,var(--or),transparent)"></div>
+          <div style="font-size:20px;margin-bottom:6px">🌐</div>
+          <div style="font-size:13px;font-weight:900;color:#fff;
+            font-family:var(--mn);margin-bottom:4px">RippleNet</div>
+          <div style="font-size:11px;font-weight:700;color:var(--or);
+            font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
+            letter-spacing:1px">The Network</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+            font-family:system-ui;margin-bottom:8px">
+            Ripple's B2B payment network connecting 300+ financial institutions
+            globally. Three tiers: Direct (messaging), Multi-hop (routing),
+            and ODL (XRP bridge). Banks choose their level of XRP integration.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Partners</span>
+              <span style="color:var(--or);font-weight:700">300+ institutions</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Countries</span>
+              <span style="color:var(--or);font-weight:700">55+</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Type</span>
+              <span style="color:var(--or);font-weight:700">Enterprise B2B</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom row: 3 cards -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+
+        <!-- Card 5: ODL -->
+        <div style="background:rgba(255,64,96,.06);border:1px solid rgba(255,64,96,.3);
+          border-radius:8px;padding:12px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,var(--rd),transparent)"></div>
+          <div style="font-size:20px;margin-bottom:6px">⚡</div>
+          <div style="font-size:13px;font-weight:900;color:#fff;
+            font-family:var(--mn);margin-bottom:4px">ODL</div>
+          <div style="font-size:11px;font-weight:700;color:var(--rd);
+            font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
+            letter-spacing:1px">On-Demand Liquidity</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+            font-family:system-ui;margin-bottom:8px">
+            The flagship product. Uses XRP as a bridge currency to move value
+            cross-border in seconds — eliminating the need for pre-funded nostro
+            accounts. Saves banks up to 60% vs traditional correspondent banking.
+            Powers the USA→Mexico, Japan→Philippines and 6+ other active corridors.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Active Corridors</span>
+              <span style="color:var(--rd);font-weight:700">8+</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Settlement</span>
+              <span style="color:var(--rd);font-weight:700">3-5 seconds</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Savings vs SWIFT</span>
+              <span style="color:var(--rd);font-weight:700">Up to 60%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6: RLUSD -->
+        <div style="background:rgba(117,188,255,.06);border:1px solid rgba(117,188,255,.3);
+          border-radius:8px;padding:12px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,var(--bl),var(--tq))"></div>
+          <div style="font-size:20px;margin-bottom:6px">💵</div>
+          <div style="font-size:13px;font-weight:900;color:#fff;
+            font-family:var(--mn);margin-bottom:4px">RLUSD</div>
+          <div style="font-size:11px;font-weight:700;color:var(--bl);
+            font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
+            letter-spacing:1px">The Stablecoin</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+            font-family:system-ui;margin-bottom:8px">
+            Ripple's USD-pegged stablecoin launched December 2024. Runs natively
+            on XRPL and Ethereum. NYDFS regulated — one of the most strictly
+            supervised stablecoins in existence. Complements XRP for stable
+            settlement while XRP handles the bridge function.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Peg</span>
+              <span style="color:var(--bl);font-weight:700">1:1 USD</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Regulator</span>
+              <span style="color:var(--bl);font-weight:700">NYDFS</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">Supply</span>
+              <span style="color:var(--bl);font-weight:700" id="eco-rlusd">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 7: XRPL Ecosystem -->
+        <div style="background:rgba(255,204,0,.06);border:1px solid rgba(255,204,0,.3);
+          border-radius:8px;padding:12px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,var(--yl),transparent)"></div>
+          <div style="font-size:20px;margin-bottom:6px">🛠️</div>
+          <div style="font-size:13px;font-weight:900;color:#fff;
+            font-family:var(--mn);margin-bottom:4px">XRPL Ecosystem</div>
+          <div style="font-size:11px;font-weight:700;color:var(--yl);
+            font-family:var(--mn);margin-bottom:6px;text-transform:uppercase;
+            letter-spacing:1px">Developer Layer</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;
+            font-family:system-ui;margin-bottom:8px">
+            Third-party builders on the XRPL. NFT marketplaces, DeFi protocols,
+            AMM pools, tokenized real-world assets, CBDCs, gaming, and the EVM
+            sidechain for Ethereum compatibility. Evernode enables smart contracts.
+            Sologenic enables tokenized stocks on XRPL.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">DEX Vol 24h</span>
+              <span style="color:var(--yl);font-weight:700" id="eco-dex">--</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">EVM Sidechain</span>
+              <span style="color:var(--yl);font-weight:700">✅ Live 2024</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mn)">
+              <span style="color:var(--tx)">CBDC Projects</span>
+              <span style="color:var(--yl);font-weight:700">6 Live/Pilot</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Ecosystem Flow Diagram -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--bl);font-family:var(--mn);
+          text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
+          How the Layers Connect
+        </div>
+        <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding:4px 0">
+
+          <div style="display:flex;flex-direction:column;align-items:center;
+            min-width:100px;text-align:center">
+            <div style="font-size:14px;margin-bottom:4px">🔗</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tq);
+              font-family:var(--mn)">XRPL</div>
+            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Foundation</div>
+          </div>
+          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;
+            min-width:100px;text-align:center">
+            <div style="font-size:14px;margin-bottom:4px">💎</div>
+            <div style="font-size:11px;font-weight:700;color:var(--gr);
+              font-family:var(--mn)">XRP</div>
+            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Native Asset</div>
+          </div>
+          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;
+            min-width:100px;text-align:center">
+            <div style="font-size:14px;margin-bottom:4px">🏢</div>
+            <div style="font-size:11px;font-weight:700;color:var(--bl);
+              font-family:var(--mn)">Ripple Labs</div>
+            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Builder</div>
+          </div>
+          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;
+            min-width:100px;text-align:center">
+            <div style="font-size:14px;margin-bottom:4px">🌐</div>
+            <div style="font-size:11px;font-weight:700;color:var(--or);
+              font-family:var(--mn)">RippleNet</div>
+            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Network</div>
+          </div>
+          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;
+            min-width:100px;text-align:center">
+            <div style="font-size:14px;margin-bottom:4px">⚡</div>
+            <div style="font-size:11px;font-weight:700;color:var(--rd);
+              font-family:var(--mn)">ODL</div>
+            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Liquidity</div>
+          </div>
+          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">+</div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;
+            min-width:100px;text-align:center">
+            <div style="font-size:14px;margin-bottom:4px">💵</div>
+            <div style="font-size:11px;font-weight:700;color:var(--bl);
+              font-family:var(--mn)">RLUSD</div>
+            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Stablecoin</div>
+          </div>
+          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;
+            min-width:110px;text-align:center">
+            <div style="font-size:14px;margin-bottom:4px">🛠️</div>
+            <div style="font-size:11px;font-weight:700;color:var(--yl);
+              font-family:var(--mn)">Ecosystem</div>
+            <div style="font-size:10px;color:var(--tx);font-family:var(--mn)">Builders</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Common Misconceptions -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--bl);font-family:var(--mn);
+          text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">
+          ⚠️ Common Misconceptions — Set the Record Straight
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+
+          <div style="background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--rd);
+              font-family:var(--mn);margin-bottom:4px">❌ MYTH</div>
+            <div style="font-size:12px;color:var(--br);font-weight:700;
+              margin-bottom:6px">"Ripple controls XRP"</div>
+            <div style="font-size:11px;font-weight:700;color:var(--gr);
+              font-family:var(--mn);margin-bottom:4px">✅ REALITY</div>
+            <div style="font-size:12px;color:var(--tx);line-height:1.5">
+              XRP runs on the XRPL which is decentralised and maintained by the
+              independent XRPL Foundation. Ripple holds XRP but cannot create,
+              destroy, or freeze it.
+            </div>
+          </div>
+
+          <div style="background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--rd);
+              font-family:var(--mn);margin-bottom:4px">❌ MYTH</div>
+            <div style="font-size:12px;color:var(--br);font-weight:700;
+              margin-bottom:6px">"Ripple can print more XRP"</div>
+            <div style="font-size:11px;font-weight:700;color:var(--gr);
+              font-family:var(--mn);margin-bottom:4px">✅ REALITY</div>
+            <div style="font-size:12px;color:var(--tx);line-height:1.5">
+              XRP has a fixed maximum supply of 100 billion — hardcoded into the
+              protocol. No mining, no inflation, no new XRP can ever be created.
+              Supply only decreases as tiny amounts are burned per transaction.
+            </div>
+          </div>
+
+          <div style="background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--rd);
+              font-family:var(--mn);margin-bottom:4px">❌ MYTH</div>
+            <div style="font-size:12px;color:var(--br);font-weight:700;
+              margin-bottom:6px">"XRP is a security"</div>
+            <div style="font-size:11px;font-weight:700;color:var(--gr);
+              font-family:var(--mn);margin-bottom:4px">✅ REALITY</div>
+            <div style="font-size:12px;color:var(--tx);line-height:1.5">
+              Judge Torres ruled in 2023 that XRP is NOT a security in programmatic
+              sales. The SEC settled with Ripple in 2025. XRP now operates with
+              full US regulatory clarity for the first time.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3e: MAINSTREAM INTEGRATION MONITOR -->
+<div style="margin-bottom:10px">
+  <div style="background:linear-gradient(135deg,#0a0a0a 0%,#0d0d0a 100%);
+    border:1px solid rgba(255,204,0,.25);border-radius:12px;overflow:hidden">
+
+    <!-- Header -->
+    <div style="padding:14px 18px;background:rgba(255,204,0,.05);
+      border-bottom:1px solid rgba(255,204,0,.2);
+      display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:28px;filter:drop-shadow(0 0 8px rgba(255,204,0,.5))">🪚</span>
+        <div>
+          <div style="font-size:17px;font-weight:900;color:#fff;font-family:var(--mn);
+            text-transform:uppercase;letter-spacing:2px">Mainstream Integration Monitor</div>
+          <div style="font-size:12px;font-family:system-ui;color:var(--yl);
+            margin-top:3px;font-style:italic">
+            XRP is no longer knocking on the door of traditional finance — it's building new springboards for growth and utilization.
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;font-family:var(--mn)">
+        <span style="background:rgba(72,255,130,.1);color:var(--gr);padding:3px 10px;border-radius:3px;border:1px solid rgba(72,255,130,.3);font-weight:700">✅ CONFIRMED</span>
+        <span style="background:rgba(117,188,255,.1);color:var(--bl);padding:3px 10px;border-radius:3px;border:1px solid rgba(117,188,255,.3);font-weight:700">🔍 EXPLORING</span>
+        <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:3px 10px;border-radius:3px;border:1px solid rgba(255,204,0,.3);font-weight:700">💬 RUMORED</span>
+        <span style="background:rgba(255,153,0,.1);color:var(--or);padding:3px 10px;border-radius:3px;border:1px solid rgba(255,153,0,.3);font-weight:700">🧪 PILOT</span>
+        <span style="background:rgba(255,64,96,.1);color:var(--rd);padding:3px 10px;border-radius:3px;border:1px solid rgba(255,64,96,.3);font-weight:700">⚔️ COMPETING</span>
+      </div>
+    </div>
+
+    <div style="padding:14px 18px">
+
+      <!-- Partnership Grid -->
+      <div style="font-size:12px;font-weight:700;color:var(--yl);font-family:var(--mn);
+        text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
+        🏦 Institutional Partnership Tracker
+      </div>
+      <div id="ms-partner-grid" style="display:grid;grid-template-columns:repeat(4,1fr);
+        gap:8px;margin-bottom:16px"></div>
+
+      <!-- Integration Timeline -->
+      <div style="font-size:12px;font-weight:700;color:var(--yl);font-family:var(--mn);
+        text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
+        📅 XRP × Traditional Finance — Integration Timeline
+      </div>
+      <div style="position:relative;padding:10px 0">
+        <!-- Horizontal line -->
+        <div style="position:absolute;top:28px;left:0;right:0;height:2px;
+          background:linear-gradient(90deg,transparent,var(--yl),var(--gr),transparent)"></div>
+        <div id="ms-timeline" style="display:flex;gap:0;overflow-x:auto;
+          padding-bottom:8px;position:relative"></div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- SECTION 4b: TOP 20 XRP STORIES -->
@@ -3652,6 +4150,8 @@ async function fetchData(){
     updateDispIntel(d);
     updateToolsIntel(d);
     updateSentIntel(d);
+    updateEcosystem(d);
+    updateMainstreamIntel(d);
     updateCompIntel(d);
     updateRegIntel(d);
     updateExecIntel(d);
@@ -3861,6 +4361,7 @@ function updatePrediction(d){
     c("pred-domino",   sec.domino_effect         || "Generating...");
     c("pred-regional", sec.regional_flashpoints  || "Generating...");
     c("pred-watch",    sec.watchlist             || "Generating...");
+    c("pred-tradfi",   sec.tradfi_outlook        || "Generating...");
 
   } else if(pred.status === "generating"){
     if(loading){
@@ -4384,6 +4885,102 @@ function updateSentIntel(d){
           ${src.breaking > 0 ? src.breaking : "—"}
         </td>
       </tr>`;
+    }).join("");
+  }
+}
+
+
+
+// ── XRP Ecosystem Map ──────────────────────────────────────────────────────
+function updateEcosystem(d){
+  const p  = d.price        || {};
+  const oc = d.onchain_intel|| {};
+
+  // Live stats wired into cards
+  const supply = p.supply_circ
+    ? (parseFloat(p.supply_circ)/1e9).toFixed(1) + "B XRP"
+    : "~57B XRP";
+  c("eco-supply",   supply);
+
+  const acct = oc.accounts_total
+    ? parseInt(oc.accounts_total).toLocaleString()
+    : "--";
+  c("eco-accounts", acct);
+
+  const rlusd = oc.rlusd_supply && oc.rlusd_supply > 0
+    ? "$" + (parseFloat(oc.rlusd_supply)/1e6).toFixed(1) + "M"
+    : "--";
+  c("eco-rlusd", rlusd);
+
+  const dex = oc.dex_vol_24h && oc.dex_vol_24h > 0
+    ? "$" + (parseFloat(oc.dex_vol_24h)/1e6).toFixed(2) + "M"
+    : "--";
+  c("eco-dex", dex);
+}
+
+// ── Mainstream Integration Monitor ────────────────────────────────────────
+function updateMainstreamIntel(d){
+  const mi = d.mainstream_intel || {};
+
+  // ── Partnership Grid ──────────────────────────────────────────────────
+  const grid = document.getElementById("ms-partner-grid");
+  if(grid && mi.partnerships){
+    const statusStyle = {
+      "CONFIRMED": {bg:"rgba(72,255,130,.08)",  border:"rgba(72,255,130,.35)",  col:"var(--gr)",  icon:"✅"},
+      "EXPLORING": {bg:"rgba(117,188,255,.08)", border:"rgba(117,188,255,.35)", col:"var(--bl)",  icon:"🔍"},
+      "RUMORED":   {bg:"rgba(255,204,0,.08)",   border:"rgba(255,204,0,.35)",   col:"var(--yl)",  icon:"💬"},
+      "PILOT":     {bg:"rgba(255,153,0,.08)",   border:"rgba(255,153,0,.35)",   col:"var(--or)",  icon:"🧪"},
+      "COMPETING": {bg:"rgba(255,64,96,.08)",   border:"rgba(255,64,96,.35)",   col:"var(--rd)",  icon:"⚔️"},
+    };
+    grid.innerHTML = mi.partnerships.map(p=>{
+      const st = statusStyle[p.status] || statusStyle["EXPLORING"];
+      return `<div style="background:${st.bg};border:1px solid ${st.border};
+        border-radius:8px;padding:10px;cursor:default;transition:transform .2s"
+        title="${p.detail} — ${p.source}"
+        onmouseover="this.style.transform='scale(1.02)'"
+        onmouseout="this.style.transform='scale(1)'">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span style="font-size:13px">${p.country.split(" ")[0]}</span>
+          <span style="font-size:11px;font-weight:700;font-family:var(--mn);
+            color:${st.col}">${st.icon} ${p.status}</span>
+          <span style="font-size:10px;font-family:var(--mn);color:var(--tx);
+            margin-left:auto">${p.type}</span>
+        </div>
+        <div style="font-size:13px;font-weight:900;color:#fff;
+          font-family:var(--mn);margin-bottom:4px">${p.institution}</div>
+        <div style="font-size:11px;color:var(--tx);line-height:1.5;
+          font-family:system-ui">${p.detail.substring(0,90)}${p.detail.length>90?"...":""}</div>
+        <div style="font-size:10px;font-family:var(--mn);color:var(--tx);
+          margin-top:5px;font-style:italic">${p.source}</div>
+      </div>`;
+    }).join("");
+  }
+
+  // ── Integration Timeline ──────────────────────────────────────────────
+  const tl = document.getElementById("ms-timeline");
+  if(tl && mi.integration_timeline){
+    tl.innerHTML = mi.integration_timeline.map((ev,i)=>{
+      const isLast   = i === mi.integration_timeline.length - 1;
+      const isMajor  = ev.major;
+      const dotColor = isLast ? "var(--gr)" : isMajor ? "var(--yl)" : "var(--tx)";
+      const dotSize  = isMajor ? "14px" : "10px";
+      return `<div style="display:flex;flex-direction:column;align-items:center;
+        min-width:120px;flex:1;padding:0 6px;position:relative">
+        <!-- Dot on the line -->
+        <div style="width:${dotSize};height:${dotSize};border-radius:50%;
+          background:${dotColor};border:2px solid var(--bg);
+          margin-bottom:8px;flex-shrink:0;z-index:1;
+          ${isMajor?`box-shadow:0 0 10px ${dotColor}`:""}"></div>
+        <!-- Content below line -->
+        <div style="text-align:center">
+          <div style="font-size:12px;font-weight:900;font-family:var(--mn);
+            color:${dotColor};margin-bottom:2px">${ev.year}</div>
+          <div style="font-size:11px;font-weight:700;color:#fff;
+            line-height:1.3;margin-bottom:3px">${ev.event}</div>
+          <div style="font-size:10px;color:var(--tx);line-height:1.4;
+            font-family:system-ui">${ev.detail.substring(0,60)}${ev.detail.length>60?"...":""}</div>
+        </div>
+      </div>`;
     }).join("");
   }
 }
