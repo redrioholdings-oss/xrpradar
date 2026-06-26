@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v4.3"
+BOT_FILE          = "XRPRadar_v5.0"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -704,8 +704,10 @@ STATE = {
     "last_error_ts": None,
     "feeds_active":  0,
     "feeds_total":   len(RSS_FEEDS),
+        "visitor_count": STATE.get("visitor_count", 0),
     "maintenance":   "OK",
     "start_time":    datetime.now(timezone.utc).isoformat(),
+    "visitor_count": 0,
     "upgrade_log":   [
         {"ts": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
          "note": "v1.1 — Full redesign. Turquoise + lime color scheme. 100 sources. Regional intelligence rows. Enhanced analytics."}
@@ -1094,11 +1096,13 @@ def fetch_tech_intel():
 
 
 # ── XRP Intelligence Brief (v3.1) ─────────────────────────────────────────
-def fetch_prediction(force=False):
-    """Daily XRP Intelligence Brief — runs at 17:50 UTC (11:50am CST)."""
+def fetch_prediction(force=False, session="am"):
+    """XRP Intelligence Brief — AM: 17:50 UTC (11:50am CST), PM: 22:00 UTC (4:00pm CST)."""
     pred  = STATE["prediction"]
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    if not force and pred.get("last_run_date") == today:
+    now_u = datetime.now(timezone.utc)
+    today = now_u.strftime("%Y-%m-%d")
+    run_key = f"{today}_{session}"
+    if not force and pred.get("last_run_key") == run_key:
         return
     pred["status"] = "generating"
     try:
@@ -1159,7 +1163,7 @@ def fetch_prediction(force=False):
             f"XRP NEWS - LAST 24 HOURS ({len(stories)} stories from {src_count} sources worldwide):",
             story_text,
             "",
-            "Write today's XRP Intelligence Brief in exactly these 5 sections. Each section must be 4-6 substantive sentences. Reference specific companies, countries, price levels, and individuals from the news above. Find connections other analysts would miss.",
+            f"Write today's XRP Intelligence Brief ({session.upper()} EDITION — {now_u.strftime('%I:%M %p UTC')}). This is a professional institutional-grade intelligence report. Write in exactly these 6 sections. Aim for 40-60 sentences total across all sections — more on busy news days, fewer on quiet ones. Each section should have as many sentences as the material warrants. Reference specific companies, countries, price levels, regulators, and named individuals from the news above. Find connections other analysts would miss. Be bold, specific, and actionable.",
             "",
             "## MARKET PULSE",
             "Synthesise the combined technical data, derivatives market, and price action into one coherent picture. What does the combination of RSI, funding rate, open interest, whale activity, Fear and Greed, and 52-week position tell you about market posture right now?",
@@ -1183,16 +1187,21 @@ def fetch_prediction(force=False):
         prompt = chr(10).join(prompt_parts)
 
         system = (
-            "You are the world's best XRP intelligence analyst. "
-            "Write in clear direct professional prose — the style of a Bloomberg Intelligence note. "
-            "Be specific: name companies, countries, price levels, and individuals. "
-            "Never use bullet points or markdown bold. "
-            "Use only the ## section headers provided. "
-            "Never write it is important to note or in conclusion. "
-            "Calibrate uncertainty honestly — say likely, possible, or speculative where appropriate."
+            "You are the world's foremost XRP and digital payments intelligence analyst, "
+            "trusted by institutional investors, central banks, and hedge funds globally. "
+            "Write in the style of a Goldman Sachs research note crossed with Bloomberg Intelligence — "
+            "authoritative, specific, dense with insight, zero filler. "
+            "Every sentence must add new information or analysis. "
+            "Be specific: name actual companies, specific countries, exact price levels, "
+            "named regulators, executives, and institutions. "
+            "Aim for 40-60 sentences total across all sections — let the news volume dictate depth. On busy days write more; on quiet days write less. Every sentence must earn its place. "
+            "Never use bullet points or markdown bold. Use only the ## section headers. "
+            "Never write: it is important to note, in conclusion, it is worth noting, or overall. "
+            "Calibrate uncertainty: say likely, possible, probable, or speculative where appropriate. "
+            "This brief is read by whales, banks, and institutional investors who demand depth."
         )
 
-        raw = call_claude(prompt, system, max_tokens=1400)
+        raw = call_claude(prompt, system, max_tokens=4000)
         if not raw or len(raw) < 200:
             pred["status"] = "error"
             pred["error"]  = "Response too short or empty - check ANTHROPIC_API_KEY"
@@ -1205,6 +1214,7 @@ def fetch_prediction(force=False):
             "domino_effect":        "",
             "regional_flashpoints": "",
             "watchlist":            "",
+            "tradfi_outlook":       "",
         }
         for part in raw.split("##"):
             part = part.strip()
@@ -1218,6 +1228,8 @@ def fetch_prediction(force=False):
             elif "DOMINO"       in header: sections["domino_effect"]         = body
             elif "REGIONAL"     in header: sections["regional_flashpoints"]  = body
             elif "WATCH"        in header: sections["watchlist"]             = body
+            elif "TRADFI"       in header: sections["tradfi_outlook"]       = body
+            elif "TRADITIONAL"  in header: sections["tradfi_outlook"]       = body
 
         # Next run time
         next_utc = now.replace(hour=17, minute=50, second=0, microsecond=0)
@@ -1230,6 +1242,8 @@ def fetch_prediction(force=False):
         pred["sections"]      = sections
         pred["generated_at"]  = now.strftime("%B %d, %Y at %I:%M %p UTC")
         pred["last_run_date"] = today
+        pred["last_run_key"]  = run_key
+        pred["session"]       = session.upper()
         pred["story_count"]   = len(stories)
         pred["source_count"]  = src_count
         pred["next_run_cst"]  = f"Next brief in {hrs}h {mins}m (11:50 AM CST)"
@@ -1250,22 +1264,26 @@ def prediction_loop():
             now   = datetime.now(timezone.utc)
             today = now.strftime("%Y-%m-%d")
             last  = STATE["prediction"].get("last_run_date","")
-            in_window = (
-                (now.hour == 17 and now.minute >= 48) or
-                (now.hour == 18 and now.minute <= 5)
-            )
-            if in_window and last != today:
-                fetch_prediction()
-            if last != today:
-                next_utc = now.replace(hour=17, minute=50, second=0, microsecond=0)
-                if next_utc <= now:
-                    next_utc = next_utc + _dt.timedelta(days=1)
-                remaining = next_utc - now
-                hrs  = int(remaining.total_seconds() // 3600)
-                mins = int((remaining.total_seconds() % 3600) // 60)
-                STATE["prediction"]["next_run_cst"] = (
-                    f"Next brief in {hrs}h {mins}m (11:50 AM CST)"
-                )
+            today_str = now.strftime("%Y-%m-%d")
+            last_key  = STATE["prediction"].get("last_run_key", "")
+            # AM Brief window: 17:48-18:05 UTC = 11:48 AM - 12:05 PM CST
+            am_window = (now.hour == 17 and now.minute >= 48) or (now.hour == 18 and now.minute <= 5)
+            # PM Brief window: 22:00-22:15 UTC = 4:00-4:15 PM CST
+            pm_window = (now.hour == 22 and now.minute <= 15)
+            if am_window and last_key != f"{today_str}_am":
+                fetch_prediction(session="am")
+            elif pm_window and last_key != f"{today_str}_pm":
+                fetch_prediction(session="pm")
+            # Calculate next run countdown
+            am_utc = now.replace(hour=17, minute=50, second=0, microsecond=0)
+            pm_utc = now.replace(hour=22, minute=0,  second=0, microsecond=0)
+            candidates = [t for t in [am_utc, pm_utc,
+                am_utc + _dt.timedelta(days=1), pm_utc + _dt.timedelta(days=1)] if t > now]
+            next_utc  = min(candidates) if candidates else am_utc + _dt.timedelta(days=1)
+            remaining = next_utc - now
+            hrs  = int(remaining.total_seconds() // 3600)
+            mins = int((remaining.total_seconds() % 3600) // 60)
+            STATE["prediction"]["next_run_cst"] = f"Next brief in {hrs}h {mins}m — AM: 11:50 CST | PM: 4:00 PM CST"
         except Exception as e:
             log_error(f"prediction_loop: {e}")
         time.sleep(300)
@@ -1305,6 +1323,28 @@ def fetch_disp_intel():
         log_error(f"price_heatmap: loaded {len(di['price_heatmap'])} days")
     except Exception as e:
         log_error(f"price_heatmap: {e}")
+
+    # 60-Month Price History (5 Years)
+    try:
+        hist60 = requests.get(
+            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
+            "?vs_currency=usd&days=1825&interval=monthly",
+            headers=hdr, timeout=20).json()
+        raw60 = hist60.get("prices", [])
+        monthly = []
+        for p in raw60:
+            ts_ms = p[0]
+            price = round(float(p[1]), 4)
+            day = _dt.datetime.fromtimestamp(ts_ms/1000, tz=_dt.timezone.utc)
+            monthly.append({
+                "date":  day.strftime("%Y-%m"),
+                "price": price,
+                "ts":    ts_ms,
+            })
+        # Keep last 60 months
+        di["price_history_60m"] = monthly[-60:]
+    except Exception as e:
+        log_error(f"price_history_60m: {e}")
 
     # 38. Smart Money Score — proprietary composite
     try:
@@ -1916,7 +1956,7 @@ def fetch_news():
         STATE["breaking"] = None
 
 # ── Claude AI Briefing ─────────────────────────────────────────────────────────
-def call_claude(prompt, system_prompt, max_tokens=500):
+def call_claude(prompt, system_prompt, max_tokens=1000):
     if not ANTHROPIC_API_KEY:
         return "Add ANTHROPIC_API_KEY to Railway Variables to enable AI briefings."
     try:
@@ -2158,6 +2198,7 @@ def debug():
         "last_updated":  STATE["last_updated"],
         "feeds_active":  STATE["feeds_active"],
         "feeds_total":   len(RSS_FEEDS),
+        "visitor_count": STATE.get("visitor_count", 0),
         "stories_count": len(STATE["stories"]),
         "price_usd":     STATE["price"].get("usd", 0),
         "ai_key_set":    bool(ANTHROPIC_API_KEY),
@@ -2169,6 +2210,7 @@ def debug():
 
 @app.route("/")
 def index():
+    STATE["visitor_count"] = STATE.get("visitor_count", 0) + 1
     return Response(DASHBOARD, mimetype="text/html")
 
 # ── Dashboard HTML ─────────────────────────────────────────────────────────────
@@ -2218,7 +2260,7 @@ body{background:var(--bg);color:var(--br);font-family:system-ui,sans-serif;font-
 .si{background:var(--s1);border:1px solid var(--b);border-radius:8px;
   padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
 .si-lbl{color:var(--tx);font-size:13px;font-family:var(--mn)}
-.sv{font-weight:800;font-size:15px;font-family:var(--mn)}
+.sv{font-weight:800;font-size:24px;font-family:var(--mn)}
 .sv.g{color:var(--gr)}.sv.y{color:var(--yl)}.sv.b{color:var(--bl)}.sv.r{color:var(--rd)}
 /* ACCOUNT / MARKET OVERVIEW */
 .acct{background:var(--s1);border:1px solid rgba(117,188,255,.25);
@@ -2430,7 +2472,16 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
 .file-tag{display:inline-block;padding:2px 7px;border-radius:3px;
   background:rgba(117,188,255,.08);color:var(--bl);font-weight:700;
   border:1px solid rgba(117,188,255,.3);margin-left:6px;font-family:var(--mn)}
-</style>
+
+@keyframes bkscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.bkscroll{display:flex;animation:bkscroll 40s linear infinite;white-space:nowrap;cursor:pointer}
+.bkscroll:hover{animation-play-state:paused}
+.bk-item{display:inline-flex;align-items:center;padding:0 30px;border-right:1px solid rgba(255,153,0,.2);
+  font-size:15px;color:var(--br);font-weight:500;white-space:nowrap;cursor:pointer;
+  transition:color .2s}
+.bk-item:hover{color:var(--or)}
+.tech-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.exec-feed{max-height:400px;overflow-y:auto}</style>
 </head>
 <body>
 <div id="breaking">
@@ -2963,69 +3014,69 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
 
       <!-- Ecosystem Flow Diagram -->
       <div style="margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn);
-          text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
-          How the Layers Connect
+        <div style="font-size:16px;font-weight:700;color:var(--tq);font-family:var(--mn);
+          text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;text-align:center">
+          ⛓️ How the Layers Connect
         </div>
-        <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding:4px 0">
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;overflow-x:auto;padding:10px 0">
 
           <div style="display:flex;flex-direction:column;align-items:center;
-            min-width:100px;text-align:center">
-            <div style="font-size:14px;margin-bottom:4px">🔗</div>
+            min-width:120px;text-align:center;padding:8px">
+            <div style="font-size:22px;margin-bottom:6px">🔗</div>
             <div style="font-size:13px;font-weight:700;color:var(--tq);
               font-family:var(--mn)">XRPL</div>
             <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Foundation</div>
           </div>
-          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+          <div style="color:var(--bl);font-size:22px;padding:0 8px;flex-shrink:0;font-weight:300">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
-            min-width:100px;text-align:center">
-            <div style="font-size:14px;margin-bottom:4px">💎</div>
+            min-width:120px;text-align:center;padding:8px">
+            <div style="font-size:22px;margin-bottom:6px">💎</div>
             <div style="font-size:13px;font-weight:700;color:var(--gr);
               font-family:var(--mn)">XRP</div>
             <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Native Asset</div>
           </div>
-          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+          <div style="color:var(--bl);font-size:22px;padding:0 8px;flex-shrink:0;font-weight:300">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
-            min-width:100px;text-align:center">
-            <div style="font-size:14px;margin-bottom:4px">🏢</div>
+            min-width:120px;text-align:center;padding:8px">
+            <div style="font-size:22px;margin-bottom:6px">🏢</div>
             <div style="font-size:13px;font-weight:700;color:var(--bl);
               font-family:var(--mn)">Ripple Labs</div>
             <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Builder</div>
           </div>
-          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+          <div style="color:var(--bl);font-size:22px;padding:0 8px;flex-shrink:0;font-weight:300">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
-            min-width:100px;text-align:center">
-            <div style="font-size:14px;margin-bottom:4px">🌐</div>
+            min-width:120px;text-align:center;padding:8px">
+            <div style="font-size:22px;margin-bottom:6px">🌐</div>
             <div style="font-size:13px;font-weight:700;color:var(--or);
               font-family:var(--mn)">RippleNet</div>
             <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Network</div>
           </div>
-          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+          <div style="color:var(--bl);font-size:22px;padding:0 8px;flex-shrink:0;font-weight:300">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
-            min-width:100px;text-align:center">
-            <div style="font-size:14px;margin-bottom:4px">⚡</div>
+            min-width:120px;text-align:center;padding:8px">
+            <div style="font-size:22px;margin-bottom:6px">⚡</div>
             <div style="font-size:13px;font-weight:700;color:var(--rd);
               font-family:var(--mn)">ODL</div>
             <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Liquidity</div>
           </div>
-          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">+</div>
+          <div style="color:var(--bl);font-size:22px;padding:0 8px;flex-shrink:0;font-weight:300">+</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
-            min-width:100px;text-align:center">
-            <div style="font-size:14px;margin-bottom:4px">💵</div>
+            min-width:120px;text-align:center;padding:8px">
+            <div style="font-size:22px;margin-bottom:6px">💵</div>
             <div style="font-size:13px;font-weight:700;color:var(--bl);
               font-family:var(--mn)">RLUSD</div>
             <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Stablecoin</div>
           </div>
-          <div style="color:var(--bl);font-size:16px;padding:0 4px;flex-shrink:0">→</div>
+          <div style="color:var(--bl);font-size:22px;padding:0 8px;flex-shrink:0;font-weight:300">→</div>
 
           <div style="display:flex;flex-direction:column;align-items:center;
             min-width:110px;text-align:center">
-            <div style="font-size:14px;margin-bottom:4px">🛠️</div>
+            <div style="font-size:22px;margin-bottom:6px">🛠️</div>
             <div style="font-size:13px;font-weight:700;color:var(--yl);
               font-family:var(--mn)">Ecosystem</div>
             <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Builders</div>
@@ -3111,12 +3162,14 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           </div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:13px;font-family:var(--mn)">
-        <span style="background:rgba(72,255,130,.1);color:var(--gr);padding:3px 10px;border-radius:3px;border:1px solid rgba(72,255,130,.3);font-weight:700">✅ CONFIRMED</span>
-        <span style="background:rgba(117,188,255,.1);color:var(--bl);padding:3px 10px;border-radius:3px;border:1px solid rgba(117,188,255,.3);font-weight:700">🔍 EXPLORING</span>
-        <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:3px 10px;border-radius:3px;border:1px solid rgba(255,204,0,.3);font-weight:700">💬 RUMORED</span>
-        <span style="background:rgba(255,153,0,.1);color:var(--or);padding:3px 10px;border-radius:3px;border:1px solid rgba(255,153,0,.3);font-weight:700">🧪 PILOT</span>
-        <span style="background:rgba(255,64,96,.1);color:var(--rd);padding:3px 10px;border-radius:3px;border:1px solid rgba(255,64,96,.3);font-weight:700">⚔️ COMPETING</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="ms-filter-btns">
+        <button id="msf-ALL" onclick="filterMainstream('ALL')" style="background:rgba(255,255,255,.2);color:#fff;padding:6px 14px;border-radius:4px;border:1px solid rgba(255,255,255,.4);font-weight:700;cursor:pointer;font-family:var(--mn);font-size:13px;outline:2px solid #fff">ALL</button>
+        <button id="msf-CONFIRMED" onclick="filterMainstream('CONFIRMED')" style="background:rgba(72,255,130,.15);color:var(--gr);padding:6px 14px;border-radius:4px;border:1px solid rgba(72,255,130,.4);font-weight:700;cursor:pointer;font-family:var(--mn);font-size:13px;opacity:.7">✅ CONFIRMED</button>
+        <button id="msf-EXPLORING" onclick="filterMainstream('EXPLORING')" style="background:rgba(117,188,255,.15);color:var(--bl);padding:6px 14px;border-radius:4px;border:1px solid rgba(117,188,255,.4);font-weight:700;cursor:pointer;font-family:var(--mn);font-size:13px;opacity:.7">🔍 EXPLORING</button>
+        <button id="msf-RUMORED" onclick="filterMainstream('RUMORED')" style="background:rgba(255,204,0,.15);color:var(--yl);padding:6px 14px;border-radius:4px;border:1px solid rgba(255,204,0,.4);font-weight:700;cursor:pointer;font-family:var(--mn);font-size:13px;opacity:.7">💬 RUMORED</button>
+        <button id="msf-PILOT" onclick="filterMainstream('PILOT')" style="background:rgba(255,153,0,.15);color:var(--or);padding:6px 14px;border-radius:4px;border:1px solid rgba(255,153,0,.4);font-weight:700;cursor:pointer;font-family:var(--mn);font-size:13px;opacity:.7">🧪 PILOT</button>
+        <button id="msf-COMPETING" onclick="filterMainstream('COMPETING')" style="background:rgba(255,64,96,.15);color:var(--rd);padding:6px 14px;border-radius:4px;border:1px solid rgba(255,64,96,.4);font-weight:700;cursor:pointer;font-family:var(--mn);font-size:13px;opacity:.7">⚔️ COMPETING</button>
+        <span id="ms-count" style="color:var(--tx);font-size:12px;align-self:center;margin-left:8px">20 partners</span>
       </div>
     </div>
 
@@ -4190,6 +4243,106 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
   </div>
 </div>
 
+
+<!-- SECTION 17b: 60-MONTH PRICE HISTORY -->
+<div style="margin-bottom:10px">
+  <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+    <div class="sec-title" style="color:var(--yl);margin-bottom:4px">
+      📈 XRP 60-MONTH PRICE HISTORY
+    </div>
+    <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:14px">
+      Five years of XRP/USD monthly closing prices — the full bull/bear cycle in context
+    </div>
+    <div style="position:relative;height:260px;background:var(--bg);border:1px solid var(--b);border-radius:8px;overflow:hidden">
+      <canvas id="chart-60m" style="width:100%;height:100%"></canvas>
+      <div id="chart-60m-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+        font-family:var(--mn);font-size:13px;color:var(--tx)">Loading 5-year price data...</div>
+    </div>
+    <div id="chart-60m-stats" style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;font-family:var(--mn);font-size:13px"></div>
+  </div>
+</div>
+
+
+<!-- SECTION 17c: CHAINEDGE PROMOTIONAL / SPONSOR SECTION -->
+<div style="margin-bottom:16px">
+  <div style="background:linear-gradient(135deg,#0a0a12 0%,#0d0a14 100%);
+    border:1px solid rgba(117,188,255,.2);border-radius:12px;overflow:hidden">
+
+    <div style="padding:14px 18px;border-bottom:1px solid rgba(117,188,255,.15);
+      display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">🔗</span>
+      <div style="font-size:14px;font-weight:700;color:var(--bl);font-family:var(--mn);
+        text-transform:uppercase;letter-spacing:2px">From the XRPRadar Team</div>
+    </div>
+
+    <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px">
+
+      <!-- ChainEdge Ebooks -->
+      <div style="background:var(--s2);border:1px solid rgba(72,255,130,.2);border-radius:8px;padding:14px">
+        <div style="font-size:16px;margin-bottom:6px">📘</div>
+        <div style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:6px">
+          CHAINEDGE CRYPTO GUIDES
+        </div>
+        <div style="font-size:13px;color:var(--tx);line-height:1.6;margin-bottom:10px">
+          Master XRP algorithmic trading, on-chain intelligence, and institutional strategies.
+          Written by the team behind XRPRadar.
+        </div>
+        <a href="https://gumroad.com" target="_blank"
+          style="display:inline-block;background:rgba(72,255,130,.15);color:var(--gr);
+          padding:7px 16px;border-radius:5px;border:1px solid rgba(72,255,130,.3);
+          font-family:var(--mn);font-size:13px;font-weight:700;text-decoration:none">
+          📖 Browse Ebooks →
+        </a>
+      </div>
+
+      <!-- Social / Follow -->
+      <div style="background:var(--s2);border:1px solid rgba(117,188,255,.2);border-radius:8px;padding:14px">
+        <div style="font-size:16px;margin-bottom:6px">📡</div>
+        <div style="font-size:14px;font-weight:700;color:var(--bl);font-family:var(--mn);margin-bottom:6px">
+          FOLLOW XRPRADAR
+        </div>
+        <div style="font-size:13px;color:var(--tx);line-height:1.6;margin-bottom:10px">
+          Daily signals, market intelligence, and XRP ecosystem updates on X and Instagram.
+          First to know when XRP moves.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a href="https://twitter.com/XRPRadar" target="_blank"
+            style="background:rgba(117,188,255,.1);color:var(--bl);padding:6px 14px;
+            border-radius:5px;border:1px solid rgba(117,188,255,.3);
+            font-family:var(--mn);font-size:13px;font-weight:700;text-decoration:none">
+            𝕏 @XRPRadar
+          </a>
+          <a href="https://instagram.com/XRPRadar" target="_blank"
+            style="background:rgba(255,153,0,.1);color:var(--or);padding:6px 14px;
+            border-radius:5px;border:1px solid rgba(255,153,0,.3);
+            font-family:var(--mn);font-size:13px;font-weight:700;text-decoration:none">
+            📸 Instagram
+          </a>
+        </div>
+      </div>
+
+      <!-- Sponsor Slot -->
+      <div style="background:var(--s2);border:1px dashed rgba(255,204,0,.3);border-radius:8px;padding:14px">
+        <div style="font-size:16px;margin-bottom:6px">💼</div>
+        <div style="font-size:14px;font-weight:700;color:var(--yl);font-family:var(--mn);margin-bottom:6px">
+          SPONSOR XRPRADAR
+        </div>
+        <div style="font-size:13px;color:var(--tx);line-height:1.6;margin-bottom:10px">
+          Reach thousands of XRP investors, institutions, and enthusiasts daily.
+          Premium placement available. Contact us for rates.
+        </div>
+        <a href="mailto:redrioholdings@gmail.com?subject=XRPRadar Sponsorship"
+          style="display:inline-block;background:rgba(255,204,0,.1);color:var(--yl);
+          padding:7px 16px;border-radius:5px;border:1px solid rgba(255,204,0,.3);
+          font-family:var(--mn);font-size:13px;font-weight:700;text-decoration:none">
+          📩 Inquire Now →
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
   <div>🛰️ <em style="color:var(--bl);font-weight:700">XRPRadar</em> &nbsp;|&nbsp; Version: <span id="ft-ver" style="color:var(--tq);font-weight:700">--</span> &nbsp;|&nbsp; Updated: <span id="ft-last" style="color:var(--br)">--</span> &nbsp;|&nbsp; Uptime: <span id="ft-uptime" style="color:var(--br)">--</span> &nbsp;&nbsp;<a href="/debug" target="_blank" style="color:var(--or);font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--or);padding:1px 6px;border-radius:3px">DEBUG</a></div>
@@ -4197,7 +4350,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
   <div>Feeds: <span id="ft-feeds" style="color:var(--br)">--</span> &nbsp;|&nbsp; Maintenance: <span id="ft-maint" style="color:var(--br)">--</span> &nbsp;|&nbsp; Preflight: <span id="ft-qa-status" style="font-weight:700">--</span> &nbsp;&nbsp;<button onclick="openPFModal()" style="color:var(--bl);font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--bl);padding:1px 8px;border-radius:3px;background:var(--bld);cursor:pointer;font-family:var(--mn)">🔍 DETAILS</button></div>
   <div style="height:16px"></div>
   <div style="padding-bottom:14px;font-size:13px;font-family:var(--mn);color:var(--tx);text-align:center;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;margin-top:4px">
-    ©️ Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally.
+    ©️ Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally. <span id="visitor-count" style="color:var(--tx);font-size:11px;opacity:.4;margin-left:8px"></span>
   </div>
 </footer>
 
@@ -4283,24 +4436,32 @@ function renderTop20(){
     const brk=s.breaking?'<span style="color:var(--yl);font-weight:700;font-family:var(--mn);font-size:13px">⚡ BREAKING &nbsp;</span>':''
     const sent=s.sentiment||"neutral";
     const sum=s.summary?s.summary.substring(0,160)+(s.summary.length>160?"...":""):"";
-    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 10px;
-      background:var(--s2);border:1px solid var(--b);border-radius:6px;cursor:pointer;transition:border-color .2s"
-      onclick="openStoryModal('${s.id}')"
-      onmouseover="this.style.borderColor='var(--bl)'"
-      onmouseout="this.style.borderColor='var(--b)'">
-      <div style="font-size:14px;font-weight:900;font-family:var(--mn);color:var(--tx);
-        min-width:24px;text-align:right;margin-top:1px">${i+1}</div>
+    const url=s.link||s.url||"#";
+    return `<div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;
+      background:var(--s2);border:1px solid var(--b);border-radius:8px;
+      cursor:pointer;transition:all .2s;margin-bottom:2px"
+      onclick="window.open('${url}','_blank')"
+      onmouseover="this.style.borderColor='var(--bl)';this.style.background='var(--s1)'"
+      onmouseout="this.style.borderColor='var(--b)';this.style.background='var(--s2)'">
+      <div style="font-size:18px;font-weight:900;font-family:var(--mn);color:var(--tx);
+        min-width:28px;text-align:right;margin-top:2px;opacity:.5">${i+1}</div>
       <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap">
-          ${brk}<span style="font-size:13px;font-weight:700;font-family:var(--mn);
-            color:var(--tx);background:var(--s1);padding:1px 6px;border-radius:3px;
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
+          ${brk}
+          <span style="font-size:13px;font-weight:700;font-family:var(--mn);
+            color:var(--tx);background:var(--s1);padding:2px 8px;border-radius:4px;
             border:1px solid var(--b)">${s.source}</span>
           <span style="font-size:13px;font-family:var(--mn);
-            color:${sentC[sent]||"var(--tx)"};font-weight:700">${sent.toUpperCase()}</span>
+            color:${sentC[sent]||"var(--tx)"};font-weight:700;text-transform:uppercase">${sent}</span>
           <span style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-left:auto">${s.age||""}</span>
         </div>
-        <div style="font-size:13px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:3px">${s.title}</div>
-        ${sum?`<div style="font-size:13px;color:var(--tx);line-height:1.5">${sum}</div>`:""}
+        <div style="font-size:15px;font-weight:700;color:var(--bl);line-height:1.45;margin-bottom:4px">${s.title}</div>
+        ${sum?`<div style="font-size:13px;color:var(--tx);line-height:1.55;opacity:.85">${sum}</div>`:""}
+        <div style="margin-top:6px">
+          <span style="font-size:12px;color:var(--bl);font-family:var(--mn);
+            background:rgba(117,188,255,.08);padding:3px 10px;border-radius:3px;
+            border:1px solid rgba(117,188,255,.2)">↗ READ STORY</span>
+        </div>
       </div>
     </div>`;
   }).join("");
@@ -4648,6 +4809,73 @@ function updateDispIntel(d){
       </div>`;
     }).join("");
   }
+  // ── 60-Month Price Chart ────────────────────────────────────────────────
+  const hist60  = (di.price_history_60m||[]);
+  const canvas60 = document.getElementById("chart-60m");
+  const loading60 = document.getElementById("chart-60m-loading");
+  const stats60   = document.getElementById("chart-60m-stats");
+  if(canvas60 && hist60.length > 5){
+    if(loading60) loading60.style.display="none";
+    const ctx = canvas60.getContext("2d");
+    const W = canvas60.parentElement.offsetWidth||900;
+    const H = 260;
+    canvas60.width = W; canvas60.height = H;
+    const prices = hist60.map(p=>p.price);
+    const labels = hist60.map(p=>p.date);
+    const minP = Math.min(...prices), maxP = Math.max(...prices);
+    const range = maxP - minP || 1;
+    const padL=52,padR=14,padT=20,padB=34;
+    const cW=W-padL-padR, cH=H-padT-padB;
+    ctx.clearRect(0,0,W,H);
+    // Grid
+    for(let i=0;i<=5;i++){
+      const y=padT+cH*(1-i/5);
+      ctx.strokeStyle="rgba(255,255,255,.06)"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+      ctx.fillStyle="rgba(255,255,255,.4)"; ctx.font="10px monospace"; ctx.textAlign="right";
+      ctx.fillText("$"+(minP+(maxP-minP)*i/5).toFixed(3), padL-4, y+4);
+    }
+    // Area fill
+    const grad=ctx.createLinearGradient(0,padT,0,padT+cH);
+    grad.addColorStop(0,"rgba(72,255,130,.3)"); grad.addColorStop(1,"rgba(72,255,130,.02)");
+    ctx.beginPath();
+    hist60.forEach((p,i)=>{
+      const x=padL+cW*i/(hist60.length-1);
+      const y=padT+cH*(1-(p.price-minP)/range);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.lineTo(padL+cW,padT+cH); ctx.lineTo(padL,padT+cH); ctx.closePath();
+    ctx.fillStyle=grad; ctx.fill();
+    // Line
+    ctx.beginPath(); ctx.strokeStyle="#48ff82"; ctx.lineWidth=2; ctx.lineJoin="round";
+    hist60.forEach((p,i)=>{
+      const x=padL+cW*i/(hist60.length-1);
+      const y=padT+cH*(1-(p.price-minP)/range);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    // ATH marker
+    const athIdx=prices.indexOf(maxP);
+    if(athIdx>=0){
+      const ax=padL+cW*athIdx/(hist60.length-1);
+      const ay=padT+cH*(1-(maxP-minP)/range);
+      ctx.fillStyle="#ffcc00"; ctx.font="bold 10px monospace"; ctx.textAlign="center";
+      ctx.fillText("ATH $"+maxP.toFixed(3), ax, Math.max(ay-8,14));
+    }
+    // X labels every 6 months
+    ctx.fillStyle="rgba(255,255,255,.4)"; ctx.font="10px monospace"; ctx.textAlign="center";
+    hist60.forEach((p,i)=>{ if(i%6===0){ const x=padL+cW*i/(hist60.length-1); ctx.fillText(p.date,x,H-6); }});
+    // Stats
+    const currP=prices[prices.length-1], firstP=prices[0];
+    const chg=((currP-firstP)/firstP*100).toFixed(1);
+    if(stats60) stats60.innerHTML=
+      "<div>📅 <span style='color:#8099b3'>Period: </span><b style='color:#cce0ff'>"+labels[0]+" → "+labels[labels.length-1]+"</b></div>"+
+      "<div>🔝 <span style='color:#8099b3'>ATH: </span><b style='color:#ffcc00'>$"+maxP.toFixed(4)+"</b></div>"+
+      "<div>📉 <span style='color:#8099b3'>Low: </span><b style='color:#ff4060'>$"+minP.toFixed(4)+"</b></div>"+
+      "<div>📊 <span style='color:#8099b3'>5Y: </span><b style='color:"+(chg>0?"#48ff82":"#ff4060")+"'>"+(chg>0?"+":"")+chg+"%</b></div>"+
+      "<div>💰 <span style='color:#8099b3'>Now: </span><b style='color:#48ff82'>$"+currP.toFixed(4)+"</b></div>";
+  }
+
 }
 
 // ── Practical Tools (v3.0h) ────────────────────────────────────────────────
@@ -5025,8 +5253,9 @@ function updateMainstreamIntel(d){
     };
     grid.innerHTML = mi.partnerships.map(p=>{
       const st = statusStyle[p.status] || statusStyle["EXPLORING"];
-      return `<div style="background:${st.bg};border:1px solid ${st.border};
-        border-radius:8px;padding:10px;cursor:default;transition:transform .2s"
+      return `<div class="ms-card" data-status="${p.status}"
+        style="background:${st.bg};border:1px solid ${st.border};
+        border-radius:8px;padding:12px;cursor:default;transition:transform .2s"
         title="${p.detail} — ${p.source}"
         onmouseover="this.style.transform='scale(1.02)'"
         onmouseout="this.style.transform='scale(1)'">
@@ -5135,6 +5364,23 @@ function updateCompIntel(d){
       </tr>`;
     }).join("");
   }
+
+  // ── Mainstream Integration Filter ──────────────────────────────────────
+  function filterMainstream(status){
+    document.querySelectorAll('[id^="msf-"]').forEach(btn=>{
+      btn.style.opacity='0.5'; btn.style.fontWeight='700';
+    });
+    const active = document.getElementById('msf-'+status);
+    if(active){ active.style.opacity='1'; active.style.outline='2px solid currentColor'; }
+    document.querySelectorAll('.ms-card').forEach(card=>{
+      card.style.display = (status==='ALL'||card.dataset.status===status) ? '' : 'none';
+    });
+    const visible = [...document.querySelectorAll('.ms-card')].filter(c=>c.style.display!=='none').length;
+    const el = document.getElementById('ms-count');
+    if(el) el.textContent = visible + ' partner' + (visible!==1?'s':'');
+  }
+
+
 
   // ── 25. ODL Corridors ─────────────────────────────────────────────────
   const odlEl = document.getElementById("comp-odl-list");
@@ -5713,26 +5959,50 @@ function updateRegions(d){
 
 async function fetchRegionStories(reg){
   try{
-    const d=await fetch(`/api/news?region=${reg}`).then(r=>r.json());
-    const stories=(d.stories||[]).slice(0,5);
+    const d=await fetch(`/api/news?region=${reg}&limit=50`).then(r=>r.json());
+    const allReg=(d.stories||[]);
+    const total=d.total||allReg.length;
     const el=document.getElementById(`reg-stories-${reg}`);
     const cnt=document.getElementById(`reg-count-${reg}`);
-    if(cnt) cnt.textContent=`${d.total||0} stories`;
+    if(cnt) cnt.textContent=`${total} stories`;
     if(!el) return;
-    if(!stories.length){el.innerHTML='<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No regional stories yet</div>';return;}
-    el.innerHTML=stories.map(s=>{
-      const trans=s.translated_title?`<div style="font-size:13px;color:var(--tq);font-style:italic;margin-top:3px;padding:3px 6px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:2px">🌐 EN: ${s.translated_title}</div>`:(s.lang==="non-english"?`<div style="font-size:13px;color:var(--tx);font-style:italic;margin-top:2px">🌐 Translation pending...</div>`:"");
+    if(!allReg.length){el.innerHTML='<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No regional stories yet</div>';return;}
+    // Show first 8 in scrollable container; "View All" expands
+    const preview=allReg.slice(0,8);
+    const storyHtml=stories=>stories.map(s=>{
+      const trans=s.translated_title
+        ?`<div style="font-size:12px;color:var(--tq);font-style:italic;margin-top:3px;padding:3px 6px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:2px">🌐 ${s.translated_title}</div>`
+        :(s.lang==="non-english"?`<div style="font-size:12px;color:var(--tx);font-style:italic;margin-top:2px">🌐 Translation pending...</div>`:"");
       const sent=s.sentiment==="bullish"?"g":s.sentiment==="bearish"?"r":"";
-      return `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer" onclick="openStoryModal('${s.id}')">
-        <div style="font-size:13px;font-weight:700;color:var(--bl);line-height:1.3">${s.title}</div>
+      return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer"
+          onclick="window.open('${s.link||s.url||"#"}','_blank')">
+        <div style="font-size:14px;font-weight:700;color:var(--bl);line-height:1.35">${s.title}</div>
         ${trans}
-        <div style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-top:2px">
-          <span style="color:${sent==="g"?"var(--gr)":sent==="r"?"var(--rd)":"var(--tx)"};font-weight:700">${s.sentiment}</span>
-          &nbsp;·&nbsp;${s.source}&nbsp;·&nbsp;${s.age||""}
+        <div style="font-size:12px;font-family:var(--mn);color:var(--tx);margin-top:3px">
+          <span style="color:${sent==="g"?"var(--gr)":sent==="r"?"var(--rd)":"var(--tx)"};font-weight:700">${s.sentiment||"neutral"}</span>
+          &nbsp;·&nbsp;${s.source}&nbsp;·&nbsp;${s.age||timeAgo(s.pub)||""}
         </div>
       </div>`;
     }).join("");
-  }catch(e){}
+    // Build scrollable container with expand button
+    el.style.maxHeight="280px";
+    el.style.overflowY="auto";
+    el.style.paddingRight="4px";
+    el.innerHTML = storyHtml(preview);
+    // Add "View All N Stories" button if more exist
+    if(total>8){
+      const btn=document.createElement("button");
+      btn.style.cssText="margin-top:8px;width:100%;padding:8px;background:rgba(117,188,255,.1);"+
+        "color:var(--bl);border:1px solid rgba(117,188,255,.3);border-radius:5px;"+
+        "cursor:pointer;font-size:13px;font-weight:700;font-family:var(--mn)";
+      btn.textContent=`📋 View All ${total} Stories`;
+      btn.onclick=()=>{
+        el.innerHTML=storyHtml(allReg);
+        btn.remove();
+      };
+      el.parentElement.appendChild(btn);
+    }
+  }catch(e){console.error("fetchRegionStories:",e);}
 }
 
 // ── Scoreboard ─────────────────────────────────────────────────────────────
@@ -5818,6 +6088,10 @@ function updateBreaking(d){
 let pfData = {};
 function updateFooter(d){
   pfData = d;
+  // Visitor counter
+  const vc = d.visitor_count||0;
+  const vcEl = document.getElementById("visitor-count");
+  if(vcEl && vc > 5) vcEl.textContent = vc.toLocaleString()+" visits";
   c("ft-ver",  d.version||"--");
   c("ft-last", d.last_updated||"--");
   if(d.start_time){
@@ -5874,7 +6148,7 @@ function renderNews(totalAll){
   if(cnt) cnt.innerHTML=`<span style="color:var(--bl);font-weight:700">${stories.length}</span> stories shown &nbsp;|&nbsp; <span style="color:var(--gr);font-weight:700">${tot}</span> total &nbsp;|&nbsp; <span style="color:var(--bl);font-weight:700">${faText}</span> of <span style="color:var(--gr);font-weight:700">306</span> sources online`;
   if(!stories.length){
     if(allStories.length===0){
-      feed.innerHTML='<div class="empty" style="padding:20px;line-height:2">📡 Scanning 230 sources...<br>Stories will appear shortly after first feed scan completes.</div>';
+      feed.innerHTML='<div class="empty" style="padding:20px;line-height:2">📡 Scanning 306 sources...<br>Stories will appear shortly after first feed scan completes.</div>';
     } else {
       feed.innerHTML='<div class="empty">No stories match your filter. Try ALL to see all stories.</div>';
     }
@@ -5888,10 +6162,11 @@ function renderNews(totalAll){
     const isForeign=s.lang==="non-english";
     const trans=s.translated_title?`<div class="ntrans">🌐 EN: ${s.translated_title}</div>`:(isForeign?`<div class="ntrans" style="color:var(--tx);background:none;border:none;font-style:italic">🌐 Translation pending next AI cycle...</div>`:"");
     const brk=s.breaking?`<span class="nbreak">⚡ BREAKING</span>`:"";
-    return `<div class="ncard" onclick="openStoryModal('${s.id}')">
+    const stUrl=s.link||s.url||"#";
+    return `<div class="ncard" onclick="window.open('${stUrl}','_blank')">
       <div class="ncard-hdr">
         <span class="nsrc ${sc}">${s.source}</span>
-        <span class="ncat">${s.category}</span>
+        <span class="ncat" onclick="event.stopPropagation();document.querySelectorAll('.nbtn').forEach(b=>{b.classList.remove('on');if(b.textContent.trim()==='${s.category||'ALL'}')b.classList.add('on')});activeCat='${s.category||'all'}';renderNews()" style="cursor:pointer" title="Filter by ${s.category}">${s.category}</span>
         ${brk}
       </div>
       <div class="ntitle">${s.title}</div>
@@ -5956,6 +6231,44 @@ setInterval(()=>REGIONS.forEach(({k})=>fetchRegionStories(k)), 600000);
 setTimeout(()=>{ if(allStories.length===0) fetchNews(); }, 20000);
 setTimeout(()=>{ if(allStories.length===0) fetchNews(); }, 60000);
 </script>
+
+<!-- Sticky Back-to-XRPRadar button for returning visitors -->
+<div id="xrpr-sticky-back" style="position:fixed;bottom:20px;right:20px;z-index:9999;
+  display:none;flex-direction:column;align-items:flex-end;gap:8px">
+  <a href="/" style="background:var(--b);border:1px solid var(--bl);color:var(--bl);
+    padding:10px 18px;border-radius:8px;font-family:var(--mn);font-size:13px;font-weight:700;
+    text-decoration:none;display:flex;align-items:center;gap:8px;
+    box-shadow:0 4px 20px rgba(117,188,255,.2);transition:all .2s"
+    onmouseover="this.style.background='var(--bl)';this.style.color='#000'"
+    onmouseout="this.style.background='var(--b)';this.style.color='var(--bl)'">
+    🛰️ ← BACK TO XRPRADAR
+  </a>
+</div>
+<script>
+// Show sticky back button if user navigated away and returned
+(function(){
+  let shown = false;
+  window.addEventListener('pageshow', function(e){
+    if(e.persisted){
+      document.getElementById('xrpr-sticky-back').style.display='flex';
+      shown = true;
+    }
+  });
+  // Also show on hash change or history navigation
+  window.addEventListener('popstate', function(){
+    document.getElementById('xrpr-sticky-back').style.display='flex';
+  });
+  // Bookmark prompt after 30 seconds
+  setTimeout(function(){
+    const el = document.getElementById('xrpr-sticky-back');
+    if(el && !shown){
+      el.style.display='flex';
+      setTimeout(()=>{ el.style.display='none'; }, 8000);
+    }
+  }, 45000);
+})();
+</script>
+
 </body>
 </html>
 """
