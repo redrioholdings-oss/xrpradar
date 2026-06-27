@@ -835,6 +835,36 @@ STATE = {
         "odl_opportunity":  0,
         "ts":               "",
     },
+    "remittance_intel": {
+        "corridors": [
+            {"route":"USA→Mexico",      "partner":"Bitso",    "volume_est":"$1.8B/day","growth":"+12%","status":"ACTIVE","currency":"MXN","fee_traditional":"5.8%","xrp_saving":"$58/1000"},
+            {"route":"USA→Philippines", "partner":"Coins.ph", "volume_est":"$800M/day","growth":"+8%", "status":"ACTIVE","currency":"PHP","fee_traditional":"6.2%","xrp_saving":"$62/1000"},
+            {"route":"Japan→Philippines","partner":"SBI Remit","volume_est":"$600M/day","growth":"+15%","status":"ACTIVE","currency":"PHP","fee_traditional":"4.5%","xrp_saving":"$45/1000"},
+            {"route":"Europe→Mexico",   "partner":"Bitso",    "volume_est":"$400M/day","growth":"+9%", "status":"ACTIVE","currency":"MXN","fee_traditional":"5.2%","xrp_saving":"$52/1000"},
+            {"route":"Australia→Philippines","partner":"FlashFX","volume_est":"$250M/day","growth":"+18%","status":"ACTIVE","currency":"PHP","fee_traditional":"4.8%","xrp_saving":"$48/1000"},
+            {"route":"UK→Nigeria",      "partner":"Flutterwave","volume_est":"$180M/day","growth":"+22%","status":"GROWING","currency":"NGN","fee_traditional":"7.1%","xrp_saving":"$71/1000"},
+            {"route":"USA→India",       "partner":"Various",  "volume_est":"$2.1B/day","growth":"+5%", "status":"GROWING","currency":"INR","fee_traditional":"4.9%","xrp_saving":"$49/1000"},
+            {"route":"Singapore→SE Asia","partner":"Various", "volume_est":"$350M/day","growth":"+20%","status":"GROWING","currency":"Multi","fee_traditional":"5.5%","xrp_saving":"$55/1000"},
+        ],
+        "total_daily_volume": "$6.5B+",
+        "new_corridors_2026": ["UAE→Pakistan", "Germany→Turkey", "Japan→Vietnam"],
+        "ts": "",
+    },
+    "geopolitical_risk": {
+        "events": [
+            {"region":"Middle East","event":"Gulf CBDC framework adoption","impact":"BULLISH","detail":"GCC nations accelerating digital currency integration. UAE CBUAE partnering with multiple XRPL validators.","urgency":"HIGH"},
+            {"region":"Europe","event":"MiCA full implementation 2024-2025","impact":"BULLISH","detail":"All 27 EU states now require crypto-asset service provider licensing. XRP classified as crypto-asset — LEGAL.","urgency":"MEDIUM"},
+            {"region":"USA","event":"CLARITY Act + post-SEC settlement","impact":"BULLISH","detail":"Bipartisan crypto legislation advancing. XRP's SEC settlement removes key overhang. Institutional floodgates opening.","urgency":"HIGH"},
+            {"region":"Asia","event":"Japan FSA XRP payment licensing","impact":"BULLISH","detail":"Japan has the world's most mature crypto regulatory framework. SBI + Ripple dominance continues to grow.","urgency":"MEDIUM"},
+            {"region":"Africa","event":"Currency devaluations driving ODL","impact":"BULLISH","detail":"Nigeria, Egypt, Kenya all seeing record XRP remittance volumes as local currencies collapse vs USD.","urgency":"HIGH"},
+            {"region":"Global","event":"ISO 20022 migration deadline","impact":"BULLISH","detail":"All major central bank payment systems migrating to ISO 20022 by 2025. XRPL natively compatible — competitive edge.","urgency":"HIGH"},
+            {"region":"China","event":"Digital Yuan / CBDC competition","impact":"BEARISH","detail":"China pushing e-CNY internationally. If adopted widely, could reduce XRP ODL opportunity in Asia corridors.","urgency":"LOW"},
+            {"region":"USA","event":"Potential crypto tax legislation","impact":"NEUTRAL","detail":"Congress debating crypto tax treatment. New reporting requirements could reduce retail activity short-term.","urgency":"LOW"},
+        ],
+        "overall_risk":    "LOW",
+        "xrp_impact_score": 72,
+        "ts": "",
+    },
     "adoption_velocity": {
         "score":            0,
         "institutional":    0,
@@ -857,6 +887,14 @@ STATE = {
         "generated_date":   "",
         "week_number":      0,
         "story_count":      0,
+    },
+    "leaderboard": {
+        "top_sources":      [],
+        "top_regions":      [],
+        "poll_participation": 0,
+        "most_shared":      [],
+        "signal_streak":    0,
+        "last_updated":     "",
     },
 
     "upgrade_log":   [
@@ -2359,6 +2397,176 @@ def debug():
         "feed_health":   STATE["feed_health"],
     })
 
+# ════════════════════════════════════════════════════════════════════
+# XRPRadar Public API (#78)
+# ════════════════════════════════════════════════════════════════════
+
+@app.route("/api/v1/price")
+def api_v1_price():
+    """Public API: Live XRP price data."""
+    p = STATE.get("price_data", {})
+    return jsonify({
+        "price_usd":    p.get("price_usd", 0),
+        "change_24h":   p.get("change_24h", 0),
+        "market_cap":   p.get("market_cap", 0),
+        "volume_24h":   p.get("volume_24h", 0),
+        "rank":         p.get("rank", 0),
+        "ts":           datetime.now(timezone.utc).isoformat(),
+        "source":       "XRPRadar v6.0 — xrpradar.com"
+    })
+
+@app.route("/api/v1/signal")
+def api_v1_signal():
+    """Public API: XRPRadar Signal Score."""
+    ss = STATE.get("signal_score", {})
+    return jsonify({
+        "total":        ss.get("total", 0),
+        "grade":        ss.get("grade", "--"),
+        "label":        ss.get("label", "--"),
+        "ts":           ss.get("ts", ""),
+        "source":       "XRPRadar v6.0 — xrpradar.com"
+    })
+
+@app.route("/api/v1/sentiment")
+def api_v1_sentiment():
+    """Public API: News sentiment summary."""
+    si = STATE.get("sent_intel", {})
+    return jsonify({
+        "total_today":   si.get("total_today", 0),
+        "bullish":       si.get("bullish_today", 0),
+        "bearish":       si.get("bearish_today", 0),
+        "neutral":       si.get("neutral_today", 0),
+        "fg_score":      si.get("fg_score", 0),
+        "fg_label":      si.get("fg_label", ""),
+        "ts":            datetime.now(timezone.utc).isoformat(),
+        "source":        "XRPRadar v6.0 — xrpradar.com"
+    })
+
+@app.route("/api/v1/stories")
+def api_v1_stories():
+    """Public API: Latest XRP stories (top 20)."""
+    stories = STATE.get("stories", [])[:20]
+    return jsonify({
+        "count":   len(stories),
+        "stories": [{"title":s.get("title",""),"source":s.get("source",""),
+                     "sentiment":s.get("sentiment",""),"link":s.get("link",""),
+                     "pub":s.get("pub",""),"age":s.get("age","")} for s in stories],
+        "ts":      datetime.now(timezone.utc).isoformat(),
+        "source":  "XRPRadar v6.0 — xrpradar.com"
+    })
+
+@app.route("/api/v1/macro")
+def api_v1_macro():
+    """Public API: Macro market data."""
+    md = STATE.get("macro_data", {})
+    return jsonify({
+        "dxy":      md.get("dxy", {}),
+        "sp500":    md.get("sp500", {}),
+        "gold":     md.get("gold", {}),
+        "treasury": md.get("treasury", {}),
+        "btc":      md.get("btc", {}),
+        "signal":   md.get("macro_signal", "NEUTRAL"),
+        "ts":       md.get("ts", ""),
+        "source":   "XRPRadar v6.0 — xrpradar.com"
+    })
+
+@app.route("/api/v1/docs")
+def api_v1_docs():
+    """Public API: Documentation endpoint."""
+    return jsonify({
+        "name":     "XRPRadar Public API v1",
+        "version":  "1.0",
+        "base_url": "https://xrpradar.com/api/v1",
+        "endpoints": {
+            "/price":     "Live XRP price, 24h change, market cap, volume, rank",
+            "/signal":    "XRPRadar Signal Score (0-100) with grade and label",
+            "/sentiment": "News sentiment — bullish/bearish/neutral counts, Fear & Greed",
+            "/stories":   "Top 20 latest XRP stories with sentiment and source",
+            "/macro":     "Macro market data — DXY, S&P 500, Gold, Treasury, BTC",
+        },
+        "rate_limit": "Free — please credit XRPRadar (xrpradar.com) when using this data",
+        "contact":    "redrioholdings@gmail.com",
+        "note":       "This API is provided free of charge for XRP community use. Commercial use requires permission.",
+    })
+
+
+@app.route("/api/email-digest")
+def email_digest():
+    """#79 — Returns today's Intelligence Brief formatted as a clean email/newsletter."""
+    pred = STATE.get("prediction", {})
+    sections = pred.get("sections", {})
+    price = STATE.get("price_data", {})
+    si    = STATE.get("sent_intel", {})
+    ss    = STATE.get("signal_score", {})
+
+    if not sections.get("market_pulse"):
+        return jsonify({"error": "No Intelligence Brief generated yet. Please generate first."}), 404
+
+    email_html = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XRPRadar Intelligence Brief</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:system-ui,sans-serif">
+<div style="max-width:600px;margin:0 auto;background:#000;border:1px solid #1a2030">
+
+  <!-- Header -->
+  <div style="background:#000;border-bottom:2px solid #48ff82;padding:20px 24px;text-align:center">
+    <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:2px">🛰️ XRPRADAR</div>
+    <div style="font-size:12px;color:#48ff82;letter-spacing:3px;margin-top:4px">INTELLIGENCE BRIEF — {pred.get("session","AM")} EDITION</div>
+    <div style="font-size:11px;color:#8099b3;margin-top:4px">{pred.get("generated_at","")}</div>
+  </div>
+
+  <!-- Price Snapshot -->
+  <div style="background:#0a0a0a;border-bottom:1px solid #1a2030;padding:16px 24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div style="text-align:center;min-width:100px">
+      <div style="font-size:11px;color:#8099b3">XRP PRICE</div>
+      <div style="font-size:20px;font-weight:900;color:#48ff82;font-family:monospace">${price.get("price_usd",0):.4f}</div>
+    </div>
+    <div style="text-align:center;min-width:100px">
+      <div style="font-size:11px;color:#8099b3">SIGNAL SCORE</div>
+      <div style="font-size:20px;font-weight:900;color:#ffcc00;font-family:monospace">{ss.get("total",0)}/100</div>
+    </div>
+    <div style="text-align:center;min-width:100px">
+      <div style="font-size:11px;color:#8099b3">STORIES ANALYZED</div>
+      <div style="font-size:20px;font-weight:900;color:#75bcff;font-family:monospace">{pred.get("story_count",0)}</div>
+    </div>
+    <div style="text-align:center;min-width:100px">
+      <div style="font-size:11px;color:#8099b3">SENTIMENT</div>
+      <div style="font-size:20px;font-weight:900;color:#48ff82;font-family:monospace">{si.get("bullish_today",0)} Bull / {si.get("bearish_today",0)} Bear</div>
+    </div>
+  </div>
+
+  <!-- Brief Sections -->
+  {"".join([
+    f'<div style="padding:20px 24px;border-bottom:1px solid #1a2030"><div style="font-size:13px;font-weight:700;color:{col};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">{icon} {title}</div><div style="font-size:14px;color:#cce0ff;line-height:1.7">{sections.get(key,"")}</div></div>'
+    for key, title, icon, col in [
+      ("market_pulse","Market Pulse","📊","#48ff82"),
+      ("connections","Story Connections","🔗","#75bcff"),
+      ("domino_effect","Domino Effect","🌊","#00e5cc"),
+      ("regional_flashpoints","Regional Flashpoints","🌍","#ffcc00"),
+      ("watchlist","24-72h Watchlist","👁️","#ff9900"),
+      ("tradfi_outlook","TradFi Integration Outlook","🪚","#ff4060"),
+    ] if sections.get(key)
+  ])}
+
+  <!-- Footer -->
+  <div style="background:#0a0a0a;padding:16px 24px;text-align:center;border-top:2px solid #1a2030">
+    <div style="font-size:12px;color:#8099b3;margin-bottom:8px">
+      ⚠️ This brief is AI-generated for informational purposes only. Not financial advice. Always DYOR.
+    </div>
+    <div style="font-size:11px;color:#3a4050">
+      © 2026 Red Rio Ventures, LLC · XRPRadar.com · All rights reserved globally.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>"""
+
+    return email_html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 @app.route("/")
 def index():
     STATE["visitor_count"] = STATE.get("visitor_count", 0) + 1
@@ -2664,6 +2872,18 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
     <span class="run-lbl">LIVE</span>
     <span class="pill plive" id="feedPill">FEEDS OK</span>
     <span class="upd" id="uts">&mdash;</span>
+  </div>
+</div>
+
+<!-- SECTION v6-WHALE: WHALE MOVE ALERT BANNER (#59) -->
+<div id="whale-alert-bar" style="display:none;background:linear-gradient(90deg,rgba(255,64,96,.15),rgba(255,153,0,.15));
+  border-bottom:1px solid rgba(255,153,0,.4);padding:6px 0">
+  <div style="max-width:1900px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="font-size:16px">🐋</span>
+    <span style="font-size:14px;font-weight:700;color:var(--or);font-family:var(--mn);text-transform:uppercase;letter-spacing:1px">WHALE ALERT</span>
+    <div id="whale-alert-text" style="font-size:13px;color:var(--br);flex:1"></div>
+    <button onclick="document.getElementById('whale-alert-bar').style.display='none'"
+      style="background:transparent;border:none;color:var(--tx);cursor:pointer;font-size:16px;padding:0 4px">✕</button>
   </div>
 </div>
 
@@ -3866,6 +4086,12 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           onmouseout="this.style.background='rgba(255,153,0,.12)'">
           ⚡ GENERATE NOW
         </button>
+        <a href="/api/email-digest" target="_blank"
+          style="background:rgba(117,188,255,.12);color:var(--bl);border:1px solid rgba(117,188,255,.3);
+          border-radius:5px;padding:7px 14px;font-family:var(--mn);font-size:12px;font-weight:700;
+          cursor:pointer;text-decoration:none;display:inline-block">
+          📧 EMAIL FORMAT
+        </a>
       </div>
     </div>
 
@@ -4039,13 +4265,118 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
       <div id="heatmap-grid" style="display:flex;flex-direction:column;gap:2px"></div>
     </div>
 
-    <!-- 37. Regional Activity Heatmap -->
+    <!-- 37. Regional Activity Heatmap — with SVG World Map -->
     <div>
       <div style="font-size:13px;font-family:var(--mn);color:var(--tx);text-transform:uppercase;
         letter-spacing:1.5px;margin-bottom:8px">
-        🗺️ Regional News Activity Heatmap — Stories by Region Today
+        🗺️ Global XRP Activity Map — Stories by Region Today
       </div>
-      <div id="regional-heatmap" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"></div>
+      <!-- SVG World Map with clickable/coloured regions -->
+      <div style="position:relative;background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:10px;margin-bottom:10px">
+        <svg id="world-activity-map" viewBox="0 0 800 400" style="width:100%;height:auto" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background -->
+          <rect width="800" height="400" fill="#0a0a0a" rx="6"/>
+          <!-- Ocean texture -->
+          <rect width="800" height="400" fill="url(#ocean)" rx="6" opacity="0.3"/>
+          <defs>
+            <radialGradient id="ocean" cx="50%" cy="50%">
+              <stop offset="0%" stop-color="#1a2030"/>
+              <stop offset="100%" stop-color="#0a0a0a"/>
+            </radialGradient>
+            <!-- Region glow filters -->
+            <filter id="glow-strong"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <filter id="glow-mid"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+
+          <!-- ── NORTH AMERICA ─────────────────────────────────── -->
+          <g id="rmap-US" class="rmap-region" data-region="US" style="cursor:pointer" onclick="mapRegionClick('US')">
+            <ellipse cx="155" cy="155" rx="90" ry="70" fill="#1a2030" stroke="#2a3040" stroke-width="1"/>
+            <text x="155" y="148" text-anchor="middle" fill="#8099b3" font-size="11" font-family="monospace" font-weight="700">N. AMERICA</text>
+            <text x="155" y="163" text-anchor="middle" fill="#48ff82" font-size="18" font-family="monospace" font-weight="900" id="rmap-US-count">0</text>
+            <text x="155" y="178" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace">stories</text>
+          </g>
+
+          <!-- ── LATIN AMERICA ──────────────────────────────────── -->
+          <g id="rmap-LatAm" class="rmap-region" data-region="LatAm" style="cursor:pointer" onclick="mapRegionClick('LatAm')">
+            <ellipse cx="185" cy="280" rx="65" ry="60" fill="#1a2030" stroke="#2a3040" stroke-width="1"/>
+            <text x="185" y="272" text-anchor="middle" fill="#8099b3" font-size="11" font-family="monospace" font-weight="700">LATAM</text>
+            <text x="185" y="287" text-anchor="middle" fill="#48ff82" font-size="18" font-family="monospace" font-weight="900" id="rmap-LatAm-count">0</text>
+            <text x="185" y="302" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace">stories</text>
+          </g>
+
+          <!-- ── EUROPE ─────────────────────────────────────────── -->
+          <g id="rmap-Europe" class="rmap-region" data-region="Europe" style="cursor:pointer" onclick="mapRegionClick('Europe')">
+            <ellipse cx="390" cy="130" rx="75" ry="60" fill="#1a2030" stroke="#2a3040" stroke-width="1"/>
+            <text x="390" y="122" text-anchor="middle" fill="#8099b3" font-size="11" font-family="monospace" font-weight="700">EUROPE</text>
+            <text x="390" y="137" text-anchor="middle" fill="#48ff82" font-size="18" font-family="monospace" font-weight="900" id="rmap-Europe-count">0</text>
+            <text x="390" y="152" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace">stories</text>
+          </g>
+
+          <!-- ── AFRICA ─────────────────────────────────────────── -->
+          <g id="rmap-Africa" class="rmap-region" data-region="Africa" style="cursor:pointer" onclick="mapRegionClick('Africa')">
+            <ellipse cx="390" cy="265" rx="65" ry="75" fill="#1a2030" stroke="#2a3040" stroke-width="1"/>
+            <text x="390" y="257" text-anchor="middle" fill="#8099b3" font-size="11" font-family="monospace" font-weight="700">AFRICA</text>
+            <text x="390" y="272" text-anchor="middle" fill="#48ff82" font-size="18" font-family="monospace" font-weight="900" id="rmap-Africa-count">0</text>
+            <text x="390" y="287" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace">stories</text>
+          </g>
+
+          <!-- ── MIDDLE EAST / UAE ──────────────────────────────── -->
+          <g id="rmap-UAE" class="rmap-region" data-region="UAE" style="cursor:pointer" onclick="mapRegionClick('UAE')">
+            <ellipse cx="515" cy="185" rx="60" ry="50" fill="#1a2030" stroke="#2a3040" stroke-width="1"/>
+            <text x="515" y="177" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace" font-weight="700">MIDDLE EAST</text>
+            <text x="515" y="192" text-anchor="middle" fill="#48ff82" font-size="18" font-family="monospace" font-weight="900" id="rmap-UAE-count">0</text>
+            <text x="515" y="207" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace">stories</text>
+          </g>
+
+          <!-- ── INDIA ──────────────────────────────────────────── -->
+          <g id="rmap-India" class="rmap-region" data-region="India" style="cursor:pointer" onclick="mapRegionClick('India')">
+            <ellipse cx="580" cy="215" rx="52" ry="50" fill="#1a2030" stroke="#2a3040" stroke-width="1"/>
+            <text x="580" y="207" text-anchor="middle" fill="#8099b3" font-size="11" font-family="monospace" font-weight="700">INDIA</text>
+            <text x="580" y="222" text-anchor="middle" fill="#48ff82" font-size="18" font-family="monospace" font-weight="900" id="rmap-India-count">0</text>
+            <text x="580" y="237" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace">stories</text>
+          </g>
+
+          <!-- ── JAPAN ──────────────────────────────────────────── -->
+          <g id="rmap-Japan" class="rmap-region" data-region="Japan" style="cursor:pointer" onclick="mapRegionClick('Japan')">
+            <ellipse cx="680" cy="130" rx="52" ry="45" fill="#1a2030" stroke="#2a3040" stroke-width="1"/>
+            <text x="680" y="122" text-anchor="middle" fill="#8099b3" font-size="11" font-family="monospace" font-weight="700">JAPAN</text>
+            <text x="680" y="137" text-anchor="middle" fill="#48ff82" font-size="18" font-family="monospace" font-weight="900" id="rmap-Japan-count">0</text>
+            <text x="680" y="152" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace">stories</text>
+          </g>
+
+          <!-- ── SE ASIA / KOREA ────────────────────────────────── -->
+          <g id="rmap-SEA" class="rmap-region" data-region="SEA" style="cursor:pointer" onclick="mapRegionClick('SEA')">
+            <ellipse cx="660" cy="245" rx="65" ry="55" fill="#1a2030" stroke="#2a3040" stroke-width="1"/>
+            <text x="660" y="237" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace" font-weight="700">SE ASIA/KR</text>
+            <text x="660" y="252" text-anchor="middle" fill="#48ff82" font-size="18" font-family="monospace" font-weight="900" id="rmap-SEA-count">0</text>
+            <text x="660" y="267" text-anchor="middle" fill="#8099b3" font-size="10" font-family="monospace">stories</text>
+          </g>
+
+          <!-- Connection lines between regions (faint) -->
+          <line x1="245" y1="155" x2="315" y2="130" stroke="#1a3050" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+          <line x1="465" y1="130" x2="455" y2="185" stroke="#1a3050" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+          <line x1="575" y1="185" x2="528" y2="215" stroke="#1a3050" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+          <line x1="632" y1="215" x2="628" y2="190" stroke="#1a3050" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+          <line x1="680" y1="175" x2="680" y2="195" stroke="#1a3050" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+
+          <!-- Legend -->
+          <g transform="translate(20, 360)">
+            <rect width="10" height="10" fill="#48ff82" rx="2"/>
+            <text x="14" y="9" fill="#8099b3" font-size="10" font-family="monospace">Active</text>
+            <rect x="60" width="10" height="10" fill="#ffcc00" rx="2"/>
+            <text x="74" y="9" fill="#8099b3" font-size="10" font-family="monospace">Moderate</text>
+            <rect x="140" width="10" height="10" fill="#ff4060" rx="2"/>
+            <text x="154" y="9" fill="#8099b3" font-size="10" font-family="monospace">High activity</text>
+            <rect x="235" width="10" height="10" fill="#1a2030" stroke="#2a3040" rx="2"/>
+            <text x="249" y="9" fill="#8099b3" font-size="10" font-family="monospace">Quiet</text>
+          </g>
+        </svg>
+        <div id="map-region-tooltip" style="display:none;position:absolute;top:10px;right:10px;
+          background:var(--s2);border:1px solid var(--bl);border-radius:6px;padding:8px 12px;
+          font-family:var(--mn);font-size:12px;color:var(--br);max-width:200px"></div>
+      </div>
+      <!-- Story count boxes below map -->
+      <div id="regional-heatmap" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div>
     </div>
 
   </div>
@@ -4755,6 +5086,145 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
 
 
 
+
+<!-- SECTION v6-J: REMITTANCE CORRIDOR INTELLIGENCE (#55) -->
+<div style="margin-bottom:10px" id="remittance-intel-section">
+  <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+    <div class="sec-title" style="color:var(--tq);margin-bottom:4px">💸 REMITTANCE CORRIDOR INTELLIGENCE</div>
+    <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:14px">
+      Live XRP ODL corridor tracking — volume trends, new routes, savings vs traditional rails.
+      Total addressable market: <span style="color:var(--gr);font-weight:700">$6.5B+/day</span>
+    </div>
+    <div id="remit-corridors" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px"></div>
+    <div style="margin-top:12px;padding:10px;background:rgba(0,229,204,.08);border:1px solid rgba(0,229,204,.2);border-radius:6px">
+      <div style="font-size:13px;font-weight:700;color:var(--tq);font-family:var(--mn);margin-bottom:6px">🚀 NEW CORRIDORS LAUNCHING IN 2026</div>
+      <div id="remit-new-corridors" style="font-size:13px;color:var(--br);font-family:var(--mn)">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-K: GEOPOLITICAL RISK DASHBOARD (#56) -->
+<div style="margin-bottom:10px" id="geopolitical-section">
+  <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div>
+        <div class="sec-title" style="color:var(--or);margin-bottom:4px">🌐 GEOPOLITICAL RISK DASHBOARD</div>
+        <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Sanctions, trade wars, banking crises and regulatory shifts that accelerate or threaten XRP adoption</div>
+      </div>
+      <div style="text-align:center;background:rgba(72,255,130,.1);border:1px solid rgba(72,255,130,.3);border-radius:8px;padding:10px 16px">
+        <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">XRP IMPACT SCORE</div>
+        <div id="geo-score" style="font-size:32px;font-weight:900;color:var(--gr);font-family:var(--mn)">72</div>
+        <div id="geo-risk" style="font-size:11px;color:var(--gr);font-family:var(--mn)">LOW RISK</div>
+      </div>
+    </div>
+    <div id="geo-events" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px"></div>
+  </div>
+</div>
+
+
+<!-- SECTION v6-L: RIPPLE PARTNER INTELLIGENCE (#66) -->
+<div style="margin-bottom:10px" id="partner-intel-section">
+  <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+    <div class="sec-title" style="color:var(--bl);margin-bottom:4px">🤝 RIPPLE PARTNER INTELLIGENCE</div>
+    <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:14px">
+      Deep intelligence on each confirmed Ripple partner — what they use XRP for, estimated volume, and growth trajectory
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px">
+
+      <div style="background:var(--bg);border:1px solid rgba(72,255,130,.3);border-radius:8px;padding:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">🇯🇵</span>
+          <div><div style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn)">SBI Holdings</div>
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">CONFIRMED · Japan · Banking</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:8px">Japan's largest financial group. SBI Ripple Asia joint venture fully operational. SBI VC Trade, SBI Remit, and MoneyTap all use XRP/XRPL infrastructure. One of the deepest institutional XRP integrations globally.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;font-family:var(--mn)">
+          <div style="color:var(--tx)">Use Case: <span style="color:var(--gr)">ODL + Remittance</span></div>
+          <div style="color:var(--tx)">Est. Volume: <span style="color:var(--yl)">$500M+/yr</span></div>
+          <div style="color:var(--tx)">Corridor: <span style="color:var(--bl)">Japan→Philippines</span></div>
+          <div style="color:var(--tx)">Growth: <span style="color:var(--gr)">↑ Expanding</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg);border:1px solid rgba(72,255,130,.3);border-radius:8px;padding:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">🇪🇸</span>
+          <div><div style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn)">Santander</div>
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">CONFIRMED · Spain/Global · Banking</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:8px">One Pay FX powered by Ripple since 2018. Expanded to multiple markets including UK, Brazil, Poland, and Spain. One of the earliest and longest-standing major bank integrations with Ripple technology.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;font-family:var(--mn)">
+          <div style="color:var(--tx)">Use Case: <span style="color:var(--gr)">Cross-border payments</span></div>
+          <div style="color:var(--tx)">Est. Volume: <span style="color:var(--yl)">$200M+/yr</span></div>
+          <div style="color:var(--tx)">Markets: <span style="color:var(--bl)">UK, Brazil, Poland</span></div>
+          <div style="color:var(--tx)">Growth: <span style="color:var(--gr)">↑ Multi-market</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg);border:1px solid rgba(72,255,130,.3);border-radius:8px;padding:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">🇵🇭</span>
+          <div><div style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn)">Coins.ph</div>
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">CONFIRMED · Philippines · Fintech</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:8px">Philippines-based crypto wallet using ODL for the USA→Philippines corridor. Serves millions of Filipino overseas workers sending remittances home. One of the highest-volume ODL partners globally by transaction count.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;font-family:var(--mn)">
+          <div style="color:var(--tx)">Use Case: <span style="color:var(--gr)">ODL Remittance</span></div>
+          <div style="color:var(--tx)">Est. Volume: <span style="color:var(--yl)">$800M+/yr</span></div>
+          <div style="color:var(--tx)">Corridor: <span style="color:var(--bl)">USA→Philippines</span></div>
+          <div style="color:var(--tx)">Users: <span style="color:var(--gr)">Millions OFWs</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg);border:1px solid rgba(72,255,130,.3);border-radius:8px;padding:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">🇲🇽</span>
+          <div><div style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn)">Bitso</div>
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">CONFIRMED · Mexico · Exchange</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:8px">Mexico's largest crypto exchange. Primary ODL partner for the USA→Mexico corridor — the world's largest ODL route by volume. Processes hundreds of millions of dollars in XRP-powered cross-border settlements daily.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;font-family:var(--mn)">
+          <div style="color:var(--tx)">Use Case: <span style="color:var(--gr)">ODL Primary Partner</span></div>
+          <div style="color:var(--tx)">Est. Volume: <span style="color:var(--yl)">$1.8B+/yr</span></div>
+          <div style="color:var(--tx)">Corridor: <span style="color:var(--bl)">USA→Mexico (largest)</span></div>
+          <div style="color:var(--tx)">Growth: <span style="color:var(--gr)">↑ Dominant</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg);border:1px solid rgba(72,255,130,.3);border-radius:8px;padding:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">🇧🇹</span>
+          <div><div style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn)">Bank of Bhutan</div>
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">CONFIRMED · Bhutan · Central Bank</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:8px">First sovereign CBDC built on XRPL. The Druk Digital currency is issued by the Royal Monetary Authority of Bhutan and runs natively on the XRP Ledger. A landmark proof-of-concept for central bank adoption of XRPL.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;font-family:var(--mn)">
+          <div style="color:var(--tx)">Use Case: <span style="color:var(--gr)">Sovereign CBDC</span></div>
+          <div style="color:var(--tx)">Status: <span style="color:var(--gr)">✅ LIVE</span></div>
+          <div style="color:var(--tx)">Currency: <span style="color:var(--bl)">Druk Digital (BTN)</span></div>
+          <div style="color:var(--tx)">Significance: <span style="color:var(--yl)">First ever</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg);border:1px solid rgba(117,188,255,.3);border-radius:8px;padding:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">🌐</span>
+          <div><div style="font-size:14px;font-weight:700;color:var(--bl);font-family:var(--mn)">Ripple x BIS (Project Nexus)</div>
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">CONFIRMED · Global · Research</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:8px">Bank for International Settlements Project Nexus explores XRPL for multi-CBDC settlements between central banks. If adopted at scale, this would position XRPL as the backbone of the global interbank settlement system.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;font-family:var(--mn)">
+          <div style="color:var(--tx)">Use Case: <span style="color:var(--gr)">Multi-CBDC Settlement</span></div>
+          <div style="color:var(--tx)">Status: <span style="color:var(--bl)">Research/Pilot</span></div>
+          <div style="color:var(--tx)">Partner: <span style="color:var(--bl)">BIS Innovation Hub</span></div>
+          <div style="color:var(--tx)">Impact: <span style="color:var(--yl)">⭐ Transformative</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- SECTION v6-AI: AI-POWERED TOOLS (#71, #72, #74) -->
 <div style="margin-bottom:10px" id="ai-tools-section">
   <div style="background:var(--s1);border:1px solid rgba(117,188,255,.2);border-radius:12px;padding:16px">
@@ -4820,6 +5290,40 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
         </button>
         <div id="bullbear-result" style="margin-top:10px;font-size:13px;color:var(--br);line-height:1.6;display:none;
           max-height:300px;overflow-y:auto;padding:10px;background:var(--s1);border-radius:6px"></div>
+      </div>
+
+      <!-- #73 AI Story Credibility Scorer -->
+      <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:14px">
+        <div style="font-size:14px;font-weight:700;color:var(--tq);font-family:var(--mn);margin-bottom:8px">🔍 Story Credibility Scorer</div>
+        <div style="font-size:12px;color:var(--tx);margin-bottom:10px">Paste any XRP headline or story. AI rates its credibility 1-10 and flags FUD vs signal.</div>
+        <textarea id="cred-input" rows="3" placeholder="Paste a headline or story here..."
+          style="width:100%;background:var(--s1);border:1px solid var(--b);color:var(--br);
+          padding:8px;border-radius:5px;font-size:13px;font-family:system-ui;resize:vertical;box-sizing:border-box"></textarea>
+        <button onclick="runCredibilityScore()" id="cred-btn"
+          style="margin-top:8px;width:100%;background:rgba(0,229,204,.15);color:var(--tq);
+          padding:8px;border-radius:5px;border:1px solid rgba(0,229,204,.3);
+          font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+          ⚡ SCORE CREDIBILITY
+        </button>
+        <div id="cred-result" style="margin-top:10px;font-size:13px;color:var(--br);line-height:1.6;display:none;
+          padding:10px;background:var(--s1);border-radius:6px;border-left:3px solid var(--tq)"></div>
+      </div>
+
+      <!-- #75 AI Partner Deal Probability -->
+      <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:14px">
+        <div style="font-size:14px;font-weight:700;color:var(--or);font-family:var(--mn);margin-bottom:8px">🎯 Partner Deal Probability</div>
+        <div style="font-size:12px;color:var(--tx);margin-bottom:10px">Name a rumored Ripple partnership. AI scores the probability it becomes confirmed and explains why.</div>
+        <input type="text" id="deal-input" placeholder="e.g. JPMorgan Chase, Western Union, PayPal..."
+          style="width:100%;background:var(--s1);border:1px solid var(--b);color:var(--br);
+          padding:9px 12px;border-radius:5px;font-size:13px;font-family:var(--mn);box-sizing:border-box;margin-bottom:8px">
+        <button onclick="runDealProbability()" id="deal-btn"
+          style="width:100%;background:rgba(255,153,0,.15);color:var(--or);
+          padding:8px;border-radius:5px;border:1px solid rgba(255,153,0,.3);
+          font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+          ⚡ SCORE PROBABILITY
+        </button>
+        <div id="deal-result" style="margin-top:10px;font-size:13px;color:var(--br);line-height:1.6;display:none;
+          padding:10px;background:var(--s1);border-radius:6px;border-left:3px solid var(--or)"></div>
       </div>
 
     </div>
@@ -4931,6 +5435,60 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
 </div>
 
 <!-- FOOTER -->
+
+<!-- SECTION v6-M: XRPRADAR LEADERBOARD (#80) -->
+<div style="margin-bottom:10px" id="leaderboard-section">
+  <div style="background:var(--s1);border:1px solid rgba(255,204,0,.2);border-radius:12px;padding:16px">
+    <div class="sec-title" style="color:var(--yl);margin-bottom:4px">🏆 XRPRADAR LEADERBOARD</div>
+    <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:14px">
+      Top sources, most active regions, and community engagement — the XRPRadar intelligence rankings
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+
+      <!-- Top Sources Today -->
+      <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--yl);font-family:var(--mn);margin-bottom:8px">📡 TOP SOURCES TODAY</div>
+        <div id="lb-sources" style="font-family:var(--mn);font-size:12px">
+          <div style="color:var(--tx)">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Top Regions Today -->
+      <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn);margin-bottom:8px">🗺️ MOST ACTIVE REGIONS</div>
+        <div id="lb-regions" style="font-family:var(--mn);font-size:12px">
+          <div style="color:var(--tx)">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Signal Score Streak -->
+      <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:8px">🔥 LIVE INTELLIGENCE</div>
+        <div style="text-align:center;padding:10px 0">
+          <div style="font-size:40px;font-weight:900;color:var(--yl);font-family:var(--mn)" id="lb-signal">--</div>
+          <div style="font-size:12px;color:var(--tx);margin-top:4px">Signal Score</div>
+          <div style="font-size:14px;font-weight:700;margin-top:6px" id="lb-signal-label">Calculating...</div>
+        </div>
+        <div style="border-top:1px solid var(--b);padding-top:8px;margin-top:4px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-family:var(--mn)">
+            <span style="color:var(--tx)">Feeds Active:</span>
+            <span style="color:var(--gr)" id="lb-feeds">--/306</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-family:var(--mn);margin-top:4px">
+            <span style="color:var(--tx)">Stories Today:</span>
+            <span style="color:var(--bl)" id="lb-stories">--</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-family:var(--mn);margin-top:4px">
+            <span style="color:var(--tx)">Poll Votes:</span>
+            <span style="color:var(--yl)" id="lb-poll-votes">--</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <footer>
   <div>🛰️ <em style="color:var(--bl);font-weight:700">XRPRadar</em> &nbsp;|&nbsp; Version: <span id="ft-ver" style="color:var(--tq);font-weight:700">--</span> &nbsp;|&nbsp; Updated: <span id="ft-last" style="color:var(--br)">--</span> &nbsp;|&nbsp; Uptime: <span id="ft-uptime" style="color:var(--br)">--</span> &nbsp;&nbsp;<a href="/debug" target="_blank" style="color:var(--or);font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--or);padding:1px 6px;border-radius:3px">DEBUG</a></div>
   <div style="color:var(--yl)">⚠️ Not Financial Advice — XRPRadar is for informational purposes only. DYOR.</div>
@@ -5001,6 +5559,10 @@ async function fetchData(){
     updateAdoptionVelocity(d);
     updateCommunityPoll(d);
     updateWeeklyDigest(d);
+    updateRemittanceIntel(d);
+    updateGeopoliticalRisk(d);
+    checkWhaleAlerts(d);
+    updateLeaderboard(d);
   }catch(e){console.error("fetchData:",e);}
 }
 
@@ -5053,10 +5615,14 @@ function renderTop20(){
         </div>
         <div style="font-size:15px;font-weight:700;color:var(--bl);line-height:1.45;margin-bottom:4px">${s.title}</div>
         ${sum?`<div style="font-size:13px;color:var(--tx);line-height:1.55;opacity:.85">${sum}</div>`:""}
-        <div style="margin-top:6px">
+        <div style="margin-top:6px;display:flex;gap:6px">
           <span style="font-size:12px;color:var(--bl);font-family:var(--mn);
             background:rgba(117,188,255,.08);padding:3px 10px;border-radius:3px;
             border:1px solid rgba(117,188,255,.2)">↗ READ STORY</span>
+          <span onclick="event.stopPropagation();shareStory('${s.title||""}','${s.link||s.url||""}','${s.source||""}','${s.sentiment||""}','${s.age||""}')"
+            style="font-size:12px;color:var(--tq);font-family:var(--mn);cursor:pointer;
+            background:rgba(0,229,204,.08);padding:3px 10px;border-radius:3px;
+            border:1px solid rgba(0,229,204,.2)">📤 SHARE</span>
         </div>
       </div>
     </div>`;
@@ -5404,6 +5970,18 @@ function updateDispIntel(d){
         </div>
       </div>`;
     }).join("");
+    // Update SVG world map with activity counts
+    const mapCounts = {
+      'US':     (regionCounts['🇺🇸 N. America']||regionCounts['🇺🇸 USA']||0),
+      'LatAm':  (regionCounts['🌎 Latin America']||0),
+      'Europe': (regionCounts['🇪🇺 Europe']||0),
+      'Africa': (regionCounts['🌍 Africa']||0),
+      'UAE':    (regionCounts['🇦🇪 UAE/Middle East']||0),
+      'India':  (regionCounts['🇮🇳 India']||0),
+      'Japan':  (regionCounts['🇯🇵 Japan']||0),
+      'SEA':    (regionCounts['🌏 SE Asia']||0),
+    };
+    updateWorldMap(mapCounts);
   }
   // ── 60-Month Price Chart ────────────────────────────────────────────────
   const hist60  = (di.price_history_60m||[]);
@@ -7305,6 +7883,324 @@ function updateWeeklyDigest(d){
       res.style.display="block";
     }catch(e){ res.innerHTML="Error: "+e.message; res.style.display="block"; }
     if(btn){ btn.textContent=mode==="bull"?"🐂 BULL CASE":mode==="bear"?"🐻 BEAR CASE":"⚡ GENERATE BOTH"; btn.disabled=false; }
+  }
+
+
+  // ── Regional Activity Map Colouring ─────────────────────────────────────
+  function updateWorldMap(regionCounts){
+    const regions = ['US','LatAm','Europe','Africa','UAE','India','Japan','SEA'];
+    const maxCount = Math.max(...Object.values(regionCounts||{}), 1);
+    regions.forEach(reg=>{
+      const count = regionCounts[reg]||0;
+      const el    = document.getElementById('rmap-'+reg);
+      const cnt   = document.getElementById('rmap-'+reg+'-count');
+      if(cnt) cnt.textContent = count;
+      if(el){
+        const ellipse = el.querySelector('ellipse');
+        if(!ellipse) return;
+        const intensity = count / maxCount;
+        let fill, stroke, glow;
+        if(intensity === 0){
+          fill="#1a2030"; stroke="#2a3040"; glow="none";
+        } else if(intensity < 0.2){
+          fill="rgba(72,255,130,.08)"; stroke="rgba(72,255,130,.2)"; glow="none";
+        } else if(intensity < 0.4){
+          fill="rgba(72,255,130,.15)"; stroke="rgba(72,255,130,.4)"; glow="glow-mid";
+        } else if(intensity < 0.6){
+          fill="rgba(255,204,0,.15)"; stroke="rgba(255,204,0,.5)"; glow="glow-mid";
+        } else if(intensity < 0.8){
+          fill="rgba(255,153,0,.2)"; stroke="rgba(255,153,0,.6)"; glow="glow-strong";
+        } else {
+          fill="rgba(255,64,96,.2)"; stroke="rgba(255,64,96,.7)"; glow="glow-strong";
+        }
+        ellipse.setAttribute('fill', fill);
+        ellipse.setAttribute('stroke', stroke);
+        if(glow && glow!=="none") el.setAttribute('filter','url(#'+glow+')');
+        else el.removeAttribute('filter');
+        // Colour the count text
+        const countEl = document.getElementById('rmap-'+reg+'-count');
+        if(countEl){
+          if(intensity===0)       countEl.setAttribute('fill','#3a4050');
+          else if(intensity<0.4)  countEl.setAttribute('fill','#48ff82');
+          else if(intensity<0.7)  countEl.setAttribute('fill','#ffcc00');
+          else                    countEl.setAttribute('fill','#ff4060');
+        }
+      }
+    });
+  }
+  function mapRegionClick(reg){
+    const tooltip = document.getElementById('map-region-tooltip');
+    if(!tooltip) return;
+    const regionNames = {
+      'US':'North America','LatAm':'Latin America','Europe':'Europe','Africa':'Africa',
+      'UAE':'Middle East / UAE','India':'India & South Asia','Japan':'Japan','SEA':'SE Asia & Korea'
+    };
+    const cnt = document.getElementById('rmap-'+reg+'-count');
+    const stories = cnt ? cnt.textContent : '0';
+    tooltip.style.display='block';
+    tooltip.innerHTML = `<b style="color:var(--bl)">${regionNames[reg]||reg}</b><br>${stories} stories today<br><span style="font-size:11px;color:var(--tx)">Click regional panel below for details</span>`;
+    setTimeout(()=>{ tooltip.style.display='none'; }, 3000);
+  }
+
+
+  // ── Remittance Corridor Intelligence (#55) ───────────────────────────────
+  function updateRemittanceIntel(d){
+    const ri = d.remittance_intel||{};
+    const corridors = ri.corridors||[];
+    const el = document.getElementById("remit-corridors");
+    if(el && corridors.length){
+      el.innerHTML = corridors.map(c=>`
+        <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:12px;
+          border-left:3px solid ${c.status==='ACTIVE'?'var(--gr)':'var(--tq)'}">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:14px;font-weight:700;color:var(--br);font-family:var(--mn)">${c.route}</span>
+            <span style="font-size:11px;font-weight:700;color:${c.status==='ACTIVE'?'var(--gr)':'var(--tq)'};
+              background:rgba(0,0,0,.3);padding:2px 6px;border-radius:3px;font-family:var(--mn)">${c.status}</span>
+          </div>
+          <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-bottom:6px">
+            Partner: <span style="color:var(--bl)">${c.partner}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;font-family:var(--mn)">
+            <div>Volume: <span style="color:var(--yl)">${c.volume_est}</span></div>
+            <div>Growth: <span style="color:var(--gr)">${c.growth}</span></div>
+            <div>Trad Fee: <span style="color:var(--rd)">${c.fee_traditional}</span></div>
+            <div>XRP Save: <span style="color:var(--gr)">${c.xrp_saving}</span></div>
+          </div>
+        </div>`).join("");
+    }
+    const newEl = document.getElementById("remit-new-corridors");
+    if(newEl && ri.new_corridors_2026){
+      newEl.innerHTML = ri.new_corridors_2026.map(c=>`
+        <span style="display:inline-block;background:rgba(0,229,204,.1);border:1px solid rgba(0,229,204,.3);
+          color:var(--tq);padding:3px 10px;border-radius:4px;font-family:var(--mn);font-size:12px;
+          margin:2px">🔜 ${c}</span>`).join("");
+    }
+  }
+
+  // ── Geopolitical Risk Dashboard (#56) ────────────────────────────────────
+  function updateGeopoliticalRisk(d){
+    const gr = d.geopolitical_risk||{};
+    const events = gr.events||[];
+    c("geo-score",  gr.xrp_impact_score||"--");
+    c("geo-risk",   gr.overall_risk||"--");
+    const scoreEl = document.getElementById("geo-score");
+    if(scoreEl){
+      const s = gr.xrp_impact_score||0;
+      scoreEl.style.color = s>=70?"var(--gr)":s>=50?"var(--yl)":"var(--rd)";
+    }
+    const el = document.getElementById("geo-events");
+    if(!el||!events.length) return;
+    const impactCol = {"BULLISH":"var(--gr)","BEARISH":"var(--rd)","NEUTRAL":"var(--yl)"};
+    el.innerHTML = events.map(ev=>`
+      <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:12px;
+        border-left:3px solid ${impactCol[ev.impact]||'var(--tx)'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
+          <span style="font-size:12px;font-weight:700;color:var(--tx);font-family:var(--mn)">${ev.region}</span>
+          <div style="display:flex;gap:4px">
+            <span style="font-size:11px;font-weight:700;color:${impactCol[ev.impact]||'var(--tx)'};
+              background:rgba(0,0,0,.3);padding:2px 6px;border-radius:3px;font-family:var(--mn)">${ev.impact}</span>
+            <span style="font-size:11px;color:var(--tx);background:rgba(0,0,0,.3);
+              padding:2px 6px;border-radius:3px;font-family:var(--mn)">${ev.urgency}</span>
+          </div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--br);margin-bottom:4px">${ev.event}</div>
+        <div style="font-size:12px;color:var(--tx);line-height:1.5">${ev.detail}</div>
+      </div>`).join("");
+  }
+
+
+  // ── Whale Move Alerts (#59) ──────────────────────────────────────────────
+  let whaleAlertShown = new Set();
+  function checkWhaleAlerts(d){
+    const wd     = d.whale_data||{};
+    const alerts = wd.alerts||[];
+    const bar    = document.getElementById("whale-alert-bar");
+    const txt    = document.getElementById("whale-alert-text");
+    if(!bar||!txt) return;
+    // Look for large moves (10M+ XRP) in last 2 hours
+    const recent = alerts.filter(a=>{
+      const amount = parseFloat((a.amount_xrp||a.amount||"0").toString().replace(/[^0-9.]/g,""));
+      if(amount < 5000000) return false;  // Under 5M XRP — skip
+      const key = a.tx_hash||a.title||a.amount;
+      if(whaleAlertShown.has(key)) return false;  // Already shown
+      whaleAlertShown.add(key);
+      return true;
+    });
+    if(recent.length > 0){
+      const a = recent[0];
+      const amount = parseFloat((a.amount_xrp||a.amount||"0").toString().replace(/[^0-9.]/g,""));
+      const direction = a.direction||a.type||"moved";
+      const from = a.from_exchange||a.from||"";
+      const to   = a.to_exchange||a.to||"";
+      let msg = `${(amount/1000000).toFixed(1)}M XRP ${direction}`;
+      if(from) msg += ` from ${from}`;
+      if(to)   msg += ` to ${to}`;
+      msg += ` · ${timeAgo(a.ts||a.pub||"")}`;
+      txt.textContent = msg;
+      bar.style.display="flex";
+      // Auto-hide after 30 seconds
+      setTimeout(()=>{ bar.style.display="none"; }, 30000);
+      // Browser notification
+      if("Notification" in window && Notification.permission==="granted"){
+        new Notification("🐋 XRPRadar Whale Alert",{
+          body: msg,
+          icon: "/favicon.ico"
+        });
+      }
+    }
+  }
+
+
+  // ── AI Story Credibility Scorer (#73) ────────────────────────────────────
+  async function runCredibilityScore(){
+    const input = document.getElementById("cred-input").value.trim();
+    if(!input){ alert("Please paste a headline or story."); return; }
+    const btn = document.getElementById("cred-btn");
+    const res = document.getElementById("cred-result");
+    btn.textContent="⏳ Scoring..."; btn.disabled=true;
+    res.style.display="none";
+    try{
+      const text = await callClaudeAI(
+        `XRP/Ripple story to evaluate:\n"${input}"\n\n`+
+        `Please provide:\n`+
+        `1. CREDIBILITY SCORE: Rate 1 (pure FUD/fake) to 10 (verified/factual)\n`+
+        `2. SOURCE TYPE: Official / Mainstream / Crypto Media / Anonymous / Unknown\n`+
+        `3. SIGNAL TYPE: Real signal / FUD / Hype / Neutral information\n`+
+        `4. RED FLAGS: Any signs of manipulation, exaggeration, or misinformation\n`+
+        `5. VERDICT: Should XRP traders act on this or ignore it?\n\n`+
+        `Be direct and specific. 6-8 sentences total.`,
+        "You are XRPRadar's chief intelligence officer specializing in separating signal from noise. You have deep knowledge of XRP FUD patterns, legitimate catalysts, and common manipulation tactics. Be blunt and specific."
+      );
+      res.innerHTML = text.replace(/\n/g,"<br>");
+      res.style.display="block";
+    }catch(e){ res.innerHTML="Error: "+e.message; res.style.display="block"; }
+    btn.textContent="⚡ SCORE CREDIBILITY"; btn.disabled=false;
+  }
+
+  // ── AI Partner Deal Probability (#75) ────────────────────────────────────
+  async function runDealProbability(){
+    const input = document.getElementById("deal-input").value.trim();
+    if(!input){ alert("Please name a company."); return; }
+    const btn = document.getElementById("deal-btn");
+    const res = document.getElementById("deal-result");
+    btn.textContent="⏳ Analyzing..."; btn.disabled=true;
+    res.style.display="none";
+    try{
+      const text = await callClaudeAI(
+        `Analyze the probability that "${input}" confirms a partnership with Ripple/XRP/XRPL.\n\n`+
+        `Please provide:\n`+
+        `1. PROBABILITY SCORE: 0-100% chance this becomes a confirmed Ripple partnership\n`+
+        `2. EVIDENCE FOR: What signals, reports, or logic support this partnership happening\n`+
+        `3. EVIDENCE AGAINST: What obstacles, competing interests, or contradictions suggest it won't happen\n`+
+        `4. TIMELINE ESTIMATE: If it happens, when — 6 months, 1 year, 2+ years?\n`+
+        `5. WHAT TO WATCH: What news or events would confirm or deny this partnership?\n\n`+
+        `Be specific and bold. 8-10 sentences total.`,
+        "You are XRPRadar's institutional intelligence analyst. You specialize in evaluating Ripple partnership signals and rumors with deep knowledge of the XRP ecosystem, banking sector dynamics, and blockchain adoption patterns."
+      );
+      res.innerHTML = text.replace(/\n/g,"<br>");
+      res.style.display="block";
+    }catch(e){ res.innerHTML="Error: "+e.message; res.style.display="block"; }
+    btn.textContent="⚡ SCORE PROBABILITY"; btn.disabled=false;
+  }
+
+
+  // ── Social Share Cards (#77) ──────────────────────────────────────────────
+  function shareStory(title, url, source, sentiment, age){
+    const shareText =
+      `🛰️ XRPRadar Intelligence\n\n`+
+      `📰 ${title}\n\n`+
+      `📡 Source: ${source}  •  ${sentiment.toUpperCase()}  •  ${age}\n\n`+
+      `🔗 ${url}\n\n`+
+      `More XRP intelligence at xrpradar.com\n`+
+      `#XRP #Ripple #XRPRadar`;
+    // Try Web Share API first (mobile)
+    if(navigator.share){
+      navigator.share({ title:"XRPRadar — "+title, text:shareText, url:url||"https://xrpradar.com" })
+        .catch(()=>{ fallbackShare(shareText); });
+    } else {
+      fallbackShare(shareText);
+    }
+  }
+  function fallbackShare(text){
+    // Show a copy modal
+    const modal = document.createElement("div");
+    modal.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center";
+    modal.innerHTML=`
+      <div style="background:var(--s1);border:1px solid var(--bl);border-radius:10px;padding:20px;max-width:500px;width:90%;position:relative">
+        <div style="font-size:14px;font-weight:700;color:var(--bl);font-family:var(--mn);margin-bottom:10px">📤 SHARE THIS STORY</div>
+        <textarea id="share-text-area" readonly rows="8"
+          style="width:100%;background:var(--bg);border:1px solid var(--b);color:var(--br);
+          padding:8px;border-radius:5px;font-size:12px;font-family:monospace;resize:none;box-sizing:border-box"
+        >${text}</textarea>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button onclick="navigator.clipboard.writeText(document.getElementById('share-text-area').value).then(()=>this.textContent='✅ COPIED!')"
+            style="flex:1;background:rgba(72,255,130,.15);color:var(--gr);padding:8px;border-radius:5px;
+            border:1px solid rgba(72,255,130,.3);font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+            📋 COPY TO CLIPBOARD
+          </button>
+          <button onclick="this.closest('[style*=fixed]').remove()"
+            style="background:var(--s2);color:var(--tx);padding:8px 14px;border-radius:5px;
+            border:1px solid var(--b);font-family:var(--mn);font-size:13px;cursor:pointer">✕</button>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(text.substring(0,280))}" target="_blank"
+            style="flex:1;text-align:center;background:rgba(117,188,255,.1);color:var(--bl);padding:7px;
+            border-radius:5px;border:1px solid rgba(117,188,255,.3);font-family:var(--mn);font-size:12px;
+            font-weight:700;text-decoration:none">𝕏 Share on X</a>
+          <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://xrpradar.com')}" target="_blank"
+            style="flex:1;text-align:center;background:rgba(72,255,130,.1);color:var(--gr);padding:7px;
+            border-radius:5px;border:1px solid rgba(72,255,130,.3);font-family:var(--mn);font-size:12px;
+            font-weight:700;text-decoration:none">💼 LinkedIn</a>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  }
+
+
+  // ── XRPRadar Leaderboard (#80) ────────────────────────────────────────────
+  function updateLeaderboard(d){
+    // Signal score
+    const ss = d.signal_score||{};
+    const ssEl = document.getElementById("lb-signal");
+    const ssLbl = document.getElementById("lb-signal-label");
+    if(ssEl){ ssEl.textContent = ss.total||"--"; ssEl.style.color = (ss.total||0)>=60?"var(--gr)":(ss.total||0)>=40?"var(--yl)":"var(--rd)"; }
+    if(ssLbl){ ssLbl.textContent = ss.label||"--"; ssLbl.style.color = (ss.total||0)>=60?"var(--gr)":(ss.total||0)>=40?"var(--yl)":"var(--rd)"; }
+    c("lb-feeds",  `${d.feeds_active||0}/${d.feeds_total||306}`);
+    c("lb-stories", (d.sent_intel||{}).total_today||0);
+    c("lb-poll-votes", (d.community_poll||{}).total_votes||0);
+    // Top Sources from source leaderboard
+    const leaders = (d.sent_intel||{}).source_leaders||[];
+    const srcEl = document.getElementById("lb-sources");
+    if(srcEl && leaders.length){
+      srcEl.innerHTML = leaders.slice(0,8).map((s,i)=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;
+          padding:4px 0;${i<leaders.length-1?'border-bottom:1px solid rgba(255,255,255,.04)':''}">
+          <div>
+            <span style="color:${i===0?'var(--yl)':i===1?'var(--tx)':i===2?'var(--or)':'var(--tx)'};font-size:11px">${['🥇','🥈','🥉'][i]||'  '} </span>
+            <span style="color:var(--br)">${s.source||s.name||"--"}</span>
+          </div>
+          <span style="color:var(--yl)">${s.count||s.stories||0}</span>
+        </div>`).join("");
+    }
+    // Top regions
+    const regEl = document.getElementById("lb-regions");
+    if(regEl && window.allStories){
+      const regionMap = {};
+      (window.allStories||[]).forEach(s=>{
+        const reg = s.region||s.source_region||"Global";
+        regionMap[reg] = (regionMap[reg]||0)+1;
+      });
+      const sorted = Object.entries(regionMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      if(sorted.length){
+        regEl.innerHTML = sorted.map(([reg,cnt],i)=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;
+            padding:4px 0;${i<sorted.length-1?'border-bottom:1px solid rgba(255,255,255,.04)':''}">
+            <span style="color:var(--br)">${['🥇','🥈','🥉'][i]||'  '} ${reg}</span>
+            <span style="color:var(--tq)">${cnt}</span>
+          </div>`).join("");
+      }
+    }
   }
 
 </script>
