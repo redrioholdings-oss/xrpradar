@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v5.0"
+BOT_FILE          = "XRPRadar_v6.0"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -707,6 +707,158 @@ STATE = {
     "maintenance":   "OK",
     "start_time":    datetime.now(timezone.utc).isoformat(),
     "visitor_count": 0,
+
+    # ── v6.0 New Feature State ────────────────────────────────────
+    "order_book": {
+        "binance":  {"bids":[], "asks":[], "spread":0, "ts":""},
+        "bitstamp": {"bids":[], "asks":[], "spread":0, "ts":""},
+        "kraken":   {"bids":[], "asks":[], "spread":0, "ts":""},
+        "combined_bids": [], "combined_asks": [], "total_bid_depth":0, "total_ask_depth":0,
+    },
+    "inst_flow": {
+        "etf_inflows_7d":   0,
+        "etf_outflows_7d":  0,
+        "net_etf_flow_7d":  0,
+        "grayscale_aum":    0,
+        "oi_change_24h":    0,
+        "funding_trend":    "",
+        "large_moves_24h":  [],
+        "flow_signal":      "NEUTRAL",
+    },
+    "liquidity_map": {
+        "exchanges": [],
+        "tightest_spread":  "",
+        "deepest_book":     "",
+        "best_venue":       "",
+    },
+    "ipo_watch": {
+        "ripple_valuation":  "~$11B (est. 2025)",
+        "ipo_status":        "Filed confidentially — timeline Q4 2025-Q2 2026",
+        "lead_underwriters": "Goldman Sachs, JPMorgan (rumoured)",
+        "share_structure":   "Pending — XRP holder benefit discussed by CEO",
+        "news":              [],
+        "probability":       72,
+        "next_milestone":    "S-1 Registration Statement",
+    },
+    "cbdc_competition": {
+        "using_xrpl":    [],
+        "competing":     [],
+        "neutral":       [],
+        "threat_level":  "LOW",
+        "opportunity_score": 0,
+    },
+    "macro_data": {
+        "dxy":      {"value":0, "change_pct":0, "label":"US Dollar Index"},
+        "sp500":    {"value":0, "change_pct":0, "label":"S&P 500"},
+        "gold":     {"value":0, "change_pct":0, "label":"Gold (USD/oz)"},
+        "treasury": {"value":0, "change_pct":0, "label":"10-Year Treasury Yield"},
+        "btc":      {"value":0, "change_pct":0, "label":"Bitcoin (USD)"},
+        "xrp_vs_macro": {"dxy_corr":"--","sp500_corr":"--","gold_corr":"--","btc_corr":"--"},
+        "macro_signal": "NEUTRAL",
+        "ts": "",
+    },
+    "correlation": {
+        "matrix":    {},
+        "xrp_btc":   0,
+        "xrp_eth":   0,
+        "xrp_gold":  0,
+        "xrp_sp500": 0,
+        "xrp_dxy":   0,
+        "period":    "30d",
+        "ts":        "",
+    },
+    "signal_score": {
+        "total":          0,
+        "grade":          "--",
+        "label":          "--",
+        "components": {
+            "price_momentum":  {"score":0, "weight":15, "signal":"--"},
+            "rsi_signal":      {"score":0, "weight":12, "signal":"--"},
+            "sentiment":       {"score":0, "weight":15, "signal":"--"},
+            "on_chain":        {"score":0, "weight":18, "signal":"--"},
+            "macro":           {"score":0, "weight":10, "signal":"--"},
+            "inst_flow":       {"score":0, "weight":15, "signal":"--"},
+            "whale_activity":  {"score":0, "weight":10, "signal":"--"},
+            "fear_greed":      {"score":0, "weight": 5, "signal":"--"},
+        },
+        "ts": "",
+    },
+    # ── v6.0 Phase 2 State ────────────────────────────────────────
+    "options_flow": {
+        "put_call_ratio":   0,
+        "implied_vol":      0,
+        "max_pain":         0,
+        "major_strikes":    [],
+        "positioning":      "NEUTRAL",
+        "ts":               "",
+    },
+    "nvt_ratio": {
+        "nvt":              0,
+        "nvt_signal":       0,
+        "interpretation":   "--",
+        "30d_avg":          0,
+        "ts":               "",
+    },
+    "accum_distrib": {
+        "score_7d":         0,
+        "score_30d":        0,
+        "signal_7d":        "--",
+        "signal_30d":       "--",
+        "large_wallet_change_7d": 0,
+        "ts":               "",
+    },
+    "whale_watchlist": {
+        "wallets":          [],
+        "last_move_ts":     "",
+        "alert_count_24h":  0,
+    },
+    "tx_volume_trend": {
+        "daily_90d":        [],
+        "avg_7d":           0,
+        "avg_30d":          0,
+        "trend":            "--",
+        "ts":               "",
+    },
+    "dev_score": {
+        "score":            0,
+        "commits_7d":       0,
+        "prs_7d":           0,
+        "contributors_30d": 0,
+        "new_repos_30d":    0,
+        "stars_total":      0,
+        "trend":            "--",
+        "ts":               "",
+    },
+    "currency_crisis": {
+        "countries":        [],
+        "highest_risk":     "",
+        "odl_opportunity":  0,
+        "ts":               "",
+    },
+    "adoption_velocity": {
+        "score":            0,
+        "institutional":    0,
+        "retail":           0,
+        "developer":        0,
+        "regulatory":       0,
+        "trend":            "--",
+        "ts":               "",
+    },
+    # ── v6.0 Phase 3 State ────────────────────────────────────────
+    "community_poll": {
+        "question":         "",
+        "options":          [],
+        "votes":            {},
+        "date":             "",
+        "total_votes":      0,
+    },
+    "weekly_digest": {
+        "content":          "",
+        "generated_date":   "",
+        "week_number":      0,
+        "story_count":      0,
+    },
+
     "upgrade_log":   [
         {"ts": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
          "note": "v1.1 — Full redesign. Turquoise + lime color scheme. 100 sources. Regional intelligence rows. Enhanced analytics."}
@@ -2217,6 +2369,11 @@ DASHBOARD = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="XRPRadar">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>XRPRadar — Signals Over Noise 24/7</title>
 <style>
@@ -3247,6 +3404,341 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
   <div class="wrbar"><div class="wrfill" id="sc-fill" style="width:50%"></div></div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- v6.0 NEW SECTIONS                                               -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+
+<!-- SECTION v6-A: XRPRADAR SIGNAL SCORE (#61) -->
+<div style="margin-bottom:10px" id="signal-score-section">
+  <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="sec-title" style="color:var(--yl);margin-bottom:4px">🎯 XRPRADAR SIGNAL SCORE</div>
+        <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Composite institutional-grade intelligence score — updated every 10 minutes</div>
+      </div>
+      <div id="ss-total-display" style="text-align:center">
+        <div id="ss-score" style="font-size:64px;font-weight:900;font-family:var(--mn);color:var(--gr);line-height:1">--</div>
+        <div id="ss-grade" style="font-size:16px;font-weight:700;color:var(--yl);font-family:var(--mn)">/100</div>
+        <div id="ss-label" style="font-size:13px;color:var(--tx);font-family:var(--mn)">CALCULATING...</div>
+        <div id="ss-ts" style="font-size:11px;color:var(--tx);margin-top:4px"></div>
+      </div>
+    </div>
+    <!-- Signal Score Progress Bar -->
+    <div style="background:var(--bg);border-radius:6px;height:12px;margin-bottom:16px;overflow:hidden">
+      <div id="ss-bar" style="height:100%;border-radius:6px;background:linear-gradient(90deg,#ff4060,#ffcc00,#48ff82);width:0%;transition:width 1s ease"></div>
+    </div>
+    <!-- Component Breakdown -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px" id="ss-components">
+      <div class="abox" style="border-left:3px solid var(--gr)"><div class="albl">PRICE MOMENTUM</div><div class="aval" id="ss-c1">--</div><div style="font-size:12px;color:var(--tx);font-family:var(--mn)" id="ss-c1s">--</div></div>
+      <div class="abox" style="border-left:3px solid var(--bl)"><div class="albl">RSI SIGNAL</div><div class="aval" id="ss-c2">--</div><div style="font-size:12px;color:var(--tx);font-family:var(--mn)" id="ss-c2s">--</div></div>
+      <div class="abox" style="border-left:3px solid var(--tq)"><div class="albl">SENTIMENT</div><div class="aval" id="ss-c3">--</div><div style="font-size:12px;color:var(--tx);font-family:var(--mn)" id="ss-c3s">--</div></div>
+      <div class="abox" style="border-left:3px solid var(--or)"><div class="albl">ON-CHAIN</div><div class="aval" id="ss-c4">--</div><div style="font-size:12px;color:var(--tx);font-family:var(--mn)" id="ss-c4s">--</div></div>
+      <div class="abox" style="border-left:3px solid var(--yl)"><div class="albl">MACRO</div><div class="aval" id="ss-c5">--</div><div style="font-size:12px;color:var(--tx);font-family:var(--mn)" id="ss-c5s">--</div></div>
+      <div class="abox" style="border-left:3px solid var(--gr)"><div class="albl">INST FLOW</div><div class="aval" id="ss-c6">--</div><div style="font-size:12px;color:var(--tx);font-family:var(--mn)" id="ss-c6s">--</div></div>
+      <div class="abox" style="border-left:3px solid var(--rd)"><div class="albl">WHALE ACTIVITY</div><div class="aval" id="ss-c7">--</div><div style="font-size:12px;color:var(--tx);font-family:var(--mn)" id="ss-c7s">--</div></div>
+      <div class="abox" style="border-left:3px solid var(--bl)"><div class="albl">FEAR & GREED</div><div class="aval" id="ss-c8">--</div><div style="font-size:12px;color:var(--tx);font-family:var(--mn)" id="ss-c8s">--</div></div>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--tx);font-family:var(--mn);opacity:.6">
+      ⚠️ Signal Score is for informational purposes only. Not financial advice. Always DYOR.
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-B: MACRO DASHBOARD (#46) + CORRELATION MATRIX (#47) -->
+<div style="margin-bottom:10px" id="macro-section">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <!-- Macro Dashboard -->
+    <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+      <div class="sec-title" style="color:var(--or);margin-bottom:12px">📈 MACRO SIGNAL DASHBOARD</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="macro-grid">
+        <div class="abox"><div class="albl">DXY (USD INDEX)</div><div class="aval" id="mac-dxy">--</div><div style="font-size:13px;font-family:var(--mn)" id="mac-dxy-chg">--</div></div>
+        <div class="abox"><div class="albl">S&P 500</div><div class="aval" id="mac-sp">--</div><div style="font-size:13px;font-family:var(--mn)" id="mac-sp-chg">--</div></div>
+        <div class="abox"><div class="albl">GOLD (USD/oz)</div><div class="aval" id="mac-gold">--</div><div style="font-size:13px;font-family:var(--mn)" id="mac-gold-chg">--</div></div>
+        <div class="abox"><div class="albl">10-YR TREASURY</div><div class="aval" id="mac-tnx">--</div><div style="font-size:13px;font-family:var(--mn)" id="mac-tnx-chg">--</div></div>
+        <div class="abox"><div class="albl">BITCOIN</div><div class="aval" id="mac-btc">--</div><div style="font-size:13px;font-family:var(--mn)" id="mac-btc-chg">--</div></div>
+        <div class="abox" id="mac-signal-box"><div class="albl">MACRO SIGNAL</div><div class="aval" id="mac-signal" style="font-size:16px">--</div><div style="font-size:12px;font-family:var(--mn);color:var(--tx)" id="mac-ts">--</div></div>
+      </div>
+    </div>
+    <!-- Correlation Matrix -->
+    <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+      <div class="sec-title" style="color:var(--tq);margin-bottom:12px">🔢 XRP CORRELATION MATRIX</div>
+      <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-bottom:10px">Directional correlation — 24h price movement</div>
+      <div style="display:flex;flex-direction:column;gap:8px" id="corr-grid">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--b)">
+          <span style="font-family:var(--mn);font-size:14px;font-weight:700;color:var(--br)">XRP vs BTC</span>
+          <span id="corr-btc" style="font-family:var(--mn);font-size:14px;font-weight:700">--</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--b)">
+          <span style="font-family:var(--mn);font-size:14px;font-weight:700;color:var(--br)">XRP vs S&P 500</span>
+          <span id="corr-sp" style="font-family:var(--mn);font-size:14px;font-weight:700">--</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--b)">
+          <span style="font-family:var(--mn);font-size:14px;font-weight:700;color:var(--br)">XRP vs Gold</span>
+          <span id="corr-gold" style="font-family:var(--mn);font-size:14px;font-weight:700">--</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--b)">
+          <span style="font-family:var(--mn);font-size:14px;font-weight:700;color:var(--br)">XRP vs DXY</span>
+          <span id="corr-dxy" style="font-family:var(--mn);font-size:14px;font-weight:700">--</span>
+        </div>
+        <div style="margin-top:8px;padding:10px;background:var(--s2);border-radius:6px;font-family:var(--mn);font-size:12px;color:var(--tx)">
+          POSITIVE = same direction today · NEGATIVE = inverse · -- = no data yet
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-C: ORDER BOOK DEPTH (#41) + LIQUIDITY MAP (#43) -->
+<div style="margin-bottom:10px" id="orderbook-section">
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">
+    <!-- Order Book Depth -->
+    <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+      <div class="sec-title" style="color:var(--gr);margin-bottom:4px">📊 XRP ORDER BOOK DEPTH</div>
+      <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:12px">Combined buy/sell walls across Binance · Bitstamp · Kraken — real-time</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <!-- Bids -->
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:6px;text-align:center">🟢 BUY WALLS (BIDS)</div>
+          <div id="ob-bids" style="font-family:var(--mn);font-size:12px">
+            <div style="color:var(--tx)">Loading order book...</div>
+          </div>
+          <div style="margin-top:8px;padding:6px;background:rgba(72,255,130,.1);border:1px solid rgba(72,255,130,.2);border-radius:4px;text-align:center">
+            <span style="font-size:12px;color:var(--tx)">Total Bid Depth: </span>
+            <span id="ob-bid-total" style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn)">--</span>
+          </div>
+        </div>
+        <!-- Asks -->
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--rd);font-family:var(--mn);margin-bottom:6px;text-align:center">🔴 SELL WALLS (ASKS)</div>
+          <div id="ob-asks" style="font-family:var(--mn);font-size:12px">
+            <div style="color:var(--tx)">Loading order book...</div>
+          </div>
+          <div style="margin-top:8px;padding:6px;background:rgba(255,64,96,.1);border:1px solid rgba(255,64,96,.2);border-radius:4px;text-align:center">
+            <span style="font-size:12px;color:var(--tx)">Total Ask Depth: </span>
+            <span id="ob-ask-total" style="font-size:14px;font-weight:700;color:var(--rd);font-family:var(--mn)">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Liquidity Map -->
+    <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+      <div class="sec-title" style="color:var(--tq);margin-bottom:12px">💧 LIQUIDITY MAP</div>
+      <div id="liq-map" style="font-family:var(--mn)">
+        <div style="font-size:13px;color:var(--tx)">Fetching liquidity data...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-D: RIPPLE IPO WATCH (#44) -->
+<div style="margin-bottom:10px" id="ipo-section">
+  <div style="background:linear-gradient(135deg,#0a0a14 0%,#0d0814 100%);border:1px solid rgba(255,204,0,.3);border-radius:12px;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div>
+        <div class="sec-title" style="color:var(--yl);margin-bottom:4px">🏦 RIPPLE IPO WATCH</div>
+        <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Tracking Ripple Labs' path to public markets — the most anticipated crypto IPO</div>
+      </div>
+      <div id="ipo-prob-display" style="text-align:center;background:rgba(255,204,0,.1);border:1px solid rgba(255,204,0,.3);border-radius:8px;padding:10px 20px">
+        <div style="font-size:11px;color:var(--yl);font-family:var(--mn);text-transform:uppercase;letter-spacing:1px">IPO Probability</div>
+        <div id="ipo-prob" style="font-size:36px;font-weight:900;color:var(--yl);font-family:var(--mn)">72%</div>
+        <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">within 12 months</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:14px">
+      <div class="abox"><div class="albl">CURRENT VALUATION</div><div class="aval" id="ipo-val" style="font-size:20px;color:var(--yl)">~$11B</div></div>
+      <div class="abox"><div class="albl">IPO STATUS</div><div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-top:4px" id="ipo-status">Filed confidentially</div></div>
+      <div class="abox"><div class="albl">UNDERWRITERS</div><div style="font-size:13px;font-weight:700;color:var(--br);font-family:var(--mn);margin-top:4px" id="ipo-banks">Goldman, JPMorgan (rumoured)</div></div>
+      <div class="abox"><div class="albl">NEXT MILESTONE</div><div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn);margin-top:4px" id="ipo-milestone">S-1 Registration</div></div>
+    </div>
+    <div class="sec-title" style="font-size:14px;color:var(--yl);margin-bottom:8px">Latest IPO News</div>
+    <div id="ipo-news" style="max-height:220px;overflow-y:auto">
+      <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Loading IPO intelligence...</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-E: CURRENCY CRISIS MONITOR (#54) -->
+<div style="margin-bottom:10px" id="crisis-section">
+  <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+    <div class="sec-title" style="color:var(--rd);margin-bottom:4px">🌡️ REAL-TIME CURRENCY CRISIS MONITOR</div>
+    <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:14px">
+      Countries with failing currencies = XRP ODL opportunity. Total addressable remittance market: <span id="cc-total" style="color:var(--gr);font-weight:700">$0B</span>/year
+    </div>
+    <div id="crisis-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px">
+      <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Loading crisis monitor...</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-F: ADOPTION VELOCITY (#57) + NVT RATIO (#49) -->
+<div style="margin-bottom:10px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <!-- Adoption Velocity -->
+    <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+      <div class="sec-title" style="color:var(--gr);margin-bottom:12px">🚀 XRP ADOPTION VELOCITY</div>
+      <div style="text-align:center;margin-bottom:14px">
+        <div id="av-score" style="font-size:52px;font-weight:900;color:var(--gr);font-family:var(--mn)">--</div>
+        <div id="av-trend" style="font-size:14px;font-weight:700;color:var(--yl);font-family:var(--mn)">/100 — CALCULATING</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--b)">
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">INSTITUTIONAL</div>
+          <div id="av-inst" style="font-size:18px;font-weight:700;color:var(--bl);font-family:var(--mn)">--</div>
+        </div>
+        <div style="padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--b)">
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">RETAIL</div>
+          <div id="av-retail" style="font-size:18px;font-weight:700;color:var(--tq);font-family:var(--mn)">--</div>
+        </div>
+        <div style="padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--b)">
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">DEVELOPER</div>
+          <div id="av-dev" style="font-size:18px;font-weight:700;color:var(--gr);font-family:var(--mn)">--</div>
+        </div>
+        <div style="padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--b)">
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">REGULATORY</div>
+          <div id="av-reg" style="font-size:18px;font-weight:700;color:var(--yl);font-family:var(--mn)">--</div>
+        </div>
+      </div>
+    </div>
+    <!-- NVT Ratio -->
+    <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+      <div class="sec-title" style="color:var(--bl);margin-bottom:12px">📐 NVT RATIO — NETWORK VALUATION</div>
+      <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:14px">Network Value to Transactions — is XRP over or undervalued vs actual usage?</div>
+      <div style="text-align:center;margin-bottom:16px">
+        <div id="nvt-value" style="font-size:48px;font-weight:900;color:var(--bl);font-family:var(--mn)">--</div>
+        <div id="nvt-interp" style="font-size:14px;font-weight:700;color:var(--br);font-family:var(--mn)">CALCULATING...</div>
+      </div>
+      <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--b);font-family:var(--mn);font-size:12px;color:var(--tx)">
+        NVT &lt;20 = Undervalued · 20-50 = Fair · 50-100 = Moderate Premium · &gt;100 = Overvalued vs network usage
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-G: COMMUNITY PULSE POLL (#60) -->
+<div style="margin-bottom:10px" id="poll-section">
+  <div style="background:var(--s1);border:1px solid rgba(117,188,255,.2);border-radius:12px;padding:16px">
+    <div class="sec-title" style="color:var(--bl);margin-bottom:4px">🗳️ COMMUNITY PULSE POLL</div>
+    <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:14px">Daily question — vote and see what the XRPRadar community thinks</div>
+    <div id="poll-question" style="font-size:16px;font-weight:700;color:var(--br);font-family:var(--mn);margin-bottom:14px">Loading today's question...</div>
+    <div id="poll-options" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div id="poll-results" style="margin-top:12px;display:none">
+      <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:8px">Results — <span id="poll-total">0</span> votes</div>
+      <div id="poll-bars" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-H: XRPL TECHNICAL SPECS (#67) + USE CASE LIBRARY (#65) -->
+<div style="margin-bottom:10px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <!-- XRPL Technical Specs -->
+    <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+      <div class="sec-title" style="color:var(--tq);margin-bottom:12px">⚙️ XRPL TECHNICAL SPECS</div>
+      <div style="font-family:var(--mn);font-size:13px">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:1px solid var(--b)">
+              <th style="text-align:left;padding:6px;color:var(--tx);font-size:12px">METRIC</th>
+              <th style="text-align:center;padding:6px;color:var(--gr);font-size:12px">XRPL</th>
+              <th style="text-align:center;padding:6px;color:var(--bl);font-size:12px">ETH</th>
+              <th style="text-align:center;padding:6px;color:var(--or);font-size:12px">SOL</th>
+              <th style="text-align:center;padding:6px;color:var(--tx);font-size:12px">BTC</th>
+            </tr>
+          </thead>
+          <tbody id="tech-specs-tbody">
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px;color:var(--br)">Max TPS</td><td style="text-align:center;padding:6px;color:var(--gr);font-weight:700">1,500</td><td style="text-align:center;padding:6px;color:var(--tx)">~30</td><td style="text-align:center;padding:6px;color:var(--tx)">65,000</td><td style="text-align:center;padding:6px;color:var(--tx)">7</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px;color:var(--br)">Settlement</td><td style="text-align:center;padding:6px;color:var(--gr);font-weight:700">3-5 sec</td><td style="text-align:center;padding:6px;color:var(--tx)">12 sec</td><td style="text-align:center;padding:6px;color:var(--tx)">0.4 sec</td><td style="text-align:center;padding:6px;color:var(--tx)">60 min</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px;color:var(--br)">Tx Fee</td><td style="text-align:center;padding:6px;color:var(--gr);font-weight:700">$0.0002</td><td style="text-align:center;padding:6px;color:var(--tx)">$1-50</td><td style="text-align:center;padding:6px;color:var(--tx)">$0.001</td><td style="text-align:center;padding:6px;color:var(--tx)">$1-20</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px;color:var(--br)">Energy Use</td><td style="text-align:center;padding:6px;color:var(--gr);font-weight:700">0.0079 kWh</td><td style="text-align:center;padding:6px;color:var(--tx)">0.03 kWh</td><td style="text-align:center;padding:6px;color:var(--tx)">0.00051 kWh</td><td style="text-align:center;padding:6px;color:var(--tx)">1,173 kWh</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px;color:var(--br)">Consensus</td><td style="text-align:center;padding:6px;color:var(--gr);font-weight:700">FBC</td><td style="text-align:center;padding:6px;color:var(--tx)">PoS</td><td style="text-align:center;padding:6px;color:var(--tx)">PoH+PoS</td><td style="text-align:center;padding:6px;color:var(--tx)">PoW</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px;color:var(--br)">ISO 20022</td><td style="text-align:center;padding:6px;color:var(--gr);font-weight:700">✅ Native</td><td style="text-align:center;padding:6px;color:var(--rd)">❌ No</td><td style="text-align:center;padding:6px;color:var(--rd)">❌ No</td><td style="text-align:center;padding:6px;color:var(--rd)">❌ No</td></tr>
+            <tr><td style="padding:6px;color:var(--br)">Supply Cap</td><td style="text-align:center;padding:6px;color:var(--gr);font-weight:700">100B fixed</td><td style="text-align:center;padding:6px;color:var(--tx)">Unlimited</td><td style="text-align:center;padding:6px;color:var(--tx)">Fixed</td><td style="text-align:center;padding:6px;color:var(--tx)">21M</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Use Case Library -->
+    <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+      <div class="sec-title" style="color:var(--or);margin-bottom:12px">📚 XRP USE CASE LIBRARY</div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto">
+        <div style="padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--gr)"><div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn)">⚡ Cross-Border Payments (ODL)</div><div style="font-size:12px;color:var(--tx)">Banks use XRP as bridge currency to eliminate pre-funded nostro accounts. Saves up to 60% vs SWIFT. Active in 8+ corridors.</div></div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--bl)"><div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn)">💵 RLUSD Stablecoin Settlement</div><div style="font-size:12px;color:var(--tx)">NYDFS-regulated USD stablecoin on XRPL. Enables stable-value settlement while XRP handles liquidity bridge function.</div></div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--yl)"><div style="font-size:13px;font-weight:700;color:var(--yl);font-family:var(--mn)">🏛️ Central Bank Digital Currency</div><div style="font-size:12px;color:var(--tx)">Bhutan (live), Montenegro (pilot), Palau (live), Colombia, Hong Kong exploring XRPL as CBDC settlement layer.</div></div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--tq)"><div style="font-size:13px;font-weight:700;color:var(--tq);font-family:var(--mn)">🎨 NFT Marketplace (XLS-20)</div><div style="font-size:12px;color:var(--tx)">Native NFT standard on XRPL. Low-fee minting ($0.0002), instant settlement. Multiple marketplaces active.</div></div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--or)"><div style="font-size:13px;font-weight:700;color:var(--or);font-family:var(--mn)">📈 Tokenized Real-World Assets</div><div style="font-size:12px;color:var(--tx)">Sologenic tokenizes stocks/ETFs on XRPL. Institutional-grade settlement infrastructure for RWA market.</div></div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--rd)"><div style="font-size:13px;font-weight:700;color:var(--rd);font-family:var(--mn)">⚗️ DeFi & AMM Protocols</div><div style="font-size:12px;color:var(--tx)">Native AMM live on XRPL mainnet. DEX built into protocol level. No smart contract risk — settlement at protocol layer.</div></div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--gr)"><div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn)">🔗 ISO 20022 Payment Rails</div><div style="font-size:12px;color:var(--tx)">XRPL natively supports ISO 20022 data fields. Same global standard that SWIFT, Fedwire, CHAPS, TARGET2 are migrating to.</div></div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--bl)"><div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn)">🌐 Micropayments & Streaming</div><div style="font-size:12px;color:var(--tx)">XRP enables sub-cent micropayments at $0.0002/tx. Enables streaming money, API monetisation, IoT payments.</div></div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--tq)"><div style="font-size:13px;font-weight:700;color:var(--tq);font-family:var(--mn)">🤖 AI Agent Payments</div><div style="font-size:12px;color:var(--tx)">Ripple integrating XRP/XRPL for AI agent-to-agent payments. AI economy needs instant, programmable, low-cost settlement.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-I: WEEKLY INTELLIGENCE DIGEST (#62) -->
+<div style="margin-bottom:10px" id="weekly-digest-section">
+  <div style="background:var(--s1);border:1px solid rgba(72,255,130,.2);border-radius:12px;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div>
+        <div class="sec-title" style="color:var(--gr);margin-bottom:4px">📅 WEEKLY INTELLIGENCE DIGEST</div>
+        <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">AI-generated every Sunday · Comprehensive week-in-review for institutional readers</div>
+      </div>
+      <div id="digest-meta" style="font-size:12px;color:var(--tx);font-family:var(--mn);text-align:right">
+        <span id="digest-date">Generated: --</span><br>
+        <span style="color:var(--tx)">Next: Sunday 18:00 UTC</span>
+      </div>
+    </div>
+    <div id="weekly-digest-content" style="font-size:14px;color:var(--br);line-height:1.7;max-height:400px;overflow-y:auto;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--b)">
+      <div style="font-family:var(--mn);color:var(--tx)">
+        Weekly digest generates every Sunday at 18:00 UTC. Today's brief covers the latest 7 days of XRP intelligence.<br><br>
+        <span style="color:var(--gr)">Next digest: </span><span id="digest-countdown">--</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION v6-ALERT: PRICE ALERT CONFIGURATOR (#58) -->
+<div id="price-alert-bar" style="margin-bottom:10px;display:none">
+  <div style="background:rgba(255,204,0,.1);border:1px solid rgba(255,204,0,.4);border-radius:8px;padding:10px 16px;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-size:16px">🔔</span>
+    <span style="font-size:14px;font-weight:700;color:var(--yl);font-family:var(--mn)">PRICE ALERT TRIGGERED</span>
+    <span id="alert-msg" style="font-size:13px;color:var(--br);font-family:var(--mn)"></span>
+    <button onclick="document.getElementById('price-alert-bar').style.display='none'"
+      style="margin-left:auto;background:transparent;border:none;color:var(--tx);cursor:pointer;font-size:16px">✕</button>
+  </div>
+</div>
+
+<!-- Price Alert Config Widget -->
+<div style="margin-bottom:10px" id="alert-config-section">
+  <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:14px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:18px">🔔</span>
+      <span style="font-size:14px;font-weight:700;color:var(--yl);font-family:var(--mn)">PRICE ALERT CONFIGURATOR</span>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="number" id="alert-above" placeholder="Alert above $" step="0.001" min="0"
+          style="width:140px;background:var(--bg);border:1px solid var(--b);color:var(--gr);
+          padding:6px 10px;border-radius:5px;font-size:13px;font-family:var(--mn)">
+        <input type="number" id="alert-below" placeholder="Alert below $" step="0.001" min="0"
+          style="width:140px;background:var(--bg);border:1px solid var(--b);color:var(--rd);
+          padding:6px 10px;border-radius:5px;font-size:13px;font-family:var(--mn)">
+        <button onclick="setAlerts()"
+          style="background:rgba(255,204,0,.15);color:var(--yl);padding:6px 16px;border-radius:5px;
+          border:1px solid rgba(255,204,0,.3);font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+          SET ALERTS
+        </button>
+        <button onclick="clearAlerts()"
+          style="background:transparent;color:var(--tx);padding:6px 12px;border-radius:5px;
+          border:1px solid var(--b);font-family:var(--mn);font-size:13px;cursor:pointer">
+          CLEAR
+        </button>
+        <span id="alert-status" style="font-size:12px;color:var(--tx);font-family:var(--mn)">No alerts set</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- SECTION 8: NEWS FEED + RIGHT PANEL -->
 <div class="nrow" id="news-panel">
   <div class="npanel">
@@ -4262,6 +4754,78 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
 </div>
 
 
+
+<!-- SECTION v6-AI: AI-POWERED TOOLS (#71, #72, #74) -->
+<div style="margin-bottom:10px" id="ai-tools-section">
+  <div style="background:var(--s1);border:1px solid rgba(117,188,255,.2);border-radius:12px;padding:16px">
+    <div class="sec-title" style="color:var(--bl);margin-bottom:4px">🤖 AI-POWERED ANALYSIS TOOLS</div>
+    <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:16px">Powered by Claude AI — Requires ANTHROPIC_API_KEY in Railway</div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+
+      <!-- #71 Price Scenario Builder -->
+      <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:14px">
+        <div style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:8px">🔮 Price Scenario Builder</div>
+        <div style="font-size:12px;color:var(--tx);margin-bottom:10px">Describe a macro event — AI tells you how XRP has historically responded and what to expect.</div>
+        <textarea id="scenario-input" rows="3" placeholder="e.g. Federal Reserve cuts rates by 0.5%..."
+          style="width:100%;background:var(--s1);border:1px solid var(--b);color:var(--br);
+          padding:8px;border-radius:5px;font-size:13px;font-family:system-ui;resize:vertical;box-sizing:border-box"></textarea>
+        <button onclick="runScenario()" id="scenario-btn"
+          style="margin-top:8px;width:100%;background:rgba(72,255,130,.15);color:var(--gr);
+          padding:8px;border-radius:5px;border:1px solid rgba(72,255,130,.3);
+          font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+          ⚡ ANALYZE SCENARIO
+        </button>
+        <div id="scenario-result" style="margin-top:10px;font-size:13px;color:var(--br);line-height:1.6;display:none;
+          padding:10px;background:var(--s1);border-radius:6px;border-left:3px solid var(--gr)"></div>
+      </div>
+
+      <!-- #72 Regulatory Impact Analyzer -->
+      <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:14px">
+        <div style="font-size:14px;font-weight:700;color:var(--yl);font-family:var(--mn);margin-bottom:8px">⚖️ Regulatory Impact Analyzer</div>
+        <div style="font-size:12px;color:var(--tx);margin-bottom:10px">Paste any new regulation or news headline — AI scores its impact on XRP 1-10 with reasoning.</div>
+        <textarea id="reg-input" rows="3" placeholder="e.g. EU passes new crypto licensing requirement for exchanges..."
+          style="width:100%;background:var(--s1);border:1px solid var(--b);color:var(--br);
+          padding:8px;border-radius:5px;font-size:13px;font-family:system-ui;resize:vertical;box-sizing:border-box"></textarea>
+        <button onclick="runRegAnalysis()" id="reg-btn"
+          style="margin-top:8px;width:100%;background:rgba(255,204,0,.15);color:var(--yl);
+          padding:8px;border-radius:5px;border:1px solid rgba(255,204,0,.3);
+          font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+          ⚡ ANALYZE IMPACT
+        </button>
+        <div id="reg-result" style="margin-top:10px;font-size:13px;color:var(--br);line-height:1.6;display:none;
+          padding:10px;background:var(--s1);border-radius:6px;border-left:3px solid var(--yl)"></div>
+      </div>
+
+      <!-- #74 Bull/Bear Case Generator -->
+      <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:14px">
+        <div style="font-size:14px;font-weight:700;color:var(--bl);font-family:var(--mn);margin-bottom:8px">🐂🐻 Bull vs Bear Case</div>
+        <div style="font-size:12px;color:var(--tx);margin-bottom:10px">AI writes the strongest current bull case AND bear case for XRP based on today's intelligence.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+          <button onclick="runBullBear('bull')" id="bull-btn"
+            style="background:rgba(72,255,130,.15);color:var(--gr);padding:8px;border-radius:5px;
+            border:1px solid rgba(72,255,130,.3);font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+            🐂 BULL CASE
+          </button>
+          <button onclick="runBullBear('bear')" id="bear-btn"
+            style="background:rgba(255,64,96,.15);color:var(--rd);padding:8px;border-radius:5px;
+            border:1px solid rgba(255,64,96,.3);font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+            🐻 BEAR CASE
+          </button>
+        </div>
+        <button onclick="runBullBear('both')" id="both-btn"
+          style="width:100%;background:rgba(117,188,255,.15);color:var(--bl);padding:8px;border-radius:5px;
+          border:1px solid rgba(117,188,255,.3);font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+          ⚡ GENERATE BOTH
+        </button>
+        <div id="bullbear-result" style="margin-top:10px;font-size:13px;color:var(--br);line-height:1.6;display:none;
+          max-height:300px;overflow-y:auto;padding:10px;background:var(--s1);border-radius:6px"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- SECTION 17c: CHAINEDGE PROMOTIONAL / SPONSOR SECTION -->
 <div style="margin-bottom:16px">
   <div style="background:linear-gradient(135deg,#0a0a12 0%,#0d0a14 100%);
@@ -4318,6 +4882,30 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
             📸 Instagram
           </a>
         </div>
+      </div>
+
+      <!-- Pro Teaser / Email Signup -->
+      <div style="background:var(--s2);border:1px solid rgba(72,255,130,.3);border-radius:8px;padding:14px">
+        <div style="font-size:16px;margin-bottom:6px">🔔</div>
+        <div style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:6px">
+          XRPRADAR DAILY BRIEF
+        </div>
+        <div style="font-size:13px;color:var(--tx);line-height:1.6;margin-bottom:10px">
+          Get the AM + PM Intelligence Brief delivered to your inbox every day. 
+          Be first to know when XRP moves.
+        </div>
+        <div style="display:flex;gap:6px">
+          <input type="email" id="pro-email" placeholder="your@email.com"
+            style="flex:1;background:var(--bg);border:1px solid var(--b);color:var(--br);
+            padding:7px 12px;border-radius:5px;font-size:13px;font-family:var(--mn)">
+          <button onclick="submitProEmail()"
+            style="background:rgba(72,255,130,.15);color:var(--gr);padding:7px 14px;
+            border-radius:5px;border:1px solid rgba(72,255,130,.3);
+            font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">
+            NOTIFY ME
+          </button>
+        </div>
+        <div id="pro-email-msg" style="font-size:12px;margin-top:6px;font-family:var(--mn)"></div>
       </div>
 
       <!-- Sponsor Slot -->
@@ -4404,6 +4992,15 @@ async function fetchData(){
     updateRight(d);
     updateFooter(d);
     updateBreaking(d);
+    // v6.0 new sections
+    updateSignalScore(d);
+    updateMacroDashboard(d);
+    updateOrderBook(d);
+    updateIPOWatch(d);
+    updateCurrencyCrisis(d);
+    updateAdoptionVelocity(d);
+    updateCommunityPoll(d);
+    updateWeeklyDigest(d);
   }catch(e){console.error("fetchData:",e);}
 }
 
@@ -5867,8 +6464,9 @@ function updateStatus(d){
     const ch=parseFloat(p.change_24h||0);
     pr.textContent=`$${parseFloat(p.usd).toFixed(4)} ${ch>=0?"▲":"▼"}${Math.abs(ch).toFixed(2)}%`;
     pr.style.color=ch>=0?"var(--gr)":"var(--rd)";
+    checkPriceAlerts(parseFloat(p.usd));
   }
-  c("st-feeds",`${d.feeds_active||0} / ${d.feeds_total||230} active`);
+  c("st-feeds",`${d.feeds_active||0} / ${d.feeds_total||306} active`);
   const fgEl=document.getElementById("st-fg");
   if(fgEl&&fg.score!==undefined){
     fgEl.textContent=`${fg.score} / ${fg.label||"--"}`;
@@ -6266,6 +6864,449 @@ setTimeout(()=>{ if(allStories.length===0) fetchNews(); }, 60000);
     }
   }, 45000);
 })();
+
+// ════════════════════════════════════════════════════════════════════
+// v6.0 JS UPDATE FUNCTIONS
+// ════════════════════════════════════════════════════════════════════
+
+function updateSignalScore(d){
+  const ss = d.signal_score||{};
+  if(!ss.total && ss.total!==0) return;
+  const total = ss.total||0;
+  const grade = ss.grade||"--";
+  const label = ss.label||"--";
+  const ts    = ss.ts||"";
+  c("ss-score", total);
+  c("ss-grade", grade+"/100");
+  c("ss-label", label);
+  c("ss-ts",    ts);
+  const bar = document.getElementById("ss-bar");
+  if(bar) bar.style.width = total+"%";
+  // Color the score
+  const scoreEl = document.getElementById("ss-score");
+  if(scoreEl){
+    if(total>=70)      scoreEl.style.color="var(--gr)";
+    else if(total>=50) scoreEl.style.color="var(--yl)";
+    else if(total>=30) scoreEl.style.color="var(--or)";
+    else               scoreEl.style.color="var(--rd)";
+  }
+  // Components
+  const comp = ss.components||{};
+  const compMap = [
+    ["price_momentum","ss-c1","ss-c1s"],
+    ["rsi_signal",    "ss-c2","ss-c2s"],
+    ["sentiment",     "ss-c3","ss-c3s"],
+    ["on_chain",      "ss-c4","ss-c4s"],
+    ["macro",         "ss-c5","ss-c5s"],
+    ["inst_flow",     "ss-c6","ss-c6s"],
+    ["whale_activity","ss-c7","ss-c7s"],
+    ["fear_greed",    "ss-c8","ss-c8s"],
+  ];
+  compMap.forEach(([key,scoreId,sigId])=>{
+    const cv = comp[key]||{};
+    const scoreEl2 = document.getElementById(scoreId);
+    const sigEl    = document.getElementById(sigId);
+    if(scoreEl2){
+      const s = cv.score||0;
+      const w = cv.weight||10;
+      scoreEl2.textContent = s+"/"+w;
+      scoreEl2.style.color = s>=w*0.7?"var(--gr)":s>=w*0.4?"var(--yl)":"var(--rd)";
+    }
+    if(sigEl) sigEl.textContent = cv.signal||"--";
+  });
+}
+
+function updateMacroDashboard(d){
+  const md = d.macro_data||{};
+  const cr = d.correlation||{};
+  // Macro cards
+  const macMap = [
+    ["dxy","mac-dxy","mac-dxy-chg"],
+    ["sp500","mac-sp","mac-sp-chg"],
+    ["gold","mac-gold","mac-gold-chg"],
+    ["treasury","mac-tnx","mac-tnx-chg"],
+    ["btc","mac-btc","mac-btc-chg"],
+  ];
+  macMap.forEach(([key,valId,chgId])=>{
+    const v = md[key]||{};
+    const val = v.value||0;
+    const chg = v.change_pct||0;
+    const valEl = document.getElementById(valId);
+    const chgEl = document.getElementById(chgId);
+    if(valEl) valEl.textContent = key==="btc"?"$"+val.toLocaleString():key==="treasury"?val.toFixed(3)+"%":val.toLocaleString();
+    if(chgEl){
+      chgEl.textContent = (chg>=0?"+":"")+chg.toFixed(2)+"%";
+      chgEl.style.color = chg>=0?"var(--gr)":"var(--rd)";
+    }
+  });
+  // Macro signal
+  const sig = md.macro_signal||"NEUTRAL";
+  const sigEl = document.getElementById("mac-signal");
+  const sigBox = document.getElementById("mac-signal-box");
+  if(sigEl){
+    sigEl.textContent = sig;
+    sigEl.style.color = sig==="BULLISH"?"var(--gr)":sig==="BEARISH"?"var(--rd)":"var(--yl)";
+  }
+  c("mac-ts", md.ts||"--");
+  // Correlation matrix
+  const corrMap = {
+    "xrp_btc":"corr-btc","xrp_sp500":"corr-sp","xrp_gold":"corr-gold","xrp_dxy":"corr-dxy"
+  };
+  Object.entries(corrMap).forEach(([key,elId])=>{
+    const val = cr[key]||"--";
+    const el  = document.getElementById(elId);
+    if(el){
+      el.textContent = val;
+      el.style.color = val==="POSITIVE"?"var(--gr)":val==="NEGATIVE"?"var(--rd)":"var(--tx)";
+    }
+  });
+}
+
+function updateOrderBook(d){
+  const ob   = d.order_book||{};
+  const bids = ob.combined_bids||[];
+  const asks = ob.combined_asks||[];
+  const maxQ = Math.max(...bids.concat(asks).map(x=>x[1]||0),1);
+
+  function renderSide(items, elId, col, isAsk){
+    const el = document.getElementById(elId);
+    if(!el||!items.length) return;
+    el.innerHTML = items.slice(0,10).map(([price,qty])=>{
+      const pct = Math.min((qty/maxQ)*100,100);
+      const barCol = isAsk?"rgba(255,64,96,.3)":"rgba(72,255,130,.3)";
+      return `<div style="position:relative;display:flex;justify-content:space-between;
+        padding:3px 6px;border-radius:3px;margin-bottom:2px;overflow:hidden">
+        <div style="position:absolute;top:0;${isAsk?"right":"left"}:0;height:100%;width:${pct}%;
+          background:${barCol};z-index:0"></div>
+        <span style="position:relative;font-size:12px;color:${col};font-weight:700">$${price.toFixed(4)}</span>
+        <span style="position:relative;font-size:12px;color:var(--tx)">${qty.toLocaleString(undefined,{maximumFractionDigits:0})} XRP</span>
+      </div>`;
+    }).join("");
+  }
+  renderSide(bids,"ob-bids","var(--gr)",false);
+  renderSide(asks,"ob-asks","var(--rd)",true);
+  c("ob-bid-total",(ob.total_bid_depth||0).toLocaleString()+" XRP");
+  c("ob-ask-total",(ob.total_ask_depth||0).toLocaleString()+" XRP");
+  // Liquidity map
+  const lm  = d.liquidity_map||{};
+  const lmEl= document.getElementById("liq-map");
+  if(lmEl && lm.exchanges && lm.exchanges.length){
+    lmEl.innerHTML =
+      `<div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:10px">
+        Best venue: <b style="color:var(--gr)">${lm.best_venue||"--"}</b> (tightest spread)
+      </div>`+
+      lm.exchanges.map(ex=>`
+        <div style="padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--b);margin-bottom:6px">
+          <div style="font-size:14px;font-weight:700;color:var(--br);font-family:var(--mn);margin-bottom:4px">${ex.name}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;font-family:var(--mn)">
+            <div>Bid Depth: <span style="color:var(--gr)">${(ex.bid_depth||0).toLocaleString()} XRP</span></div>
+            <div>Spread: <span style="color:${ex.spread_pct<0.01?"var(--gr)":"var(--yl)"}">${(ex.spread_pct||0).toFixed(4)}%</span></div>
+            <div>Best Bid: <span style="color:var(--gr)">$${(ex.best_bid||0).toFixed(4)}</span></div>
+            <div>Best Ask: <span style="color:var(--rd)">$${(ex.best_ask||0).toFixed(4)}</span></div>
+          </div>
+        </div>`
+      ).join("");
+  }
+}
+
+function updateIPOWatch(d){
+  const ipo = d.ipo_watch||{};
+  c("ipo-prob",     (ipo.probability||72)+"%");
+  c("ipo-val",      ipo.ripple_valuation||"~$11B");
+  c("ipo-status",   ipo.ipo_status||"Monitoring...");
+  c("ipo-banks",    ipo.lead_underwriters||"--");
+  c("ipo-milestone",ipo.next_milestone||"--");
+  const newsEl = document.getElementById("ipo-news");
+  if(newsEl && ipo.news && ipo.news.length){
+    newsEl.innerHTML = ipo.news.map(n=>`
+      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer"
+           onclick="window.open('${n.link||"#"}','_blank')">
+        <div style="font-size:14px;font-weight:700;color:var(--bl);line-height:1.35">${n.title}</div>
+        <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-top:3px">
+          ${n.source||""} · ${timeAgo(n.pub)||""}
+        </div>
+      </div>`).join("");
+  }
+}
+
+function updateCurrencyCrisis(d){
+  const cc  = d.currency_crisis||{};
+  const countries = cc.countries||[];
+  c("cc-total","$"+(cc.odl_opportunity||0).toFixed(1)+"B");
+  const grid = document.getElementById("crisis-grid");
+  if(!grid||!countries.length) return;
+  const riskCol = {"CRITICAL":"var(--rd)","HIGH":"var(--or)","MEDIUM":"var(--yl)","LOW":"var(--gr)"};
+  grid.innerHTML = countries.map(c2=>`
+    <div style="background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:12px;
+      border-left:3px solid ${riskCol[c2.risk]||"var(--tx)"}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:14px;font-weight:700;color:var(--br);font-family:var(--mn)">${c2.country} (${c2.currency})</span>
+        <span style="font-size:11px;font-weight:700;color:${riskCol[c2.risk]||"var(--tx)"};
+          background:rgba(255,255,255,.05);padding:2px 8px;border-radius:3px;font-family:var(--mn)">${c2.risk} RISK</span>
+      </div>
+      <div style="font-size:12px;color:var(--tx);line-height:1.5;margin-bottom:6px">${c2.context}</div>
+      <div style="font-size:12px;font-family:var(--mn);color:var(--tq)">
+        💸 Remittance market: $${c2.remittance_usd_bn||0}B/yr · ODL corridor: ${c2.odl_corridor||"--"}
+      </div>
+      ${c2.rate_vs_usd?`<div style="font-size:12px;font-family:var(--mn);color:var(--tx);margin-top:4px">
+        Rate: ${c2.rate_vs_usd} vs USD 
+        <span style="color:${(c2.change_5d_pct||0)>0?"var(--rd)":"var(--gr)"}">${c2.change_5d_pct>0?"▲":"▼"}${Math.abs(c2.change_5d_pct||0).toFixed(2)}% (5d)</span>
+      </div>`:""}
+    </div>`).join("");
+}
+
+function updateAdoptionVelocity(d){
+  const av = d.adoption_velocity||{};
+  const sc = av.score||0;
+  const el = document.getElementById("av-score");
+  if(el){
+    el.textContent = sc;
+    el.style.color = sc>70?"var(--gr)":sc>50?"var(--yl)":"var(--or)";
+  }
+  c("av-trend", "/100 — "+(av.trend||"CALCULATING"));
+  c("av-inst",   (av.institutional||0)+"/100");
+  c("av-retail", (av.retail||0)+"/100");
+  c("av-dev",    (av.developer||0)+"/100");
+  c("av-reg",    (av.regulatory||0)+"/100");
+  const nvt = d.nvt_ratio||{};
+  c("nvt-value",  nvt.nvt||"--");
+  c("nvt-interp", nvt.interpretation||"Calculating...");
+}
+
+let pollVoted = false;
+function updateCommunityPoll(d){
+  const poll = d.community_poll||{};
+  if(!poll.question) return;
+  c("poll-question", poll.question);
+  const optsEl  = document.getElementById("poll-options");
+  const resEl   = document.getElementById("poll-results");
+  const total   = poll.total_votes||0;
+  if(optsEl && !pollVoted){
+    optsEl.innerHTML = (poll.options||[]).map(opt=>`
+      <button onclick="submitPollVote('${opt.replace(/'/g,"\'")}',this)"
+        style="background:var(--s2);border:1px solid var(--b);color:var(--br);
+        padding:10px 16px;border-radius:6px;cursor:pointer;font-family:var(--mn);
+        font-size:13px;font-weight:600;text-align:left;transition:all .2s;width:100%"
+        onmouseover="this.style.borderColor='var(--bl)'"
+        onmouseout="this.style.borderColor='var(--b)'">${opt}</button>`).join("");
+  }
+  if(resEl && pollVoted && total>0){
+    resEl.style.display="block";
+    c("poll-total", total+" votes");
+    const barsEl = document.getElementById("poll-bars");
+    if(barsEl){
+      barsEl.innerHTML = Object.entries(poll.votes||{}).map(([opt,votes])=>{
+        const pct = Math.round((votes/total)*100);
+        return `<div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;font-family:var(--mn);font-size:13px;margin-bottom:3px">
+            <span style="color:var(--br)">${opt}</span>
+            <span style="color:var(--yl)">${pct}% (${votes})</span>
+          </div>
+          <div style="background:var(--bg);border-radius:3px;height:8px">
+            <div style="height:100%;border-radius:3px;background:var(--bl);width:${pct}%;transition:width .5s"></div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+  }
+}
+
+async function submitPollVote(option, btn){
+  if(pollVoted) return;
+  pollVoted = true;
+  try{
+    const r = await fetch("/api/poll/vote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({option})});
+    const data = await r.json();
+    document.getElementById("poll-options").style.display="none";
+    document.getElementById("poll-results").style.display="block";
+    c("poll-total",(data.total||0)+" votes");
+    const barsEl = document.getElementById("poll-bars");
+    const total  = data.total||1;
+    if(barsEl){
+      barsEl.innerHTML = Object.entries(data.votes||{}).map(([opt,votes])=>{
+        const pct=Math.round((votes/total)*100);
+        return `<div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;font-family:var(--mn);font-size:13px;margin-bottom:3px">
+            <span style="color:${opt===option?"var(--gr)":"var(--br)"};font-weight:${opt===option?"700":"400"}">${opt}${opt===option?" ✓":""}</span>
+            <span style="color:var(--yl)">${pct}%</span>
+          </div>
+          <div style="background:var(--bg);border-radius:3px;height:8px">
+            <div style="height:100%;border-radius:3px;background:${opt===option?"var(--gr)":"var(--bl)"};width:${pct}%;transition:width .5s"></div>
+          </div></div>`;
+      }).join("");
+    }
+  }catch(e){ pollVoted=false; }
+}
+
+function updateWeeklyDigest(d){
+  const wd  = d.weekly_digest||{};
+  const el  = document.getElementById("weekly-digest-content");
+  const dt  = document.getElementById("digest-date");
+  if(dt) dt.textContent = wd.generated_date ? "Generated: "+wd.generated_date : "Next: Sunday 18:00 UTC";
+  if(el && wd.content){
+    el.innerHTML = `<div style="white-space:pre-wrap;font-size:14px;line-height:1.7;color:var(--br)">${wd.content}</div>`;
+  }
+  // Countdown to next Sunday
+  const now  = new Date();
+  const days = (7 - now.getDay()) % 7 || 7;
+  const cnt  = document.getElementById("digest-countdown");
+  if(cnt) cnt.textContent = days===0?"Today at 18:00 UTC":"In "+days+" day"+(days===1?"":"s")+" (Sunday 18:00 UTC)";
+}
+
+
+  // ── Price Alert System (#58) ─────────────────────────────────────────────
+  let alertAbove = null, alertBelow = null, alertFired = false;
+  function setAlerts(){
+    const above = parseFloat(document.getElementById("alert-above").value);
+    const below = parseFloat(document.getElementById("alert-below").value);
+    alertAbove  = isNaN(above) ? null : above;
+    alertBelow  = isNaN(below) ? null : below;
+    alertFired  = false;
+    const parts = [];
+    if(alertAbove) parts.push("Above $"+alertAbove.toFixed(3)+" ↑");
+    if(alertBelow) parts.push("Below $"+alertBelow.toFixed(3)+" ↓");
+    const el = document.getElementById("alert-status");
+    if(el) el.textContent = parts.length ? "✅ "+parts.join(" | ") : "No alerts set";
+  }
+  function clearAlerts(){
+    alertAbove = alertBelow = null; alertFired = false;
+    const el = document.getElementById("alert-status");
+    if(el) el.textContent = "No alerts set";
+    document.getElementById("price-alert-bar").style.display="none";
+  }
+  function checkPriceAlerts(price){
+    if(alertFired) return;
+    if(alertAbove && price >= alertAbove){
+      showAlert("🚀 XRP crossed ABOVE $"+alertAbove.toFixed(3)+" — now $"+price.toFixed(4));
+    } else if(alertBelow && price <= alertBelow){
+      showAlert("🔻 XRP dropped BELOW $"+alertBelow.toFixed(3)+" — now $"+price.toFixed(4));
+    }
+  }
+  function showAlert(msg){
+    alertFired = true;
+    const bar = document.getElementById("price-alert-bar");
+    const msgEl= document.getElementById("alert-msg");
+    if(bar)  bar.style.display="flex";
+    if(msgEl)msgEl.textContent = msg;
+    if("Notification" in window && Notification.permission==="granted"){
+      new Notification("XRPRadar Alert",{body:msg,icon:"/favicon.ico"});
+    } else if("Notification" in window && Notification.permission!=="denied"){
+      Notification.requestPermission().then(p=>{ if(p==="granted") new Notification("XRPRadar Alert",{body:msg}); });
+    }
+  }
+
+  // ── Pro Email Teaser (#68) ───────────────────────────────────────────────
+  function submitProEmail(){
+    const em  = document.getElementById("pro-email");
+    const msg = document.getElementById("pro-email-msg");
+    if(!em||!em.value||!em.value.includes("@")){ if(msg) msg.style.color="var(--rd)",msg.textContent="Please enter a valid email."; return; }
+    if(msg){ msg.style.color="var(--gr)"; msg.textContent="✅ You're on the list! Daily briefs coming your way."; }
+    em.value="";
+  }
+
+
+  // ── AI Tools (#71, #72, #74) ──────────────────────────────────────────────
+  async function callClaudeAI(prompt, systemPrompt){
+    const resp = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-6",
+        max_tokens:1000,
+        system: systemPrompt || "You are the world's foremost XRP intelligence analyst. Be specific, bold, and institutional in tone.",
+        messages:[{role:"user",content:prompt}]
+      })
+    });
+    const data = await resp.json();
+    return (data.content||[]).map(b=>b.type==="text"?b.text:"").join("");
+  }
+
+  async function runScenario(){
+    const input = document.getElementById("scenario-input").value.trim();
+    if(!input){ alert("Please describe a macro scenario first."); return; }
+    const btn = document.getElementById("scenario-btn");
+    const res = document.getElementById("scenario-result");
+    btn.textContent = "⏳ Analyzing..."; btn.disabled=true;
+    res.style.display="none";
+    try{
+      const price = currentXRPPrice||1.0;
+      const text = await callClaudeAI(
+        `Macro scenario: "${input}"\n\nCurrent XRP price: $${price.toFixed(4)}\n\n`+
+        `Based on historical patterns and current market conditions, analyze:\n`+
+        `1. How has XRP historically responded to this type of macro event?\n`+
+        `2. What is the likely short-term impact (24-72 hours)?\n`+
+        `3. What is the likely medium-term impact (1-4 weeks)?\n`+
+        `4. What specific price levels should traders watch?\n`+
+        `5. What is your overall assessment — bullish, bearish, or neutral for XRP?\n\n`+
+        `Be specific with price levels and percentage moves. Aim for 8-10 sentences total.`,
+        "You are the world's foremost XRP market analyst. Be specific, name exact price levels, use historical data where relevant. No disclaimers needed — this is for sophisticated investors."
+      );
+      res.innerHTML = text.replace(/\n/g,"<br>");
+      res.style.display="block";
+    }catch(e){ res.innerHTML="Error: "+e.message; res.style.display="block"; }
+    btn.textContent="⚡ ANALYZE SCENARIO"; btn.disabled=false;
+  }
+
+  async function runRegAnalysis(){
+    const input = document.getElementById("reg-input").value.trim();
+    if(!input){ alert("Please paste a regulation or news headline."); return; }
+    const btn = document.getElementById("reg-btn");
+    const res = document.getElementById("reg-result");
+    btn.textContent = "⏳ Analyzing..."; btn.disabled=true;
+    res.style.display="none";
+    try{
+      const text = await callClaudeAI(
+        `Regulatory development: "${input}"\n\n`+
+        `Please provide:\n`+
+        `1. IMPACT SCORE: Rate the impact on XRP from 1 (very negative) to 10 (very positive)\n`+
+        `2. IMMEDIATE EFFECT: What happens to XRP price and ecosystem in the next 7 days?\n`+
+        `3. LONG-TERM EFFECT: What does this mean for XRP adoption in the next 6-12 months?\n`+
+        `4. RIPPLE RESPONSE: How is Ripple likely to respond?\n`+
+        `5. VERDICT: Bullish, Bearish, or Neutral — and why in one sentence.\n\n`+
+        `Be specific and direct. 8-10 sentences total.`,
+        "You are the world's leading XRP regulatory intelligence analyst. You understand Ripple's legal strategy, global crypto regulation, and XRP's regulatory journey intimately. Be direct and specific."
+      );
+      res.innerHTML = text.replace(/\n/g,"<br>");
+      res.style.display="block";
+    }catch(e){ res.innerHTML="Error: "+e.message; res.style.display="block"; }
+    btn.textContent="⚡ ANALYZE IMPACT"; btn.disabled=false;
+  }
+
+  async function runBullBear(mode){
+    const btnId  = mode==="both"?"both-btn":mode+"-btn";
+    const btn    = document.getElementById(btnId);
+    const res    = document.getElementById("bullbear-result");
+    const price  = currentXRPPrice||1.0;
+    if(btn){ btn.textContent="⏳ Generating..."; btn.disabled=true; }
+    res.style.display="none";
+    try{
+      let prompt;
+      if(mode==="bull"){
+        prompt = `Current XRP price: $${price.toFixed(4)}. Write the strongest possible BULL CASE for XRP right now. `+
+          `Include: price catalysts, institutional adoption momentum, regulatory clarity, technical setup, and what could drive XRP to new highs. `+
+          `Be bold and specific. 10-12 sentences.`;
+      } else if(mode==="bear"){
+        prompt = `Current XRP price: $${price.toFixed(4)}. Write the strongest possible BEAR CASE for XRP right now. `+
+          `Include: macro headwinds, competitive threats, adoption challenges, technical risks, and what could drive XRP significantly lower. `+
+          `Be honest and specific. 10-12 sentences.`;
+      } else {
+        prompt = `Current XRP price: $${price.toFixed(4)}. Write BOTH the strongest BULL CASE and strongest BEAR CASE for XRP. `+
+          `Label each section clearly with ## BULL CASE and ## BEAR CASE. `+
+          `Each case should be 8-10 sentences. Be bold, specific, and balanced.`;
+      }
+      const text = await callClaudeAI(prompt,
+        "You are XRPRadar's senior market strategist. Write with conviction and specificity. Name actual price targets, specific catalysts, and exact risks. This is for sophisticated institutional readers."
+      );
+      const colored = text
+        .replace(/## BULL CASE/g,"<div style='font-size:14px;font-weight:700;color:var(--gr);margin:10px 0 6px'>🐂 BULL CASE</div>")
+        .replace(/## BEAR CASE/g,"<div style='font-size:14px;font-weight:700;color:var(--rd);margin:10px 0 6px'>🐻 BEAR CASE</div>")
+        .replace(/\n/g,"<br>");
+      res.innerHTML = colored;
+      res.style.display="block";
+    }catch(e){ res.innerHTML="Error: "+e.message; res.style.display="block"; }
+    if(btn){ btn.textContent=mode==="bull"?"🐂 BULL CASE":mode==="bear"?"🐻 BEAR CASE":"⚡ GENERATE BOTH"; btn.disabled=false; }
+  }
+
 </script>
 
 </body>
@@ -6278,6 +7319,468 @@ threading.Thread(target=prediction_loop, daemon=True).start()
 threading.Thread(target=price_loop, daemon=True).start()
 threading.Thread(target=news_loop,  daemon=True).start()
 
+# ════════════════════════════════════════════════════════════════════
+# v6.0 FETCH FUNCTIONS
+# ════════════════════════════════════════════════════════════════════
+
+def fetch_order_book():
+    """#41 — Live order book depth from Binance, Bitstamp, Kraken."""
+    hdr = {"User-Agent": "XRPRadar/6.0"}
+    ob  = STATE["order_book"]
+    try:
+        # Binance
+        r = requests.get("https://api.binance.com/api/v3/depth?symbol=XRPUSDT&limit=20",
+                         headers=hdr, timeout=10).json()
+        bids_b = [(float(p), float(q)) for p,q in r.get("bids",[])[:10]]
+        asks_b = [(float(p), float(q)) for p,q in r.get("asks",[])[:10]]
+        spread_b = round(asks_b[0][0] - bids_b[0][0], 5) if bids_b and asks_b else 0
+        ob["binance"] = {"bids":bids_b,"asks":asks_b,"spread":spread_b,"ts":"Binance"}
+    except Exception as e: log_error(f"ob_binance: {e}")
+    try:
+        # Bitstamp
+        r = requests.get("https://www.bitstamp.net/api/v2/order_book/xrpusd/",
+                         headers=hdr, timeout=10).json()
+        bids_s = [(float(p), float(q)) for p,q in r.get("bids",[])[:10]]
+        asks_s = [(float(p), float(q)) for p,q in r.get("asks",[])[:10]]
+        spread_s = round(asks_s[0][0] - bids_s[0][0], 5) if bids_s and asks_s else 0
+        ob["bitstamp"] = {"bids":bids_s,"asks":asks_s,"spread":spread_s,"ts":"Bitstamp"}
+    except Exception as e: log_error(f"ob_bitstamp: {e}")
+    try:
+        # Kraken
+        r = requests.get("https://api.kraken.com/0/public/Depth?pair=XRPUSD&count=20",
+                         headers=hdr, timeout=10).json()
+        book = list(r.get("result",{}).values())[0] if r.get("result") else {}
+        bids_k = [(float(p), float(q)) for p,q,_ in book.get("bids",[])[:10]]
+        asks_k = [(float(p), float(q)) for p,q,_ in book.get("asks",[])[:10]]
+        spread_k = round(asks_k[0][0] - bids_k[0][0], 5) if bids_k and asks_k else 0
+        ob["kraken"] = {"bids":bids_k,"asks":asks_k,"spread":spread_k,"ts":"Kraken"}
+    except Exception as e: log_error(f"ob_kraken: {e}")
+    # Aggregate best bid/ask walls
+    try:
+        all_bids = ob["binance"]["bids"] + ob["bitstamp"]["bids"] + ob["kraken"]["bids"]
+        all_asks = ob["binance"]["asks"] + ob["bitstamp"]["asks"] + ob["kraken"]["asks"]
+        # Group by price level (round to 4dp)
+        bid_map = {}
+        for p,q in all_bids:
+            k = round(p,4)
+            bid_map[k] = bid_map.get(k,0) + q
+        ask_map = {}
+        for p,q in all_asks:
+            k = round(p,4)
+            ask_map[k] = ask_map.get(k,0) + q
+        ob["combined_bids"] = sorted([(p,q) for p,q in bid_map.items()],reverse=True)[:15]
+        ob["combined_asks"] = sorted([(p,q) for p,q in ask_map.items()])[:15]
+        ob["total_bid_depth"] = round(sum(q for _,q in ob["combined_bids"]),0)
+        ob["total_ask_depth"] = round(sum(q for _,q in ob["combined_asks"]),0)
+    except Exception as e: log_error(f"ob_aggregate: {e}")
+
+
+def fetch_macro_data():
+    """#46/#47 — Macro dashboard: DXY, S&P 500, Gold, Treasuries + XRP correlation."""
+    import datetime as _dt
+    hdr  = {"User-Agent":"Mozilla/5.0 (compatible; XRPRadar/6.0)"}
+    md   = STATE["macro_data"]
+    corr = STATE["correlation"]
+    symbols = {
+        "dxy":      "DX-Y.NYB",
+        "sp500":    "%5EGSPC",
+        "gold":     "GC%3DF",
+        "treasury": "%5ETNX",
+        "btc":      "BTC-USD",
+    }
+    for key, sym in symbols.items():
+        try:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}?interval=1d&range=2d"
+            r   = requests.get(url, headers=hdr, timeout=12).json()
+            result = r.get("chart",{}).get("result",[None])[0]
+            if not result: continue
+            closes = result.get("indicators",{}).get("quote",[{}])[0].get("close",[])
+            closes = [c for c in closes if c is not None]
+            if len(closes) >= 2:
+                val   = round(closes[-1], 4)
+                prev  = round(closes[-2], 4)
+                chg   = round((val - prev)/prev*100, 2) if prev else 0
+                md[key]["value"]      = val
+                md[key]["change_pct"] = chg
+        except Exception as e: log_error(f"macro_{key}: {e}")
+    md["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
+    # XRP vs Macro correlation (30-day, simplified directional)
+    try:
+        xrp_chg  = STATE["price_data"].get("change_24h", 0)
+        dxy_chg  = md["dxy"]["change_pct"]
+        sp_chg   = md["sp500"]["change_pct"]
+        gold_chg = md["gold"]["change_pct"]
+        btc_chg  = md["btc"]["change_pct"]
+        def dir_corr(a,b):
+            if a == 0 or b == 0: return "--"
+            return "POSITIVE" if (a>0) == (b>0) else "NEGATIVE"
+        corr["xrp_btc"]   = dir_corr(xrp_chg, btc_chg)
+        corr["xrp_sp500"] = dir_corr(xrp_chg, sp_chg)
+        corr["xrp_gold"]  = dir_corr(xrp_chg, gold_chg)
+        corr["xrp_dxy"]   = dir_corr(xrp_chg, dxy_chg)
+        corr["ts"]        = md["ts"]
+        # Macro signal
+        bull_signals = sum(1 for s in [corr["xrp_btc"],corr["xrp_sp500"]] if s=="POSITIVE")
+        bear_signals = sum(1 for s in [corr["xrp_dxy"]] if s=="POSITIVE")
+        if bull_signals >= 2:   md["macro_signal"] = "BULLISH"
+        elif bear_signals >= 1: md["macro_signal"] = "BEARISH"
+        else:                   md["macro_signal"] = "NEUTRAL"
+    except Exception as e: log_error(f"macro_correlation: {e}")
+
+
+def fetch_ripple_ipo_news():
+    """#44 — Fetch latest Ripple IPO news."""
+    hdr = {"User-Agent":"XRPRadar/6.0"}
+    ipo = STATE["ipo_watch"]
+    try:
+        import feedparser
+        feed = feedparser.parse("https://news.google.com/rss/search?q=Ripple+IPO+%22going+public%22+valuation+2026&hl=en-US&gl=US&ceid=US:en")
+        news = []
+        for e in feed.entries[:8]:
+            news.append({
+                "title":  e.get("title",""),
+                "source": e.get("source",{}).get("title","") if hasattr(e.get("source",{}), "get") else "",
+                "link":   e.get("link",""),
+                "pub":    e.get("published",""),
+            })
+        ipo["news"] = news
+    except Exception as e: log_error(f"ipo_news: {e}")
+
+
+def fetch_currency_crisis():
+    """#54 — Real-time currency crisis monitor (ODL opportunity detector)."""
+    hdr = {"User-Agent":"XRPRadar/6.0"}
+    cc  = STATE["currency_crisis"]
+    # Track currencies known to be under stress
+    crisis_countries = [
+        {"country":"Argentina","currency":"ARS","symbol":"ARS%3DX","risk":"HIGH",
+         "odl_corridor":"USA→Argentina","population_m":46,"remittance_usd_bn":1.2,
+         "context":"Peso devaluation ongoing, inflation >100%. ODL could save billions in remittance fees."},
+        {"country":"Turkey","currency":"TRY","symbol":"TRY%3DX","risk":"HIGH",
+         "odl_corridor":"Europe→Turkey","population_m":85,"remittance_usd_bn":2.1,
+         "context":"Lira at historic lows. Large diaspora sending money home. XRP ODL highly relevant."},
+        {"country":"Nigeria","currency":"NGN","symbol":"NGN%3DX","risk":"HIGH",
+         "odl_corridor":"USA/UK→Nigeria","population_m":220,"remittance_usd_bn":20.9,
+         "context":"Naira severely devalued. Nigeria is Africa's largest remittance market. Ripple active."},
+        {"country":"Egypt","currency":"EGP","symbol":"EGP%3DX","risk":"MEDIUM",
+         "odl_corridor":"Gulf→Egypt","population_m":104,"remittance_usd_bn":28.3,
+         "context":"Pound devalued 50%+ since 2022. Gulf worker remittances critical. ODL opportunity massive."},
+        {"country":"Pakistan","currency":"PKR","symbol":"PKR%3DX","risk":"MEDIUM",
+         "odl_corridor":"Gulf/UK→Pakistan","population_m":231,"remittance_usd_bn":27.0,
+         "context":"Rupee under sustained pressure. Massive remittance market. XRP adoption growing."},
+        {"country":"Lebanon","currency":"LBP","symbol":"LBP%3DX","risk":"CRITICAL",
+         "odl_corridor":"Europe/USA→Lebanon","population_m":5,"remittance_usd_bn":6.7,
+         "context":"Currency collapsed 95%+. Banking system frozen. XRP/crypto only viable option."},
+        {"country":"Venezuela","currency":"VES","symbol":"VES%3DX","risk":"CRITICAL",
+         "odl_corridor":"USA→Venezuela","population_m":28,"remittance_usd_bn":3.5,
+         "context":"Bolivar hyperinflation. USD/crypto dominant. Major XRP ODL opportunity."},
+        {"country":"Ethiopia","currency":"ETB","symbol":"ETB%3DX","risk":"MEDIUM",
+         "odl_corridor":"Gulf→Ethiopia","population_m":126,"remittance_usd_bn":5.2,
+         "context":"Birr devaluing. Diaspora growing. XRP presence through Yellow Card expanding."},
+    ]
+    # Fetch live exchange rates for context
+    for c in crisis_countries:
+        try:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{c['symbol']}?interval=1d&range=5d"
+            r   = requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=8).json()
+            result = r.get("chart",{}).get("result",[None])[0]
+            if result:
+                closes = result.get("indicators",{}).get("quote",[{}])[0].get("close",[])
+                closes = [x for x in closes if x is not None]
+                if len(closes) >= 2:
+                    c["rate_vs_usd"]   = round(closes[-1], 4)
+                    c["change_5d_pct"] = round((closes[-1]-closes[0])/closes[0]*100,2) if closes[0] else 0
+        except: pass
+    cc["countries"]     = crisis_countries
+    cc["highest_risk"]  = next((c["country"] for c in crisis_countries if c["risk"]=="CRITICAL"), "Lebanon")
+    cc["odl_opportunity"] = sum(c.get("remittance_usd_bn",0) for c in crisis_countries)
+    cc["ts"]            = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
+
+def compute_signal_score():
+    """#61 — XRPRadar Signal Score (0-100 composite institutional-grade metric)."""
+    ss   = STATE["signal_score"]
+    comp = ss["components"]
+
+    # 1. Price Momentum (15pts) — 24h change
+    try:
+        chg = STATE["price_data"].get("change_24h", 0)
+        if   chg > 5:    comp["price_momentum"] = {"score":15,"signal":"STRONG BULL","weight":15}
+        elif chg > 2:    comp["price_momentum"] = {"score":12,"signal":"BULLISH","weight":15}
+        elif chg > 0:    comp["price_momentum"] = {"score": 8,"signal":"MILD BULL","weight":15}
+        elif chg > -2:   comp["price_momentum"] = {"score": 5,"signal":"MILD BEAR","weight":15}
+        elif chg > -5:   comp["price_momentum"] = {"score": 3,"signal":"BEARISH","weight":15}
+        else:            comp["price_momentum"] = {"score": 0,"signal":"STRONG BEAR","weight":15}
+    except: pass
+
+    # 2. RSI Signal (12pts)
+    try:
+        rsi = STATE["tech_intel"].get("rsi_1d", 50)
+        if rsi == 0: rsi = 50
+        if   30 <= rsi <= 40: comp["rsi_signal"] = {"score":12,"signal":"OVERSOLD — BUY ZONE","weight":12}
+        elif 40 < rsi <= 50:  comp["rsi_signal"] = {"score":10,"signal":"NEUTRAL-BULLISH","weight":12}
+        elif 50 < rsi <= 60:  comp["rsi_signal"] = {"score": 8,"signal":"NEUTRAL","weight":12}
+        elif 60 < rsi <= 70:  comp["rsi_signal"] = {"score": 6,"signal":"APPROACHING OB","weight":12}
+        elif rsi > 70:        comp["rsi_signal"] = {"score": 3,"signal":"OVERBOUGHT","weight":12}
+        else:                 comp["rsi_signal"] = {"score": 5,"signal":"EXTREME OVERSOLD","weight":12}
+    except: pass
+
+    # 3. Sentiment (15pts) — bull/bear ratio from stories
+    try:
+        si  = STATE["sent_intel"]
+        total = max(si.get("total_today",1), 1)
+        bull  = si.get("bullish_today",0)
+        ratio = bull/total
+        if   ratio > 0.5:  comp["sentiment"] = {"score":15,"signal":"STRONGLY BULLISH","weight":15}
+        elif ratio > 0.35: comp["sentiment"] = {"score":11,"signal":"BULLISH","weight":15}
+        elif ratio > 0.25: comp["sentiment"] = {"score": 7,"signal":"NEUTRAL","weight":15}
+        elif ratio > 0.15: comp["sentiment"] = {"score": 4,"signal":"BEARISH","weight":15}
+        else:              comp["sentiment"] = {"score": 1,"signal":"STRONGLY BEARISH","weight":15}
+    except: pass
+
+    # 4. On-Chain (18pts) — exchange flow + whale activity
+    try:
+        flow  = STATE["onchain_intel"].get("exchange_flow","NEUTRAL")
+        whale = len(STATE.get("whale_data",{}).get("alerts",[]))
+        base  = 9
+        if "bullish" in flow.lower():  base = 14
+        elif "bearish" in flow.lower(): base = 4
+        bonus = min(whale * 1, 4)
+        comp["on_chain"] = {"score":min(base+bonus,18),"signal":f"Flow:{flow} Whales:{whale}","weight":18}
+    except: pass
+
+    # 5. Macro (10pts) — macro signal
+    try:
+        msig = STATE["macro_data"].get("macro_signal","NEUTRAL")
+        if   msig == "BULLISH": comp["macro"] = {"score":10,"signal":"MACRO TAILWIND","weight":10}
+        elif msig == "BEARISH": comp["macro"] = {"score": 2,"signal":"MACRO HEADWIND","weight":10}
+        else:                   comp["macro"] = {"score": 5,"signal":"MACRO NEUTRAL","weight":10}
+    except: pass
+
+    # 6. Institutional Flow (15pts) — ETF net flow signal
+    try:
+        net = STATE["inst_flow"].get("net_etf_flow_7d",0)
+        if   net > 50:  comp["inst_flow"] = {"score":15,"signal":f"ETF INFLOW +${net:.0f}M","weight":15}
+        elif net > 10:  comp["inst_flow"] = {"score":11,"signal":f"ETF INFLOW +${net:.0f}M","weight":15}
+        elif net > -10: comp["inst_flow"] = {"score": 7,"signal":"ETF NEUTRAL","weight":15}
+        elif net > -50: comp["inst_flow"] = {"score": 3,"signal":f"ETF OUTFLOW ${net:.0f}M","weight":15}
+        else:           comp["inst_flow"] = {"score": 0,"signal":"ETF HEAVY OUTFLOW","weight":15}
+    except: comp["inst_flow"] = {"score":7,"signal":"ETF DATA PENDING","weight":15}
+
+    # 7. Whale Activity (10pts) — from smart money score
+    try:
+        sm = STATE["disp_intel"].get("smart_money",{})
+        whale_pts = sm.get("whale_pts",5)
+        comp["whale_activity"] = {"score":min(whale_pts+5,10),"signal":f"Smart Money: {sm.get('score',0)}/100","weight":10}
+    except: comp["whale_activity"] = {"score":5,"signal":"MONITORING","weight":10}
+
+    # 8. Fear & Greed (5pts)
+    try:
+        fg = STATE["sent_intel"].get("fg_score",50)
+        if   fg <= 20:  comp["fear_greed"] = {"score":5,"signal":"EXTREME FEAR — contrarian BUY","weight":5}
+        elif fg <= 40:  comp["fear_greed"] = {"score":4,"signal":"FEAR — accumulation zone","weight":5}
+        elif fg <= 60:  comp["fear_greed"] = {"score":2,"signal":"NEUTRAL","weight":5}
+        elif fg <= 80:  comp["fear_greed"] = {"score":1,"signal":"GREED — caution","weight":5}
+        else:           comp["fear_greed"] = {"score":0,"signal":"EXTREME GREED — sell signal","weight":5}
+    except: pass
+
+    # Compute total
+    total = sum(c.get("score",0) for c in comp.values())
+    ss["total"] = total
+    if   total >= 80: ss["grade"],ss["label"] = "A+","EXTREME BULL"
+    elif total >= 70: ss["grade"],ss["label"] = "A", "STRONG BULL"
+    elif total >= 60: ss["grade"],ss["label"] = "B+","BULLISH"
+    elif total >= 50: ss["grade"],ss["label"] = "B", "MILD BULL"
+    elif total >= 40: ss["grade"],ss["label"] = "C", "NEUTRAL"
+    elif total >= 30: ss["grade"],ss["label"] = "D", "MILD BEAR"
+    elif total >= 20: ss["grade"],ss["label"] = "F", "BEARISH"
+    else:             ss["grade"],ss["label"] = "F-","EXTREME BEAR"
+    ss["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
+
+def fetch_adoption_velocity():
+    """#57 — XRP Adoption Velocity Score."""
+    av = STATE["adoption_velocity"]
+    try:
+        # Institutional: based on inst_flow signal + mainstream partnerships
+        inst_score = 70 if STATE["inst_flow"].get("flow_signal") == "BULLISH" else 50
+        # Retail: based on fear/greed + sentiment
+        fg    = STATE["sent_intel"].get("fg_score", 50)
+        si    = STATE["sent_intel"]
+        total = max(si.get("total_today",1),1)
+        bull  = si.get("bullish_today",0)
+        retail_score = int(40 + (bull/total)*40 + (100-fg)*0.2)
+        # Developer: from GitHub commits
+        commits = STATE["github_data"].get("commits_7d", 0)
+        dev_score = min(40 + commits*2, 100)
+        # Regulatory: based on country legal status (17/20 legal = 85%)
+        reg_score = 72
+        # Composite
+        composite = int((inst_score*0.3) + (retail_score*0.25) + (dev_score*0.25) + (reg_score*0.2))
+        av["score"]         = composite
+        av["institutional"] = inst_score
+        av["retail"]        = retail_score
+        av["developer"]     = dev_score
+        av["regulatory"]    = reg_score
+        if   composite > 70: av["trend"] = "ACCELERATING"
+        elif composite > 50: av["trend"] = "GROWING"
+        elif composite > 35: av["trend"] = "STABLE"
+        else:                av["trend"] = "SLOWING"
+    except Exception as e: log_error(f"adoption_velocity: {e}")
+
+
+def fetch_nvt_ratio():
+    """#49 — Network Value to Transactions ratio."""
+    nvt = STATE["nvt_ratio"]
+    try:
+        market_cap  = STATE["price_data"].get("market_cap", 0)
+        tx_vol      = STATE["onchain_intel"].get("dex_vol_24h", 0)
+        if tx_vol and market_cap:
+            daily_nvt = market_cap / (tx_vol * 365) if tx_vol else 0
+            nvt["nvt"] = round(daily_nvt, 2)
+            if   daily_nvt < 20:  nvt["interpretation"] = "UNDERVALUED — network highly utilized"
+            elif daily_nvt < 50:  nvt["interpretation"] = "FAIRLY VALUED"
+            elif daily_nvt < 100: nvt["interpretation"] = "MODERATELY OVERVALUED"
+            else:                 nvt["interpretation"] = "OVERVALUED vs network usage"
+    except Exception as e: log_error(f"nvt: {e}")
+
+
+def fetch_liquidity_map():
+    """#43 — XRP Liquidity Heat Map across exchanges."""
+    lm  = STATE["liquidity_map"]
+    ob  = STATE["order_book"]
+    try:
+        exchanges = []
+        for name, data in [("Binance",ob["binance"]),("Bitstamp",ob["bitstamp"]),("Kraken",ob["kraken"])]:
+            if data.get("bids"):
+                bid_depth  = sum(q for _,q in data["bids"][:5])
+                ask_depth  = sum(q for _,q in data["asks"][:5])
+                spread     = data.get("spread", 0)
+                best_bid   = data["bids"][0][0] if data["bids"] else 0
+                best_ask   = data["asks"][0][0] if data["asks"] else 0
+                spread_pct = round(spread/best_bid*100, 4) if best_bid else 0
+                exchanges.append({
+                    "name":       name,
+                    "bid_depth":  round(bid_depth,0),
+                    "ask_depth":  round(ask_depth,0),
+                    "spread":     round(spread,5),
+                    "spread_pct": spread_pct,
+                    "best_bid":   best_bid,
+                    "best_ask":   best_ask,
+                })
+        lm["exchanges"] = sorted(exchanges, key=lambda x: x.get("bid_depth",0), reverse=True)
+        if lm["exchanges"]:
+            lm["deepest_book"]    = min(lm["exchanges"], key=lambda x: x["spread_pct"])["name"]
+            lm["tightest_spread"] = min(lm["exchanges"], key=lambda x: x["spread_pct"])["name"]
+            lm["best_venue"]      = lm["tightest_spread"]
+    except Exception as e: log_error(f"liquidity_map: {e}")
+
+
+def generate_weekly_digest():
+    """#62 — Weekly Intelligence Digest (runs on Sundays at 18:00 UTC)."""
+    import datetime as _dt
+    now  = _dt.datetime.now(timezone.utc)
+    if now.weekday() != 6: return  # Sunday only
+    wd   = STATE["weekly_digest"]
+    week = now.isocalendar()[1]
+    if wd.get("week_number") == week: return  # Already generated this week
+    stories = STATE.get("stories",[])
+    if not stories: return
+    try:
+        top_stories = stories[:40]
+        headlines   = [f"- {s['title']} ({s.get('source','')}, {s.get('age','')})" for s in top_stories]
+        prompt = (
+            f"Generate a comprehensive XRPRadar Weekly Intelligence Digest for week {week} of {now.year}. "
+            f"This digest will be read by institutional investors, banks, and serious XRP holders. "
+            f"Write in 6 sections: (1) Week in Review — key price action and market narrative, "
+            f"(2) Institutional Developments — what moved the smart money this week, "
+            f"(3) Regulatory Landscape — key legal and regulatory shifts, "
+            f"(4) Technology & Ecosystem — XRPL developer activity and ecosystem growth, "
+            f"(5) Global Intelligence — regional adoption stories from around the world, "
+            f"(6) Week Ahead — what to watch in the coming 7 days. "
+            f"Aim for 60-80 total sentences. Be specific, bold, and institutional in tone.\n\n"
+            f"Top stories this week:\n" + "\n".join(headlines[:30])
+        )
+        system = (
+            "You are XRPRadar's senior intelligence analyst. "
+            "Write the weekly digest in the style of a Goldman Sachs weekly market letter — "
+            "authoritative, dense with insight, specific names and numbers, zero filler."
+        )
+        content_txt = call_claude(prompt, system, max_tokens=6000)
+        wd["content"]        = content_txt
+        wd["generated_date"] = now.strftime("%Y-%m-%d")
+        wd["week_number"]    = week
+        wd["story_count"]    = len(top_stories)
+    except Exception as e: log_error(f"weekly_digest: {e}")
+
+
+def fetch_community_poll():
+    """#60 — Community Pulse Poll — sets daily question."""
+    import datetime as _dt
+    poll  = STATE["community_poll"]
+    today = _dt.datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if poll.get("date") == today: return
+    # Rotate daily questions based on day of week
+    dow   = _dt.datetime.now(timezone.utc).weekday()
+    price = STATE["price_data"].get("price_usd", 1.0)
+    targets = [round(price*1.05,3), round(price*1.10,3), round(price*0.95,3)]
+    questions = [
+        {"q": f"Where does XRP close today?",
+         "opts": [f"Above ${targets[0]}", f"Above ${targets[1]}", f"Below ${targets[2]}", "About the same"]},
+        {"q": "What is the BIGGEST catalyst for XRP this week?",
+         "opts": ["Ripple IPO news", "ETF approval", "New bank partnership", "Macro/BTC move"]},
+        {"q": "Which region will drive XRP adoption most in 2026?",
+         "opts": ["Asia Pacific", "Middle East & Africa", "Latin America", "North America & Europe"]},
+        {"q": "Will XRP reach $2 before end of 2026?",
+         "opts": ["Yes — confident", "Yes — possible", "No — not this year", "Way more than $2"]},
+        {"q": "Which Ripple product excites you most?",
+         "opts": ["ODL payments", "RLUSD stablecoin", "XRPL DeFi/NFTs", "CBDC solutions"]},
+        {"q": "How many XRP do you hold?",
+         "opts": ["Under 1,000", "1,000 – 10,000", "10,000 – 100,000", "Over 100,000"]},
+        {"q": "What is your XRP price target for end of 2026?",
+         "opts": ["$1-2", "$2-5", "$5-10", "$10+"]},
+    ]
+    q          = questions[dow % len(questions)]
+    poll["question"]   = q["q"]
+    poll["options"]    = q["opts"]
+    poll["date"]       = today
+    if not poll.get("votes"):
+        poll["votes"] = {opt: 0 for opt in q["opts"]}
+        poll["total_votes"] = 0
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+@app.route("/manifest.json")
+def pwa_manifest():
+    return jsonify({
+        "name": "XRPRadar — Signals Over Noise 24/7",
+        "short_name": "XRPRadar",
+        "description": "The institutional-grade XRP intelligence platform",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#000000",
+        "theme_color": "#000000",
+        "orientation": "portrait-primary",
+        "icons": [
+            {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png"}
+        ]
+    })
+
+@app.route("/api/poll/vote", methods=["POST"])
+def api_poll_vote():
+    try:
+        data   = request.get_json()
+        option = data.get("option","")
+        poll   = STATE["community_poll"]
+        if option in poll.get("options",[]):
+            poll["votes"][option] = poll["votes"].get(option,0) + 1
+            poll["total_votes"]   = sum(poll["votes"].values())
+        return jsonify({"success":True,"votes":poll["votes"],"total":poll["total_votes"]})
+    except Exception as e:
+        return jsonify({"success":False,"error":str(e)})
+
+
