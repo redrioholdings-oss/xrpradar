@@ -704,7 +704,6 @@ STATE = {
     "last_error_ts": None,
     "feeds_active":  0,
     "feeds_total":   len(RSS_FEEDS),
-        "visitor_count": STATE.get("visitor_count", 0),
     "maintenance":   "OK",
     "start_time":    datetime.now(timezone.utc).isoformat(),
     "visitor_count": 0,
