@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2d"
+BOT_FILE          = "XRPRadar_v7.2e"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -1016,10 +1016,16 @@ def fmt_ts(ts):
 def fetch_price():
     try:
         hdr = {"User-Agent": "XRPRadar/1.1"}
+        # CoinGecko: add demo API key if set (bypasses Railway IP rate limits)
+        cg_key = os.environ.get("COINGECKO_API_KEY", "")
+        cg_hdr = {**hdr, "x-cg-demo-apikey": cg_key} if cg_key else hdr
         cg = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple"
             "?localization=false&tickers=false&community_data=false&developer_data=false",
-            headers=hdr, timeout=10).json()
+            headers=cg_hdr, timeout=15).json()
+        # If rate limited (returns error dict instead of coin data)
+        if "error" in cg or "status" in cg:
+            raise ValueError(f"CoinGecko error: {cg}")
         md = cg.get("market_data", {})
         STATE["price"] = {
             "usd":          md.get("current_price", {}).get("usd", 0),
@@ -1048,6 +1054,31 @@ def fetch_price():
             STATE["price"]["low_24h"]    = float(b.get("lowPrice", 0))
         except Exception as e2:
             log_error(f"fetch_price Binance: {e2}")
+            # Third fallback: Kraken (different provider, different IP rules)
+            try:
+                k = requests.get("https://api.kraken.com/0/public/Ticker?pair=XRPUSD",
+                    timeout=8).json()
+                kr = k.get("result", {}).get("XXRPZUSD", {})
+                if kr:
+                    STATE["price"]["usd"]       = float(kr.get("c", [0])[0])
+                    STATE["price"]["high_24h"]   = float(kr.get("h", [0,0])[1])
+                    STATE["price"]["low_24h"]    = float(kr.get("l", [0,0])[1])
+                    STATE["price"]["volume_24h"] = float(kr.get("v", [0,0])[1])
+                    log_error("fetch_price: Kraken fallback succeeded")
+            except Exception as e3:
+                log_error(f"fetch_price Kraken: {e3}")
+                # Final fallback: Bitstamp (another independent source)
+                try:
+                    bs = requests.get("https://www.bitstamp.net/api/v2/ticker/xrpusd/",
+                        timeout=8).json()
+                    if bs.get("last"):
+                        STATE["price"]["usd"]       = float(bs.get("last", 0))
+                        STATE["price"]["high_24h"]   = float(bs.get("high", 0))
+                        STATE["price"]["low_24h"]    = float(bs.get("low", 0))
+                        STATE["price"]["volume_24h"] = float(bs.get("volume", 0))
+                        log_error("fetch_price: Bitstamp fallback succeeded")
+                except Exception as e4:
+                    log_error(f"fetch_price all sources failed: {e4}")
 
     # Fear & Greed
     try:
@@ -1062,6 +1093,25 @@ def fetch_price():
 
     # Escrow
     STATE["escrow"] = {"next_date": "1st of next month", "amount_b": 1.0, "note": "1B XRP monthly release"}
+
+    # If mcap still 0 (CoinGecko failed), try simpler endpoint
+    if not STATE["price"].get("mcap"):
+        try:
+            cg_key2 = os.environ.get("COINGECKO_API_KEY", "")
+            cg_hdr2 = {"User-Agent":"XRPRadar/1.1"}
+            if cg_key2: cg_hdr2["x-cg-demo-apikey"] = cg_key2
+            simple = requests.get(
+                "https://api.coingecko.com/api/v3/simple/price"
+                "?ids=ripple&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true",
+                headers=cg_hdr2, timeout=10).json()
+            xrp = simple.get("ripple", {})
+            if xrp.get("usd"):
+                if not STATE["price"].get("usd"): STATE["price"]["usd"] = xrp["usd"]
+                if xrp.get("usd_market_cap"):    STATE["price"]["mcap"] = xrp["usd_market_cap"]
+                if xrp.get("usd_24h_vol"):       STATE["price"]["volume_24h"] = xrp["usd_24h_vol"]
+                log_error("fetch_price: simple/price endpoint succeeded")
+        except Exception as es:
+            log_error(f"fetch_price simple: {es}")
 
     # Vol/Mcap ratio
     try:
