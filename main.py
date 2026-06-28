@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2f"
+BOT_FILE          = "XRPRadar_v7.2g"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -1027,6 +1027,9 @@ def fetch_price():
         if "error" in cg or "status" in cg:
             raise ValueError(f"CoinGecko error: {cg}")
         md = cg.get("market_data", {})
+        # If CoinGecko rate-limited or returned error, md will be empty — trigger fallback
+        if not md or not md.get("current_price"):
+            raise ValueError(f"CoinGecko empty response: {str(cg)[:100]}")
         STATE["price"] = {
             "usd":          md.get("current_price", {}).get("usd", 0),
             "btc":          md.get("current_price", {}).get("btc", 0),
@@ -1655,7 +1658,7 @@ def fetch_disp_intel():
         hist60 = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
             "?vs_currency=usd&days=1825",
-            headers=cg_hdr, timeout=25).json()
+            headers=hdr, timeout=25).json()
         raw60 = hist60.get("prices", [])
         month_map = {}
         for p in raw60:
