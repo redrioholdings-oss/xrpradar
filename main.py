@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2e"
+BOT_FILE          = "XRPRadar_v7.2f"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -1122,7 +1122,8 @@ def fetch_price():
 
     # On-chain metrics via XRPScan
     try:
-        stats = requests.get("https://api.xrpscan.com/api/v1/ledger/stats", timeout=8).json()
+        stats = requests.get("https://api.xrpscan.com/api/v1/ledger/stats",
+            headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
         STATE["onchain"] = {
             "ledger_index": stats.get("ledger_index", "--"),
             "tps":          round(float(stats.get("tps", 0)), 2),
@@ -1130,7 +1131,23 @@ def fetch_price():
             "transactions": stats.get("transactions", "--"),
         }
     except:
-        STATE["onchain"] = {"ledger_index": "--", "tps": "--", "accounts": "--", "transactions": "--"}
+        # Fallback: XRPL Foundation public API (free, separate infrastructure)
+        try:
+            xrpl = requests.get("https://api.xrpldata.com/api/v1/xls20-nfts/stats",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+            # Try xrpl.org ledger info endpoint
+            xrpl2 = requests.get("https://xrplcluster.com",
+                json={"method":"server_info","params":[{}]},
+                headers={"Content-Type":"application/json"}, timeout=8).json()
+            info = xrpl2.get("result",{}).get("info",{})
+            STATE["onchain"] = {
+                "ledger_index": info.get("validated_ledger",{}).get("seq","--"),
+                "tps":          round(float(info.get("load_factor",1)), 2),
+                "accounts":     "--",
+                "transactions": "--",
+            }
+        except:
+            STATE["onchain"] = {"ledger_index":"--","tps":"--","accounts":"--","transactions":"--"}
 
     STATE["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -1638,7 +1655,7 @@ def fetch_disp_intel():
         hist60 = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
             "?vs_currency=usd&days=1825",
-            headers=hdr, timeout=25).json()
+            headers=cg_hdr, timeout=25).json()
         raw60 = hist60.get("prices", [])
         month_map = {}
         for p in raw60:
@@ -11554,21 +11571,54 @@ def fetch_macro_data():
         "treasury": "%5ETNX",
         "btc":      "BTC-USD",
     }
+    # Stooq symbols as fallback (free, no API key, different IP path)
+    stooq_map = {
+        "dxy":      "dx.f",
+        "sp500":    "^spx",
+        "gold":     "gc.f",
+        "treasury": "10usy.b",
+        "btc":      "btc.v",
+    }
     for key, sym in symbols.items():
+        fetched = False
+        # Primary: Yahoo Finance
         try:
             url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}?interval=1d&range=2d"
             r   = requests.get(url, headers=hdr, timeout=8).json()
             result = r.get("chart",{}).get("result",[None])[0]
-            if not result: continue
-            closes = result.get("indicators",{}).get("quote",[{}])[0].get("close",[])
-            closes = [c for c in closes if c is not None]
-            if len(closes) >= 2:
-                val   = round(closes[-1], 4)
-                prev  = round(closes[-2], 4)
-                chg   = round((val - prev)/prev*100, 2) if prev else 0
-                md[key]["value"]      = val
-                md[key]["change_pct"] = chg
-        except Exception as e: log_error(f"macro_{key}: {e}")
+            if result:
+                closes = result.get("indicators",{}).get("quote",[{}])[0].get("close",[])
+                closes = [c for c in closes if c is not None]
+                if len(closes) >= 2:
+                    val  = round(closes[-1], 4)
+                    prev = round(closes[-2], 4)
+                    chg  = round((val-prev)/prev*100, 2) if prev else 0
+                    md[key]["value"]      = val
+                    md[key]["change_pct"] = chg
+                    fetched = True
+        except Exception as e:
+            log_error(f"macro_{key} Yahoo: {e}")
+        # Fallback: stooq.com (independent free provider)
+        if not fetched and key in stooq_map:
+            try:
+                r2 = requests.get(
+                    f"https://stooq.com/q/l/?s={stooq_map[key]}&f=sd2t2ohlcv&h&e=csv",
+                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8)
+                if r2.status_code == 200:
+                    rows = [l.split(",") for l in r2.text.strip().split("\n") if l]
+                    if len(rows) >= 3:
+                        latest = rows[-1]
+                        prev_r = rows[-2]
+                        if len(latest) >= 5 and latest[4]:
+                            val  = float(latest[4])
+                            prev = float(prev_r[4]) if len(prev_r) >= 5 and prev_r[4] else val
+                            chg  = round((val-prev)/prev*100, 2) if prev else 0
+                            md[key]["value"]      = round(val, 4)
+                            md[key]["change_pct"] = chg
+                            fetched = True
+                            log_error(f"macro_{key}: stooq fallback OK")
+            except Exception as e2:
+                log_error(f"macro_{key} stooq: {e2}")
     md["ts"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
 
     # XRP vs Macro correlation (30-day, simplified directional)
@@ -11657,7 +11707,19 @@ def fetch_currency_crisis():
                 if len(closes) >= 2:
                     c["rate_vs_usd"]   = round(closes[-1], 4)
                     c["change_5d_pct"] = round((closes[-1]-closes[0])/closes[0]*100,2) if closes[0] else 0
-        except: pass
+        except:
+            # Fallback: open.er-api.com (free, no key required, 1500 req/month)
+            try:
+                cur = c.get("currency","")
+                if cur:
+                    er = requests.get(
+                        f"https://open.er-api.com/v6/latest/USD",
+                        headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+                    rates = er.get("rates", {})
+                    if cur in rates and rates[cur]:
+                        c["rate_vs_usd"] = round(rates[cur], 4)
+                        c["change_5d_pct"] = 0  # no historical from this endpoint
+            except: pass
     cc["countries"]     = crisis_countries
     cc["highest_risk"]  = next((c["country"] for c in crisis_countries if c["risk"]=="CRITICAL"), "Lebanon")
     cc["odl_opportunity"] = sum(c.get("remittance_usd_bn",0) for c in crisis_countries)
