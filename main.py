@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2h"
+BOT_FILE          = "XRPRadar_v7.2i"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -8867,6 +8867,7 @@ async function fetchRegionStories(reg){
       const trans=s.translated_title
         ?`<div style="font-size:12px;color:var(--tq);font-style:italic;margin-top:3px;padding:3px 6px;background:var(--tqd);border-left:2px solid var(--tq);border-radius:2px">🌐 ${s.translated_title}</div>`
         :(s.lang==="non-english"?`<div style="font-size:12px;color:var(--tx);font-style:italic;margin-top:2px">🌐 Translation pending...</div>`:"");
+      const newTabNote=`<span style="font-size:11px;color:var(--tx);font-family:var(--mn);opacity:.6">↗ opens in new tab — your XRPRadar stays open</span>`;
       const sent=s.sentiment==="bullish"?"g":s.sentiment==="bearish"?"r":"";
       return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer"
           onclick="window.open('${s.link||s.url||"#"}','_blank')">
@@ -8887,9 +8888,9 @@ async function fetchRegionStories(reg){
     if(reachable>8){
       const btn=document.createElement("button");
       btn.className="reg-viewall-btn";
-      btn.style.cssText="margin-top:8px;width:100%;padding:8px;background:rgba(117,188,255,.1);"+
-        "color:var(--bl);border:1px solid rgba(117,188,255,.3);border-radius:5px;"+
-        "cursor:pointer;font-size:13px;font-weight:700;font-family:var(--mn)";
+      btn.style.cssText="margin-top:10px;width:100%;padding:12px 16px;background:rgba(117,188,255,.15);"+
+        "color:var(--bl);border:2px solid rgba(117,188,255,.4);border-radius:6px;"+
+        "cursor:pointer;font-size:15px;font-weight:800;font-family:var(--mn);letter-spacing:.5px";
       btn.textContent=`📋 View All ${reachable} Stories`;
       let expanded=false;
       btn.onclick=()=>{
