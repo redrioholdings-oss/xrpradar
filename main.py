@@ -13,10 +13,10 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2b"
+BOT_FILE          = "XRPRadar_v7.2c"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
-SCAN_INTERVAL     = 600
+SCAN_INTERVAL     = 300
 PRICE_INTERVAL    = 60
 AI_INTERVAL       = 600
 MAX_STORIES       = 500
@@ -948,11 +948,16 @@ def save_state():
         log_error(f"save_state: {e}")
 
 def load_state():
+    """Restore all saved STATE on startup — visitors see instant data, not blank panels."""
     try:
         if DATA_PATH.exists():
             d = json.loads(DATA_PATH.read_text())
-            for k in ["stories","feed_health","story_stats","upgrade_log"]:
-                if k in d: STATE[k] = d[k]
+            restored = 0
+            for k, v in d.items():
+                if k in STATE and v:
+                    STATE[k] = v
+                    restored += 1
+            log_error(f"load_state: restored {restored} keys from disk cache")
     except Exception as e:
         log_error(f"load_state: {e}")
 
@@ -1135,7 +1140,7 @@ def fetch_price_intel():
         hist = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
             "?vs_currency=usd&days=31&interval=daily",
-            headers=hdr, timeout=12).json()
+            headers=hdr, timeout=8).json()
         prices = [p[1] for p in hist.get("prices", [])]
         if len(prices) >= 10:
             import math
@@ -1267,7 +1272,7 @@ def fetch_tech_intel():
         hist = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
             "?vs_currency=usd&days=365&interval=daily",
-            headers=hdr, timeout=15).json()
+            headers=hdr, timeout=8).json()
         prices_365 = [p[1] for p in hist.get("prices", [])]
 
         if len(prices_365) >= 90:
@@ -1536,7 +1541,7 @@ def fetch_disp_intel():
         hist = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
             "?vs_currency=usd&days=90",
-            headers=hdr, timeout=20).json()
+            headers=hdr, timeout=10).json()
         raw_prices = hist.get("prices", [])
         if not raw_prices:
             raise ValueError("No price data returned")
@@ -1564,7 +1569,7 @@ def fetch_disp_intel():
         hist180 = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
             "?vs_currency=usd&days=180",
-            headers=hdr, timeout=20).json()
+            headers=hdr, timeout=10).json()
         raw180 = hist180.get("prices", [])
         week_map = {}
         for p in raw180:
@@ -1852,7 +1857,7 @@ def fetch_comp_intel():
             f"?vs_currency=usd&ids={ids}&order=market_cap_desc"
             f"&per_page=5&page=1&sparkline=false"
             f"&price_change_percentage=24h%2C7d",
-            headers=hdr, timeout=12).json()
+            headers=hdr, timeout=8).json()
 
         id_map = {
             "ripple":   "xrp_vs",
@@ -2389,7 +2394,7 @@ def price_loop():
 
 def market_loop():
     """v6.0/v6.1 market-data fetchers — heavier external APIs on a slower cycle."""
-    time.sleep(8)   # let first price cycle populate
+    time.sleep(3)   # let startup_prefetch run first
     last_weekly = 0
     while True:
         try:
@@ -2412,7 +2417,7 @@ def market_loop():
         time.sleep(MARKET_INTERVAL)
 
 def news_loop():
-    time.sleep(5)
+    time.sleep(2)
     last_ai = 0
     last_qa = 0
     while True:
@@ -3086,6 +3091,14 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
     <span class="bklbl">⚡ BREAKING NEWS</span>
     <div class="bkscroll"><div class="bktext" id="bktext">Monitoring XRP global news feeds...</div></div>
   </div>
+</div>
+
+<!-- Startup loading indicator (hides once feeds_active > 10) -->
+<div id="startup-loading-bar" style="display:none;background:rgba(117,188,255,.08);
+  padding:6px 0;text-align:center;border-bottom:1px solid rgba(117,188,255,.15)">
+  <span style="font-size:13px;font-family:var(--mn);color:var(--bl)">
+    ⏳ XRPRadar warming up — fetching live data from 306 sources...
+  </span>
 </div>
 
 <div class="w">
@@ -8607,6 +8620,15 @@ function updateStatus(d){
     checkPriceAlerts(parseFloat(p.usd));
   }
   c("st-feeds",`${d.feeds_active||0} / ${d.feeds_total||306} active`);
+    // Show loading message in status bar if data is still warm-starting
+    const loadBar = document.getElementById('startup-loading-bar');
+    if(loadBar){
+      if(!d.feeds_active || d.feeds_active < 10){
+        loadBar.style.display='block';
+      } else {
+        loadBar.style.display='none';
+      }
+    }
   const fgEl=document.getElementById("st-fg");
   if(fgEl&&fg.score!==undefined){
     fgEl.textContent=`${fg.score} / ${fg.label||"--"}`;
@@ -11348,7 +11370,21 @@ Date: '+new Date().toLocaleDateString());
 """
 
 # ── Startup ────────────────────────────────────────────────────────────────────
-load_state()
+load_state()   # restores all cached STATE — visitors see data instantly on restart
+
+def startup_prefetch():
+    """Run critical fetchers once before threads start so first load isn't blank."""
+    try:
+        log_error("startup: pre-fetching price + onchain + signal")
+        fetch_price()
+        fetch_onchain_intel()
+        fetch_sent_intel()
+        compute_signal_score()
+        log_error("startup: pre-fetch complete")
+    except Exception as e:
+        log_error(f"startup_prefetch: {e}")
+
+threading.Thread(target=startup_prefetch, daemon=True).start()
 threading.Thread(target=prediction_loop, daemon=True).start()
 threading.Thread(target=price_loop, daemon=True).start()
 threading.Thread(target=market_loop, daemon=True).start()
@@ -11470,7 +11506,7 @@ def fetch_macro_data():
     for key, sym in symbols.items():
         try:
             url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}?interval=1d&range=2d"
-            r   = requests.get(url, headers=hdr, timeout=12).json()
+            r   = requests.get(url, headers=hdr, timeout=8).json()
             result = r.get("chart",{}).get("result",[None])[0]
             if not result: continue
             closes = result.get("indicators",{}).get("quote",[{}])[0].get("close",[])
