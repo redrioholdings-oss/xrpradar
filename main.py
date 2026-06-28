@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v6.2"
+BOT_FILE          = "XRPRadar_v6.2b"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
@@ -230,7 +230,7 @@ RSS_FEEDS = [
     {"name": "GN: XRP Decrypt2",       "url": "https://news.google.com/rss/search?q=XRP+Ripple+site:decrypt.co",             "type": "major",        "region": "US",    "filter": False},
     {"name": "GN: XRP Market Cap",     "url": "https://news.google.com/rss/search?q=XRP+%22market+cap%22+ranking+crypto+2026","type": "major",       "region": "US",    "filter": False},
     {"name": "GN: XRP OCC Reg",        "url": "https://news.google.com/rss/search?q=XRP+OCC+%22national+bank%22+crypto+custody","type": "legal",     "region": "US",    "filter": False},
-    {"name": "GN: XRP Treasury",       "url": "https://news.google.com/rss/search?q=XRP+%22US+Treasury%22+FinCEN+crypto",    "type": "legal",        "region": "US",    "filter": False},
+    {"name": "GN: XRP IRS Tax",      "url": "https://news.google.com/rss/search?q=XRP+crypto+IRS+tax+2026",   "type": "legal",        "region": "US",    "filter": False},
     # ── Europe ────────────────────────────────────────────────────────────────
     {"name": "GN: XRP MiCA EU",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+MiCA+%22European+Union%22+regulation","type": "legal","region": "Europe","filter": False},
     {"name": "GN: XRP UK FCA",         "url": "https://news.google.com/rss/search?q=XRP+%22Financial+Conduct+Authority%22+FCA+UK+crypto","type": "legal","region": "Europe","filter": False},
@@ -357,7 +357,7 @@ RSS_FEEDS = [
     {"name":"GN: XRP Thailand",        "url":"https://news.google.com/rss/search?q=XRP+Ripple+Thailand+%22Bank+of+Thailand%22+crypto","type":"international","region":"SEA","filter":False},
     {"name":"GN: XRP Pakistan",        "url":"https://news.google.com/rss/search?q=XRP+Ripple+Pakistan+%22State+Bank%22+remittance","type":"international","region":"India","filter":False},
     {"name":"GN: XRP Bangladesh",      "url":"https://news.google.com/rss/search?q=XRP+Ripple+Bangladesh+remittance+payment","type":"international","region":"India","filter":False},
-    {"name":"GN: XRP Bahrain",         "url":"https://news.google.com/rss/search?q=XRP+Ripple+Bahrain+%22Central+Bank%22+fintech","type":"international","region":"UAE","filter":False},
+    {"name": "GN: XRP Qatar",        "url": "https://news.google.com/rss/search?q=XRP+Ripple+Qatar+digital",  "type": "international", "region": "UAE",   "filter": False},
     {"name":"GN: XRP Israel",          "url":"https://news.google.com/rss/search?q=XRP+Ripple+Israel+%22Bank+of+Israel%22+crypto","type":"international","region":"UAE","filter":False},
     # ── On-Chain & Data Providers ─────────────────────────────────────────
     {"name":"GN: XRP Nansen",          "url":"https://news.google.com/rss/search?q=XRP+Ripple+%22Nansen%22+on-chain+analytics","type":"institutional","region":"US","filter":False},
@@ -398,24 +398,25 @@ RSS_FEEDS = [
     {"name":"GN: XRP Fortune",         "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:fortune.com+crypto+payments","type":"major","region":"US","filter":False},
     # ── More Direct RSS Feeds ─────────────────────────────────────────────
     {"name":"CoinDesk XRP",            "url":"https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=article","type":"major","region":"US","filter":True},
-    {"name":"Ledger Insights",         "url":"https://www.ledgerinsights.com/feed/","type":"major","region":"Europe","filter":True},
-    {"name":"Finextra Finance",        "url":"https://www.finextra.com/rss/channel.aspx?channel=news","type":"major","region":"Europe","filter":True},
-    {"name":"PYMNTS Blockchain",       "url":"https://www.pymnts.com/feed/","type":"major","region":"US","filter":True},
-    {"name":"The Fintech Times",       "url":"https://thefintechtimes.com/feed/","type":"major","region":"Europe","filter":True},
-    {"name":"InsideBitcoins",          "url":"https://insidebitcoins.com/feed","type":"major","region":"US","filter":True},
-    {"name":"UseTheBitcoin",           "url":"https://usethebitcoin.com/feed/","type":"major","region":"US","filter":True},
+    {"name": "Finbold Ripple",       "url": "https://finbold.com/feed/",                                     "type": "major",        "region": "US",    "filter": False},
+    {"name": "GN: XRP Coinbase Intl","url": "https://news.google.com/rss/search?q=XRP+Coinbase+international","type": "institutional","region": "US",    "filter": False},
+    {"name": "PaymentsDive",         "url": "https://www.paymentsdive.com/feeds/news/",                      "type": "institutional","region": "US",    "filter": False},
+    {"name": "Fintech Futures",      "url": "https://www.fintechfutures.com/feed/",                          "type": "institutional","region": "Europe","filter": False},
+    {"name": "CryptoNews Deep",      "url": "https://cryptonews.net/news/feed/",                             "type": "major",        "region": "US",    "filter": False},
+    {"name": "Blockchain News",      "url": "https://blockchain.news/rss",                                   "type": "major",        "region": "US",    "filter": False},
     {"name":"Invezz Crypto",           "url":"https://invezz.com/feed/","type":"major","region":"Europe","filter":True},
     {"name":"Bitcoinist XRP",          "url":"https://bitcoinist.com/feed/","type":"major","region":"US","filter":True},
     {"name":"NewsBTC XRP",             "url":"https://www.newsbtc.com/feed/","type":"major","region":"US","filter":True},
-    {"name":"CoinJournal XRP",         "url":"https://coinjournal.net/feed/","type":"major","region":"Europe","filter":True},
+    {"name": "CoinSpeaker XRP",      "url": "https://www.coinspeaker.com/news/feed/",                        "type": "major",        "region": "US",    "filter": False},
     {"name":"ZyCrypto XRP",            "url":"https://zycrypto.com/feed/","type":"major","region":"US","filter":True},
-    {"name":"Crypto Daily",            "url":"https://cryptodaily.co.uk/feed","type":"major","region":"Europe","filter":True},
+    {"name": "CoinCheckup News",     "url": "https://coincheckup.com/blog/feed/",                            "type": "major",        "region": "US",    "filter": False},
     {"name":"Santiment Blog",          "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:santiment.net+analytics","type":"institutional","region":"US","filter":False},
     {"name":"GN: XRP Seeking Alpha",   "url":"https://news.google.com/rss/search?q=XRP+Ripple+site:seekingalpha.com+investment","type":"institutional","region":"US","filter":False},
     {"name":"GN: XRP Motley Fool",     "url":"https://news.google.com/rss/search?q=XRP+Ripple+%22Motley+Fool%22+investment+crypto","type":"institutional","region":"US","filter":False},
     {"name":"Reddit r/XRPtrader",      "url":"https://www.reddit.com/r/XRPtrader/.rss","type":"community","region":"US","filter":False},
-    {"name":"Reddit r/Ripple",         "url":"https://www.reddit.com/r/Ripple/.rss","type":"community","region":"US","filter":False},
+    {"name": "Reddit r/XRPLedger",   "url": "https://www.reddit.com/r/XRPLedger/.rss",                       "type": "community",    "region": "US",    "filter": False},
 
+    {"name": "GN: XRP Institutional 2026", "url": "https://news.google.com/rss/search?q=XRP+institutional+adoption+2026", "type": "institutional", "region": "US",    "filter": False},
 ]
 
 REGIONS = ["Japan","Korea","UAE","Europe","India","LatAm","Africa","SEA"]
@@ -2285,8 +2286,33 @@ def price_loop():
             fetch_comp_intel()
             fetch_tools_intel()
             fetch_disp_intel()
+            fetch_sent_intel()        # Sentiment Engine (#28-31) — was orphaned
+            compute_signal_score()    # Signal Score (#61) — depends on above
         except Exception as e: log_error(f"price_loop: {e}")
         time.sleep(PRICE_INTERVAL)
+
+def market_loop():
+    """v6.0/v6.1 market-data fetchers — heavier external APIs on a slower cycle."""
+    time.sleep(8)   # let first price cycle populate
+    last_weekly = 0
+    while True:
+        try:
+            fetch_order_book()        # #41 Order Book (Binance/Bitstamp/Kraken)
+            fetch_liquidity_map()     # #43 Liquidity Map (depends on order book)
+            fetch_macro_data()        # #46/#47 Macro + Correlation (Yahoo Finance)
+            fetch_nvt_ratio()         # #49 NVT Ratio
+            fetch_adoption_velocity() # #57 Adoption Velocity
+            fetch_currency_crisis()   # #54 Currency Crisis (Yahoo Finance)
+            fetch_ripple_ipo_news()   # #44 IPO Watch news feed
+            fetch_community_poll()    # #60 Community Poll (sets daily question)
+            compute_signal_score()    # recompute now that macro/flow data is fresh
+            now = time.time()
+            if now - last_weekly >= 3600:   # weekly digest check hourly (Sundays only)
+                generate_weekly_digest()    # #62 Weekly Digest
+                last_weekly = now
+        except Exception as e:
+            log_error(f"market_loop: {e}")
+        time.sleep(MARKET_INTERVAL)
 
 def news_loop():
     time.sleep(5)
@@ -2364,6 +2390,28 @@ def api_data():
         "maintenance":      STATE["maintenance"],
         "start_time":       STATE["start_time"],
         "upgrade_log":      STATE["upgrade_log"],
+        # ── v6.0 / v6.1 / v6.2 Feature Data ───────────────────────────
+        "signal_score":      STATE.get("signal_score", {}),
+        "order_book":        STATE.get("order_book", {}),
+        "liquidity_map":     STATE.get("liquidity_map", {}),
+        "macro_data":        STATE.get("macro_data", {}),
+        "correlation":       STATE.get("correlation", {}),
+        "inst_flow":         STATE.get("inst_flow", {}),
+        "ipo_watch":         STATE.get("ipo_watch", {}),
+        "cbdc_competition":  STATE.get("cbdc_competition", {}),
+        "currency_crisis":   STATE.get("currency_crisis", {}),
+        "adoption_velocity": STATE.get("adoption_velocity", {}),
+        "nvt_ratio":         STATE.get("nvt_ratio", {}),
+        "options_flow":      STATE.get("options_flow", {}),
+        "accum_distrib":     STATE.get("accum_distrib", {}),
+        "whale_watchlist":   STATE.get("whale_watchlist", {}),
+        "tx_volume_trend":   STATE.get("tx_volume_trend", {}),
+        "dev_score":         STATE.get("dev_score", {}),
+        "remittance_intel":  STATE.get("remittance_intel", {}),
+        "geopolitical_risk": STATE.get("geopolitical_risk", {}),
+        "community_poll":    STATE.get("community_poll", {}),
+        "weekly_digest":     STATE.get("weekly_digest", {}),
+        "whale_data":        STATE.get("whale_data", {}),
     })
 
 @app.route("/api/news")
@@ -2565,6 +2613,30 @@ def email_digest():
 </html>"""
 
     return email_html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/api/ai/analyze", methods=["POST"])
+def api_ai_analyze():
+    """Server-side proxy for AI tools (#71-75).
+    Keeps ANTHROPIC_API_KEY secure on the server.
+    """
+    if not ANTHROPIC_API_KEY:
+        return jsonify({
+            "error": "ANTHROPIC_API_KEY not configured. Add it to Railway Variables to enable AI tools.",
+            "setup_url": "https://railway.app → Your Project → Variables → Add ANTHROPIC_API_KEY"
+        }), 503
+    try:
+        data        = request.get_json()
+        prompt      = data.get("prompt", "")
+        system      = data.get("system", "You are an expert XRP and Ripple intelligence analyst.")
+        max_tokens  = min(int(data.get("max_tokens", 1000)), 2000)  # Cap at 2000 for cost control
+        if not prompt:
+            return jsonify({"error": "No prompt provided"}), 400
+        result = call_claude(prompt, system, max_tokens=max_tokens)
+        return jsonify({"result": result, "success": True})
+    except Exception as e:
+        log_error(f"ai_proxy: {e}")
+        return jsonify({"error": str(e), "success": False}), 500
 
 
 @app.route("/")
@@ -8070,18 +8142,24 @@ function updateWeeklyDigest(d){
 
   // ── AI Tools (#71, #72, #74) ──────────────────────────────────────────────
   async function callClaudeAI(prompt, systemPrompt){
-    const resp = await fetch("https://api.anthropic.com/v1/messages",{
+    // Calls server-side proxy — keeps API key secure on Railway server
+    const resp = await fetch("/api/ai/analyze",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        model:"claude-sonnet-4-6",
-        max_tokens:1000,
+        prompt: prompt,
         system: systemPrompt || "You are the world's foremost XRP intelligence analyst. Be specific, bold, and institutional in tone.",
-        messages:[{role:"user",content:prompt}]
+        max_tokens: 1000
       })
     });
     const data = await resp.json();
-    return (data.content||[]).map(b=>b.type==="text"?b.text:"").join("");
+    if(!data.success){
+      if(data.error && data.error.includes("ANTHROPIC_API_KEY")){
+        return "⚠️ AI features require ANTHROPIC_API_KEY in Railway Variables. See setup instructions in the Intelligence Brief section.";
+      }
+      throw new Error(data.error||"AI analysis failed");
+    }
+    return data.result||"";
   }
 
   async function runScenario(){
@@ -8661,6 +8739,7 @@ function updateWeeklyDigest(d){
 load_state()
 threading.Thread(target=prediction_loop, daemon=True).start()
 threading.Thread(target=price_loop, daemon=True).start()
+threading.Thread(target=market_loop, daemon=True).start()
 threading.Thread(target=news_loop,  daemon=True).start()
 
 # ════════════════════════════════════════════════════════════════════
