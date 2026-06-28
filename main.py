@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2i"
+BOT_FILE          = "XRPRadar_v7.2j"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -3216,9 +3216,137 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
     text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--b)}
   .exp-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--br)}
   .exp-table tr:hover td{background:rgba(255,255,255,.02)}
+
+  /* ── Story Reader Overlay ────────────────────────────────────── */
+  #story-reader-overlay{
+    position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;
+    background:rgba(0,0,0,.85);backdrop-filter:blur(4px);
+    display:none;flex-direction:column;
+  }
+  #story-reader-overlay.open{ display:flex; }
+  #story-reader-header{
+    background:var(--s1);border-bottom:1px solid var(--b);
+    padding:10px 20px;display:flex;align-items:center;
+    justify-content:space-between;flex-shrink:0;
+  }
+  #story-reader-body{
+    flex:1;overflow-y:auto;padding:0;
+    background:var(--bg);
+  }
+  #story-reader-content{
+    max-width:860px;margin:0 auto;padding:32px 24px 60px;
+  }
+  .sr-meta{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    margin-bottom:20px;
+  }
+  .sr-tag{
+    font-size:11px;font-family:var(--mn);font-weight:700;
+    text-transform:uppercase;letter-spacing:1px;
+    padding:3px 10px;border-radius:3px;
+  }
+  .sr-title{
+    font-size:clamp(20px,3vw,30px);font-weight:800;
+    color:var(--br);line-height:1.35;margin-bottom:20px;
+  }
+  .sr-excerpt{
+    font-size:16px;line-height:1.8;color:var(--tx);
+    border-left:3px solid var(--bl);padding:16px 20px;
+    background:rgba(117,188,255,.04);border-radius:0 6px 6px 0;
+    margin-bottom:28px;
+  }
+  .sr-read-btn{
+    display:inline-flex;align-items:center;gap:10px;
+    background:var(--bl);color:#000;font-family:var(--mn);
+    font-size:15px;font-weight:800;padding:14px 28px;
+    border-radius:7px;text-decoration:none;letter-spacing:.5px;
+    transition:all .2s;border:none;cursor:pointer;
+  }
+  .sr-read-btn:hover{ background:#a0d4ff;transform:translateY(-1px); }
+  .sr-back-btn{
+    display:flex;align-items:center;gap:8px;
+    background:transparent;color:var(--bl);
+    border:1px solid var(--bl);border-radius:6px;
+    font-family:var(--mn);font-size:13px;font-weight:700;
+    padding:8px 16px;cursor:pointer;transition:all .2s;
+  }
+  .sr-back-btn:hover{ background:rgba(117,188,255,.1); }
 </style>
 </head>
 <body>
+<!-- ═══════════════════════════════════════════════════════════
+     STORY READER OVERLAY
+     Keeps visitors inside XRPRadar when reading stories
+═══════════════════════════════════════════════════════════ -->
+<div id="story-reader-overlay">
+
+  <!-- Header — mirrors XRPRadar branding -->
+  <div id="story-reader-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="sr-back-btn" onclick="closeStoryReader()">
+        ← Back to Dashboard
+      </button>
+      <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">
+        You are inside <span style="color:var(--bl);font-weight:700">XRPRadar</span>
+      </span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:14px;font-weight:700;color:var(--bl);
+        font-family:var(--mn)">🛰️ XRPRadar</span>
+      <button onclick="closeStoryReader()"
+        style="background:none;border:none;color:var(--tx);font-size:22px;
+        cursor:pointer;padding:0 4px;line-height:1" title="Close">✕</button>
+    </div>
+  </div>
+
+  <!-- Story content area -->
+  <div id="story-reader-body">
+    <div id="story-reader-content">
+
+      <!-- Story metadata row -->
+      <div class="sr-meta" id="sr-meta-row"></div>
+
+      <!-- Story title -->
+      <div class="sr-title" id="sr-title"></div>
+
+      <!-- Story excerpt from RSS feed -->
+      <div class="sr-excerpt" id="sr-excerpt"></div>
+
+      <!-- Read full article button -->
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:28px">
+        <a id="sr-read-link" href="#" target="_blank" class="sr-read-btn">
+          Read Full Article on Source Site →
+        </a>
+        <span style="font-size:12px;color:var(--tx);font-family:var(--mn)">
+          Opens in a new tab · you stay here
+        </span>
+      </div>
+
+      <!-- Source attribution -->
+      <div style="padding:14px 16px;background:var(--s1);border:1px solid var(--b);
+        border-radius:6px;font-size:13px;font-family:var(--mn)">
+        <span style="color:var(--tx)">SOURCE: </span>
+        <span style="color:var(--bl)" id="sr-source">--</span>
+        <span style="color:var(--tx);margin:0 12px">·</span>
+        <span style="color:var(--tx)">PUBLISHED: </span>
+        <span style="color:var(--br)" id="sr-age">--</span>
+        <span style="color:var(--tx);margin:0 12px">·</span>
+        <span style="color:var(--tx)">CATEGORY: </span>
+        <span style="color:var(--yl)" id="sr-category">--</span>
+      </div>
+
+      <!-- Back button at bottom -->
+      <div style="margin-top:40px;text-align:center">
+        <button class="sr-back-btn" onclick="closeStoryReader()"
+          style="font-size:15px;padding:12px 28px">
+          ← Back to XRPRadar Dashboard
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <div id="breaking">
   <div class="bkinner">
     <span class="bklbl">⚡ BREAKING NEWS</span>
@@ -7304,7 +7432,7 @@ function renderExecFeed(){
         <span style="font-size:13px;font-family:var(--mn);color:var(--tx);margin-left:auto">${s.age||""}</span>
       </div>
       <div style="font-size:13px;font-weight:700;color:var(--bl);line-height:1.4;margin-bottom:2px;
-        cursor:pointer" onclick="window.open('${s.link||"#"}','_blank')"
+        cursor:pointer" onclick="openStoryReader(s)"
         onmouseover="this.style.color='var(--gr)'" onmouseout="this.style.color='var(--bl)'">
         ${s.title||""}
       </div>
@@ -8130,7 +8258,7 @@ function updateMainstreamIntel(d){
     if(msStories.length){
       newsEl.innerHTML = msStories.map(s=>`
         <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer"
-          onclick="window.open('${s.link||s.url||'#'}','_blank')">
+          onclick="openStoryReader(s)">
           <div style="font-size:14px;font-weight:700;color:var(--bl);line-height:1.35">${s.title}</div>
           <div style="font-size:12px;font-family:var(--mn);color:var(--tx);margin-top:3px">
             ${s.source||''} · ${s.age||''}
@@ -8870,7 +8998,7 @@ async function fetchRegionStories(reg){
       const newTabNote=`<span style="font-size:11px;color:var(--tx);font-family:var(--mn);opacity:.6">↗ opens in new tab — your XRPRadar stays open</span>`;
       const sent=s.sentiment==="bullish"?"g":s.sentiment==="bearish"?"r":"";
       return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer"
-          onclick="window.open('${s.link||s.url||"#"}','_blank')">
+          onclick="openStoryReader(s)">
         <div style="font-size:14px;font-weight:700;color:var(--bl);line-height:1.35">${s.title}</div>
         ${trans}
         <div style="font-size:12px;font-family:var(--mn);color:var(--tx);margin-top:3px">
@@ -9012,7 +9140,7 @@ function updateBreaking(d){
   if(bkStories.length){
     // Build clickable spans separated by dividers
     bt.innerHTML = bkStories.map(s=>`
-      <span onclick="window.open('${s.link||s.url||'#'}','_blank')"
+      <span onclick="openStoryReader(s)"
         style="cursor:pointer;color:var(--br);transition:color .2s"
         onmouseover="this.style.color='var(--bl)'"
         onmouseout="this.style.color='var(--br)'">
@@ -10864,7 +10992,7 @@ function updateWeeklyDigest(d){
     if(!el) return;
     if(!relevant.length){el.innerHTML='<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No regulatory news in current feed — refreshing...</div>';return;}
     el.innerHTML=relevant.map(s=>`
-      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="window.open('${s.link||s.url||'#'}','_blank')">
+      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="openStoryReader(s)">
         <div style="font-size:14px;font-weight:700;color:var(--bl);line-height:1.35">${s.title}</div>
         <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-top:3px">${s.source||''} · ${s.age||''}</div>
       </div>`).join('');
@@ -10958,7 +11086,7 @@ function updateWeeklyDigest(d){
       return;
     }
     el.innerHTML=earningsStories.map(s=>`
-      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="window.open('${s.link||s.url||'#'}','_blank')">
+      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="openStoryReader(s)">
         <div style="font-size:14px;font-weight:700;color:var(--or);line-height:1.35">${s.title}</div>
         <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-top:3px">${s.source||''} · ${s.age||''}</div>
       </div>`).join('');
@@ -11114,7 +11242,7 @@ function updateWeeklyDigest(d){
       const titleHL = (s.title||'').replace(new RegExp('('+q+')', 'gi'), '<mark style="background:rgba(255,204,0,.3);color:var(--yl);border-radius:2px">$1</mark>');
       const sentCol = s.sentiment==='bullish'?'var(--gr)':s.sentiment==='bearish'?'var(--rd)':'var(--tx)';
       return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer"
-        onclick="window.open('${s.link||s.url||'#'}','_blank')">
+        onclick="openStoryReader(s)">
         <div style="font-size:14px;font-weight:700;color:var(--bl);line-height:1.4">${titleHL}</div>
         <div style="font-size:12px;font-family:var(--mn);color:var(--tx);margin-top:3px">
           <span style="color:${sentCol}">${s.sentiment||'neutral'}</span>
@@ -11496,6 +11624,43 @@ Date: '+new Date().toLocaleDateString());
     renderSentimentOverlay(d);
     if(!_ammFetched){ fetchAMMData(); _ammFetched=true; }
   }
+
+
+  // STORY READER OVERLAY
+  function openStoryReader(story){
+    const ov=document.getElementById('story-reader-overlay');
+    const title=document.getElementById('sr-title');
+    const excerpt=document.getElementById('sr-excerpt');
+    const readLink=document.getElementById('sr-read-link');
+    const source=document.getElementById('sr-source');
+    const age=document.getElementById('sr-age');
+    const category=document.getElementById('sr-category');
+    const metaRow=document.getElementById('sr-meta-row');
+    if(!ov) return;
+    if(title)    title.textContent   = story.title||'Story';
+    if(source)   source.textContent  = story.source||'--';
+    if(age)      age.textContent     = story.age||story.pub||'--';
+    if(category) category.textContent= (story.category||'General').toUpperCase();
+    if(readLink){ readLink.href=story.link||story.url||'#'; readLink.target='_blank'; readLink.rel='noopener noreferrer'; }
+    const excerptText=story.summary||story.excerpt||'Click \"Read Full Article\" below to read the complete story on the source website.';
+    if(excerpt) excerpt.textContent=excerptText;
+    if(metaRow){
+      const sc=story.sentiment==='bullish'?'rgba(72,255,130,.8)':story.sentiment==='bearish'?'rgba(255,64,96,.8)':'rgba(128,153,179,.6)';
+      const sl=story.sentiment==='bullish'?'BULLISH':story.sentiment==='bearish'?'BEARISH':'NEUTRAL';
+      const bk=story.breaking?'<span class="sr-tag" style="background:rgba(255,153,0,.2);color:var(--or)">BREAKING</span>':'';
+      metaRow.innerHTML='<span class="sr-tag" style="background:rgba(117,188,255,.15);color:var(--bl)">'+(story.category||'NEWS').toUpperCase()+'</span>'+'<span class="sr-tag" style="background:'+sc+'22;color:'+sc+'">'+sl+'</span>'+bk+'<span style="font-size:12px;font-family:var(--mn);color:var(--tx)">'+( story.source||'')+'</span>';
+    }
+    ov.classList.add('open');
+    document.body.style.overflow='hidden';
+    const bd=document.getElementById('story-reader-body');
+    if(bd) bd.scrollTop=0;
+  }
+  function closeStoryReader(){
+    const ov=document.getElementById('story-reader-overlay');
+    if(ov) ov.classList.remove('open');
+    document.body.style.overflow='';
+  }
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeStoryReader(); });
 
 </script>
 
