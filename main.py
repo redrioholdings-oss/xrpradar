@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v6.3"
+BOT_FILE          = "XRPRadar_v6.3a"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 600
@@ -435,7 +435,7 @@ STATE = {
             "tradfi_outlook":      "",
         },
         "generated_at":   "",
-        "next_run_cst":   "Daily at 11:50 AM CST",
+        "next_run_cst":   "AM: 12:00 PM CST | PM: 9:00 PM CST",
         "last_run_date":  "",
         "story_count":    0,
         "source_count":   0,
@@ -1289,7 +1289,7 @@ def fetch_tech_intel():
 
 # ── XRP Intelligence Brief (v3.1) ─────────────────────────────────────────
 def fetch_prediction(force=False, session="am"):
-    """XRP Intelligence Brief — AM: 17:50 UTC (11:50am CST), PM: 22:00 UTC (4:00pm CST)."""
+    """XRP Intelligence Brief — AM: 17:50 UTC (12:00 PM CST), PM: 22:00 UTC (4:00pm CST)."""
     pred  = STATE["prediction"]
     now_u = datetime.now(timezone.utc)
     today = now_u.strftime("%Y-%m-%d")
@@ -1438,7 +1438,7 @@ def fetch_prediction(force=False, session="am"):
         pred["session"]       = session.upper()
         pred["story_count"]   = len(stories)
         pred["source_count"]  = src_count
-        pred["next_run_cst"]  = f"Next brief in {hrs}h {mins}m (11:50 AM CST)"
+        pred["next_run_cst"]  = f"Next brief in {hrs}h {mins}m (12:00 PM CST)"
         pred["status"]        = "complete"
         pred["error"]         = ""
 
@@ -1459,23 +1459,27 @@ def prediction_loop():
             today_str = now.strftime("%Y-%m-%d")
             last_key  = STATE["prediction"].get("last_run_key", "")
             # AM Brief window: 17:48-18:05 UTC = 11:48 AM - 12:05 PM CST
+            # (compiled 11:50 CST, posted at noon CST)
             am_window = (now.hour == 17 and now.minute >= 48) or (now.hour == 18 and now.minute <= 5)
-            # PM Brief window: 22:00-22:15 UTC = 4:00-4:15 PM CST
-            pm_window = (now.hour == 22 and now.minute <= 15)
+            # PM Brief window: 02:48-03:05 UTC = 8:48 PM - 9:05 PM CST
+            # (compiled 8:50 PM CST, posted at 9:00 PM CST)
+            pm_window = (now.hour == 2 and now.minute >= 48) or (now.hour == 3 and now.minute <= 5)
             if am_window and last_key != f"{today_str}_am":
                 fetch_prediction(session="am")
             elif pm_window and last_key != f"{today_str}_pm":
                 fetch_prediction(session="pm")
             # Calculate next run countdown
             am_utc = now.replace(hour=17, minute=50, second=0, microsecond=0)
-            pm_utc = now.replace(hour=22, minute=0,  second=0, microsecond=0)
+            # PM is at 03:00 UTC — if we've already passed midnight, it's today; else tomorrow
+            pm_base = now.replace(hour=3, minute=0, second=0, microsecond=0)
+            pm_utc  = pm_base if pm_base > now else pm_base + _dt.timedelta(days=1)
             candidates = [t for t in [am_utc, pm_utc,
-                am_utc + _dt.timedelta(days=1), pm_utc + _dt.timedelta(days=1)] if t > now]
+                am_utc + _dt.timedelta(days=1)] if t > now]
             next_utc  = min(candidates) if candidates else am_utc + _dt.timedelta(days=1)
             remaining = next_utc - now
             hrs  = int(remaining.total_seconds() // 3600)
             mins = int((remaining.total_seconds() % 3600) // 60)
-            STATE["prediction"]["next_run_cst"] = f"Next brief in {hrs}h {mins}m — AM: 11:50 CST | PM: 4:00 PM CST"
+            STATE["prediction"]["next_run_cst"] = f"Next brief in {hrs}h {mins}m — AM: 12:00 PM CST | PM: 9:00 PM CST"
         except Exception as e:
             log_error(f"prediction_loop: {e}")
         time.sleep(300)
@@ -4515,7 +4519,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
       <div id="pred-loading" style="grid-column:1/-1;text-align:center;padding:40px;
         font-family:var(--mn);color:var(--tx)">
         <div style="font-size:32px;margin-bottom:10px">🔮</div>
-        <div style="font-size:13px">Brief pending — generates daily at 11:50 AM CST</div>
+        <div style="font-size:13px">Brief pending — generates daily at 12:00 PM CST</div>
         <div style="font-size:13px;margin-top:6px;color:var(--tx)">
           Or click <strong style="color:var(--or)">GENERATE NOW</strong> to run immediately
           (requires ANTHROPIC_API_KEY in Railway)
