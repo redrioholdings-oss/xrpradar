@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2g"
+BOT_FILE          = "XRPRadar_v7.2h"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -1633,7 +1633,33 @@ def fetch_disp_intel():
         di["price_heatmap"] = heatmap[-90:]
         log_error(f"price_heatmap: loaded {len(di['price_heatmap'])} days")
     except Exception as e:
-        log_error(f"price_heatmap: {e}")
+        log_error(f"price_heatmap CoinGecko: {e}")
+        # Fallback: Binance daily klines (free, no key)
+        try:
+            import datetime as _dt
+            bk = requests.get(
+                "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=92",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=10).json()
+            if isinstance(bk, list) and bk:
+                heatmap = []
+                prices_b = [float(c[4]) for c in bk]  # index 4 = close price
+                for i in range(1, len(prices_b)):
+                    ts_ms = int(bk[i][0])
+                    price = round(prices_b[i], 4)
+                    prev  = prices_b[i-1]
+                    pct   = round((price-prev)/prev*100, 2) if prev else 0
+                    day   = _dt.datetime.fromtimestamp(ts_ms/1000, tz=_dt.timezone.utc)
+                    heatmap.append({
+                        "date":   day.strftime("%Y-%m-%d"),
+                        "dow":    day.weekday(),
+                        "week":   day.strftime("%Y-W%W"),
+                        "price":  price,
+                        "change": pct,
+                    })
+                di["price_heatmap"] = heatmap[-90:]
+                log_error(f"price_heatmap: Binance fallback OK ({len(di['price_heatmap'])} days)")
+        except Exception as eb:
+            log_error(f"price_heatmap Binance: {eb}")
 
     # 6-Month Price Trend (#9 — new)
     try:
@@ -1651,7 +1677,25 @@ def fetch_disp_intel():
             week_map[wkey] = {"date": day.strftime("%b %d"), "price": price}
         di["price_history_6m"] = list(week_map.values())
     except Exception as e:
-        log_error(f"price_6m: {e}")
+        log_error(f"price_6m CoinGecko: {e}")
+        # Fallback: Binance daily klines for 6 months
+        try:
+            bk6 = requests.get(
+                "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=182",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=10).json()
+            if isinstance(bk6, list) and bk6:
+                import datetime as _dt
+                week_map = {}
+                for c in bk6:
+                    ts_ms = int(c[0])
+                    price = round(float(c[4]), 4)
+                    day   = _dt.datetime.fromtimestamp(ts_ms/1000, tz=_dt.timezone.utc)
+                    wkey  = day.strftime("%Y-W%W")
+                    week_map[wkey] = {"date": day.strftime("%b %d"), "price": price}
+                di["price_history_6m"] = list(week_map.values())
+                log_error(f"price_6m: Binance fallback OK ({len(di['price_history_6m'])} weeks)")
+        except Exception as eb:
+            log_error(f"price_6m Binance: {eb}")
 
     # 60-Month Price History (5 Years)
     try:
@@ -1671,7 +1715,25 @@ def fetch_disp_intel():
         # Keep last 60 months
         di["price_history_60m"] = monthly[-60:]
     except Exception as e:
-        log_error(f"price_history_60m: {e}")
+        log_error(f"price_history_60m CoinGecko: {e}")
+        # Fallback: Binance weekly klines (interval=1w) — 260 weeks = 5 years
+        try:
+            bk60 = requests.get(
+                "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1w&limit=260",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=15).json()
+            if isinstance(bk60, list) and bk60:
+                import datetime as _dt
+                month_map = {}
+                for c in bk60:
+                    ts_ms = int(c[0])
+                    price = round(float(c[4]), 4)
+                    day   = _dt.datetime.fromtimestamp(ts_ms/1000, tz=_dt.timezone.utc)
+                    mkey  = day.strftime("%Y-%m")
+                    month_map[mkey] = {"date": mkey, "price": price, "ts": ts_ms}
+                di["price_history_60m"] = list(month_map.values())[-60:]
+                log_error(f"price_history_60m: Binance fallback OK ({len(di['price_history_60m'])} months)")
+        except Exception as eb:
+            log_error(f"price_history_60m Binance: {eb}")
 
     # 38. Smart Money Score — proprietary composite
     try:
