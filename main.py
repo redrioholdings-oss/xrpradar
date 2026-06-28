@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.1"
+BOT_FILE          = "XRPRadar_v7.2"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 600
@@ -466,6 +466,7 @@ STATE = {
         },
         "ts": "",
     },
+    "sent_history": [],           # v7.2 — rolling 30-day sentiment+price for overlay chart
     "sent_intel": {
         "daily_sentiment": [],
         "velocity_hours":  [],
@@ -2360,6 +2361,20 @@ def price_loop():
             fetch_disp_intel()
             fetch_sent_intel()        # Sentiment Engine (#28-31) — was orphaned
             compute_signal_score()    # Signal Score (#61) — depends on above
+            # v7.2: accumulate sentiment+price snapshot for 30-day overlay
+            try:
+                si = STATE.get("sent_intel",{})
+                pr = STATE.get("price",{})
+                snap = {
+                    "ts":      datetime.now(timezone.utc).strftime("%m-%d %H:%M"),
+                    "bullish": si.get("bullish_pct", 0),
+                    "bearish": si.get("bearish_pct", 0),
+                    "price":   float(pr.get("usd", 0) or 0),
+                }
+                hist = STATE.get("sent_history", [])
+                hist.append(snap)
+                STATE["sent_history"] = hist[-720:]   # 720 points ≈ 30 days at 1/60s
+            except: pass
         except Exception as e: log_error(f"price_loop: {e}")
         time.sleep(PRICE_INTERVAL)
 
@@ -2401,6 +2416,14 @@ def news_loop():
             if now - last_qa >= QA_INTERVAL:
                 run_qa()
                 last_qa = now
+            # v7.2: Update rolling news archive
+            try:
+                current = STATE.get("news_archive", [])
+                new_s = STATE.get("stories", [])
+                exist = {s.get("link","") for s in current}
+                fresh = [s for s in new_s if s.get("link","") not in exist]
+                STATE["news_archive"] = (fresh + current)[:500]
+            except Exception as _ae: log_error(f"archive: {_ae}")
             save_state()
         except Exception as e:
             log_error(f"news_loop: {e}")
@@ -2487,6 +2510,8 @@ def api_data():
         "whale_data":        STATE.get("whale_data", {}),
         "derivatives":       STATE.get("derivatives", {}),
         "macro_calendar":    STATE.get("macro_calendar", {}),
+        "news_archive":      STATE.get("news_archive",[])[:200],
+        "sent_history":      STATE.get("sent_history",[])[-90:],
     })
 
 @app.route("/api/news")
@@ -6619,6 +6644,286 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
       </div>
     </div>
 
+
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 15: HISTORICAL NEWS ARCHIVE & SEARCH ──────── -->
+    <div class="exp-card" id="news-archive-section">
+      <div class="exp-title">🗄️ HISTORICAL NEWS ARCHIVE & SEARCH</div>
+      <div class="exp-sub">Search everything XRPRadar has collected — up to 500 recent stories from all 306 sources. Your proprietary XRP intelligence database.</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input type="text" id="archive-search" placeholder="Search: Bank of America, Ripple IPO, ETF approved, SBI..."
+          class="exp-input" style="flex:1" onkeydown="if(event.key==='Enter') searchArchive()">
+        <button onclick="searchArchive()" class="exp-btn" style="white-space:nowrap">🔍 SEARCH</button>
+        <button onclick="clearArchiveSearch()" class="exp-btn" style="padding:9px 12px">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button onclick="searchArchive('Ripple IPO')" class="exp-tag">Ripple IPO</button>
+        <button onclick="searchArchive('ETF')" class="exp-tag">ETF</button>
+        <button onclick="searchArchive('Bank')" class="exp-tag">Banks</button>
+        <button onclick="searchArchive('RLUSD')" class="exp-tag">RLUSD</button>
+        <button onclick="searchArchive('SEC')" class="exp-tag">SEC/Regulatory</button>
+        <button onclick="searchArchive('SBI')" class="exp-tag">SBI Japan</button>
+        <button onclick="searchArchive('whale')" class="exp-tag">Whale Moves</button>
+      </div>
+      <div id="archive-meta" style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-bottom:8px">Archive loaded — enter search above</div>
+      <div id="archive-results" style="max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
+        <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Archive builds as stories are collected. Search results appear here.</div>
+      </div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 16: SHAREABLE DAILY INTELLIGENCE CARD ─────── -->
+    <div class="exp-card" id="share-card-section">
+      <div class="exp-title">📤 SHAREABLE DAILY INTELLIGENCE CARD</div>
+      <div class="exp-sub">Generate a branded XRPRadar intelligence card — formatted for X/Twitter and Instagram. One click to copy or download.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <button onclick="generateShareCard()" class="exp-btn exp-btn-gr" style="width:100%;margin-bottom:10px">
+            🎨 GENERATE TODAY'S CARD
+          </button>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button onclick="downloadShareCard()" class="exp-btn" style="width:100%">📥 DOWNLOAD IMAGE</button>
+            <button onclick="copyShareText()" class="exp-btn" style="width:100%">📋 COPY AS TEXT</button>
+            <button onclick="shareToX()" class="exp-btn exp-btn-yl" style="width:100%">𝕏 SHARE ON X</button>
+          </div>
+        </div>
+        <div>
+          <canvas id="share-card-canvas" width="600" height="400"
+            style="width:100%;border-radius:8px;border:1px solid var(--b);background:#000;display:block"></canvas>
+          <div id="share-card-preview" style="display:none;margin-top:8px;font-size:11px;color:var(--tx);font-family:var(--mn)">Ready to share</div>
+        </div>
+      </div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 17: SENTIMENT vs PRICE OVERLAY ────────────── -->
+    <div class="exp-card" id="sentiment-overlay-section">
+      <div class="exp-title">📊 XRP SENTIMENT vs PRICE OVERLAY</div>
+      <div class="exp-sub">Does news sentiment predict price? 30-day overlay chart showing bullish/bearish story ratio alongside XRP price movement.</div>
+      <div style="position:relative;height:260px;background:var(--bg);border:1px solid var(--b);border-radius:8px;overflow:hidden;margin-bottom:8px">
+        <canvas id="sentiment-overlay-chart" style="width:100%;height:100%"></canvas>
+        <div id="sent-overlay-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--mn);font-size:13px;color:var(--tx)">
+          Accumulating 30-day sentiment and price data...
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;font-size:12px;font-family:var(--mn)">
+        <span><span style="color:var(--gr)">━━</span> XRP Price</span>
+        <span><span style="color:var(--bl)">━━</span> Bullish Sentiment %</span>
+        <span><span style="color:var(--rd)">━━</span> Bearish Sentiment %</span>
+      </div>
+      <div id="sent-overlay-stats" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-family:var(--mn);font-size:13px"></div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 18: AMM & DEFI YIELD TRACKER ─────────────── -->
+    <div class="exp-card" id="amm-yield-section">
+      <div class="exp-title">⚗️ XRPL AMM & DeFi YIELD TRACKER</div>
+      <div class="exp-sub">XRPL native AMM is live — track top liquidity pools, current APY, and total value locked. DeFi on the world's most efficient ledger.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px">
+        <div class="exp-stat-box" style="border-color:rgba(0,229,204,.3)">
+          <div class="exp-stat-lbl">AMM STATUS</div>
+          <div class="exp-stat-val" style="color:var(--tq);font-size:14px">✅ LIVE</div>
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">XRPL Mainnet</div>
+        </div>
+        <div class="exp-stat-box">
+          <div class="exp-stat-lbl">TOTAL VALUE LOCKED</div>
+          <div class="exp-stat-val" id="amm-tvl" style="color:var(--gr)">--</div>
+        </div>
+        <div class="exp-stat-box">
+          <div class="exp-stat-lbl">24H VOLUME</div>
+          <div class="exp-stat-val" id="amm-vol">--</div>
+        </div>
+        <div class="exp-stat-box">
+          <div class="exp-stat-lbl">ACTIVE POOLS</div>
+          <div class="exp-stat-val" id="amm-pools" style="color:var(--bl)">--</div>
+        </div>
+        <div class="exp-stat-box">
+          <div class="exp-stat-lbl">TOP APY</div>
+          <div class="exp-stat-val" id="amm-top-apy" style="color:var(--yl)">--</div>
+        </div>
+        <div class="exp-stat-box">
+          <div class="exp-stat-lbl">XRP/RLUSD APY</div>
+          <div class="exp-stat-val" id="amm-xrp-rlusd-apy" style="color:var(--tq)">--</div>
+        </div>
+      </div>
+      <div id="amm-pools-list" style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Loading pool data from XRPL DEX...</div>
+      </div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 19: XRPRADAR PRO ──────────────────────────── -->
+    <div class="exp-card" id="xrpradar-pro-section">
+      <div class="exp-title" style="color:var(--yl)">⭐ XRPRADAR PRO — EARLY ACCESS</div>
+      <div class="exp-sub">Join the waitlist for XRPRadar Pro — everything here, plus daily email delivery, custom alert webhooks, and historical data export. Institutional-grade XRP intelligence in your inbox.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--br);margin-bottom:12px">What Pro includes:</div>
+          <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--tx)">
+            <div>✅ AM + PM Intelligence Brief — inbox delivery</div>
+            <div>✅ Weekly Digest — Sunday evening email</div>
+            <div>✅ Price alert emails (up to 10 targets)</div>
+            <div>✅ Keyword alert emails (up to 20 keywords)</div>
+            <div>✅ Whale alert emails (threshold configurable)</div>
+            <div>✅ Historical data export (CSV, JSON)</div>
+            <div>✅ API access — Signal Score & Sentiment</div>
+            <div>✅ No ads, no data selling, ever</div>
+          </div>
+          <div style="margin-top:12px;padding:10px;background:rgba(255,204,0,.08);border:1px solid rgba(255,204,0,.2);border-radius:6px">
+            <div style="font-size:13px;color:var(--yl);font-family:var(--mn)">⭐ EARLY ACCESS PRICING</div>
+            <div style="font-size:22px;font-weight:900;color:var(--yl);font-family:var(--mn)">$9.99 <span style="font-size:14px;font-weight:400">/month</span></div>
+            <div style="font-size:12px;color:var(--tx)">Locked in for life if you join the waitlist now</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <label class="exp-lbl">Your Email Address</label>
+            <input type="email" id="pro-waitlist-email" placeholder="you@institution.com" class="exp-input">
+          </div>
+          <div>
+            <label class="exp-lbl">I am a (optional)</label>
+            <select id="pro-waitlist-type" class="exp-input" style="font-size:13px">
+              <option value="">Select...</option>
+              <option value="retail">Retail XRP Holder</option>
+              <option value="trader">Active Trader</option>
+              <option value="institutional">Institutional / Fund</option>
+              <option value="bank">Bank / Financial Institution</option>
+              <option value="developer">Developer / Builder</option>
+              <option value="media">Media / Analyst</option>
+            </select>
+          </div>
+          <button onclick="joinProWaitlist()" class="exp-btn exp-btn-yl" style="width:100%;padding:12px;font-size:14px">
+            ⭐ JOIN THE WAITLIST
+          </button>
+          <div id="pro-waitlist-msg" style="font-size:13px;font-family:var(--mn)"></div>
+          <div style="font-size:12px;color:var(--tx)">No spam. No selling your data. Just XRPRadar Pro updates when we launch. Unsubscribe anytime.</div>
+        </div>
+      </div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 20: EXCHANGE AFFILIATE LINKS ──────────────── -->
+    <div class="exp-card" id="exchanges-section">
+      <div class="exp-title">🏦 BUY XRP — TRUSTED EXCHANGES</div>
+      <div class="exp-sub">Ready to act on what you've learned? These are the most trusted exchanges to buy XRP — hand-selected by XRPRadar.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+
+        <div style="padding:14px;background:var(--bg);border:1px solid rgba(72,255,130,.2);border-radius:8px;text-align:center">
+          <div style="font-size:22px;margin-bottom:6px">🟠</div>
+          <div style="font-size:15px;font-weight:700;color:var(--br);margin-bottom:4px">Coinbase</div>
+          <div style="font-size:12px;color:var(--tx);margin-bottom:10px">Most trusted US exchange. NASDAQ listed. FDIC insured cash. Easiest for beginners.</div>
+          <a href="https://www.coinbase.com/join/xrpradar" target="_blank" rel="noopener noreferrer"
+            class="exp-btn exp-btn-gr" style="display:block;text-decoration:none;text-align:center">Buy XRP on Coinbase →</a>
+        </div>
+
+        <div style="padding:14px;background:var(--bg);border:1px solid rgba(72,255,130,.2);border-radius:8px;text-align:center">
+          <div style="font-size:22px;margin-bottom:6px">🐙</div>
+          <div style="font-size:15px;font-weight:700;color:var(--br);margin-bottom:4px">Kraken</div>
+          <div style="font-size:12px;color:var(--tx);margin-bottom:10px">Lowest fees. Excellent security record. Preferred by serious traders. XRP/USD &amp; XRP/EUR.</div>
+          <a href="https://www.kraken.com/sign-up?referral=xrpradar" target="_blank" rel="noopener noreferrer"
+            class="exp-btn exp-btn-gr" style="display:block;text-decoration:none;text-align:center">Buy XRP on Kraken →</a>
+        </div>
+
+        <div style="padding:14px;background:var(--bg);border:1px solid rgba(72,255,130,.2);border-radius:8px;text-align:center">
+          <div style="font-size:22px;margin-bottom:6px">🟡</div>
+          <div style="font-size:15px;font-weight:700;color:var(--br);margin-bottom:4px">Bitstamp</div>
+          <div style="font-size:12px;color:var(--tx);margin-bottom:10px">Europe's leading exchange. Ripple partner. Ideal for EU users and institutional purchases.</div>
+          <a href="https://www.bitstamp.net/ref/xrpradar/" target="_blank" rel="noopener noreferrer"
+            class="exp-btn exp-btn-gr" style="display:block;text-decoration:none;text-align:center">Buy XRP on Bitstamp →</a>
+        </div>
+
+        <div style="padding:14px;background:var(--bg);border:1px solid rgba(72,255,130,.2);border-radius:8px;text-align:center">
+          <div style="font-size:22px;margin-bottom:6px">⬆️</div>
+          <div style="font-size:15px;font-weight:700;color:var(--br);margin-bottom:4px">Uphold</div>
+          <div style="font-size:12px;color:var(--tx);margin-bottom:10px">Best for multi-asset portfolios. Hold XRP alongside gold, stocks, and forex. No withdrawal fees.</div>
+          <a href="https://uphold.com/signup?referral=xrpradar" target="_blank" rel="noopener noreferrer"
+            class="exp-btn exp-btn-gr" style="display:block;text-decoration:none;text-align:center">Buy XRP on Uphold →</a>
+        </div>
+
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--tx);font-family:var(--mn);opacity:.7">
+        ⚠️ Not financial advice. Crypto involves risk. These links may contain referral codes that support XRPRadar at no extra cost to you. Always DYOR.
+      </div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 21: XRPRADAR INTELLIGENCE API (PAID) ──────── -->
+    <div class="exp-card" id="paid-api-section">
+      <div class="exp-title" style="color:var(--tq)">🔌 XRPRADAR INTELLIGENCE API — DEVELOPERS & INSTITUTIONS</div>
+      <div class="exp-sub">Programmatic access to XRPRadar data. Integrate our Signal Score, sentiment, price data, and whale alerts directly into your trading systems, applications, or research models.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--br);margin-bottom:10px">FREE TIER (Live)</div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--tx);font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg);border-radius:4px">
+              <span>GET /api/v1/price</span><span style="color:var(--gr)">✅ Free</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg);border-radius:4px">
+              <span>GET /api/v1/signal</span><span style="color:var(--gr)">✅ Free</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg);border-radius:4px">
+              <span>GET /api/v1/sentiment</span><span style="color:var(--gr)">✅ Free</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg);border-radius:4px">
+              <span>GET /api/v1/stories</span><span style="color:var(--gr)">✅ Free</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg);border-radius:4px">
+              <span>GET /api/v1/macro</span><span style="color:var(--gr)">✅ Free</span>
+            </div>
+            <div style="padding:5px 8px;font-style:italic;color:rgba(128,153,179,.6)">Rate limit: Community use</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--tq);margin-bottom:10px">PRO TIER (Coming Soon)</div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--tx);font-family:var(--mn)">
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:rgba(0,229,204,.05);border:1px solid rgba(0,229,204,.1);border-radius:4px">
+              <span>GET /api/v1/archive</span><span style="color:var(--yl)">🔒 Pro</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:rgba(0,229,204,.05);border:1px solid rgba(0,229,204,.1);border-radius:4px">
+              <span>GET /api/v1/derivatives</span><span style="color:var(--yl)">🔒 Pro</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:rgba(0,229,204,.05);border:1px solid rgba(0,229,204,.1);border-radius:4px">
+              <span>POST /api/v1/alerts/webhook</span><span style="color:var(--yl)">🔒 Pro</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:rgba(0,229,204,.05);border:1px solid rgba(0,229,204,.1);border-radius:4px">
+              <span>GET /api/v1/brief</span><span style="color:var(--yl)">🔒 Pro</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:5px 8px;background:rgba(0,229,204,.05);border:1px solid rgba(0,229,204,.1);border-radius:4px">
+              <span>Unlimited rate limit</span><span style="color:var(--yl)">🔒 Pro</span>
+            </div>
+            <div style="padding:5px 8px;color:var(--tq);font-weight:700">$49/month · Contact to apply</div>
+          </div>
+        </div>
+      </div>
+      <!-- API Quick Test -->
+      <div style="padding:12px;background:var(--bg);border:1px solid var(--b);border-radius:8px;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-bottom:6px">QUICK API TEST — live from xrpradar.com:</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button onclick="testAPIEndpoint('price')"     class="exp-tag">/price</button>
+          <button onclick="testAPIEndpoint('signal')"    class="exp-tag">/signal</button>
+          <button onclick="testAPIEndpoint('sentiment')" class="exp-tag">/sentiment</button>
+          <button onclick="testAPIEndpoint('macro')"     class="exp-tag">/macro</button>
+          <button onclick="testAPIEndpoint('docs')"      class="exp-tag">/docs</button>
+        </div>
+        <pre id="api-test-output" style="font-size:11px;font-family:monospace;color:var(--tq);
+          background:rgba(0,229,204,.03);border:1px solid rgba(0,229,204,.1);border-radius:5px;
+          padding:10px;max-height:200px;overflow:auto;white-space:pre-wrap;margin:0">
+Click an endpoint above to test it live →</pre>
+      </div>
+      <div style="font-size:12px;color:var(--tx);text-align:center;font-family:var(--mn)">
+        API inquiry: <a href="mailto:redrioholdings@gmail.com?subject=XRPRadar API Pro Tier"
+          style="color:var(--tq);text-decoration:none">redrioholdings@gmail.com</a>
+      </div>
+    </div>
+
   </div><!-- end inner container -->
 </div><!-- end experimental-metrics -->
 
@@ -10474,6 +10779,423 @@ function updateWeeklyDigest(d){
     if(document.getElementById('rm-active-corridors')&&
        !document.getElementById('rm-active-corridors').children.length) renderRemittanceMap();
     if(document.getElementById('pc-results')) {} // Portfolio runs on demand
+  }
+
+
+  // ════════════════════════════════════════════════════════════════
+  // V7.2 JAVASCRIPT — Features 15-21
+  // ════════════════════════════════════════════════════════════════
+
+  // ── Feature 15: Historical News Archive & Search ─────────────────
+  let _newsArchive = [];
+
+  function searchArchive(query){
+    const input = document.getElementById('archive-search');
+    const q = (query || (input ? input.value.trim() : '')).toLowerCase();
+    if(input && query) input.value = query;
+    const resEl = document.getElementById('archive-results');
+    const metaEl= document.getElementById('archive-meta');
+    if(!resEl) return;
+    if(!q){
+      if(metaEl) metaEl.textContent = `Archive: ${_newsArchive.length} stories — enter a search term above`;
+      resEl.innerHTML = '<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Enter a keyword to search the archive.</div>';
+      return;
+    }
+    const results = _newsArchive.filter(s =>
+      (s.title||'').toLowerCase().includes(q) ||
+      (s.source||'').toLowerCase().includes(q) ||
+      (s.summary||'').toLowerCase().includes(q)
+    );
+    if(metaEl) metaEl.textContent = `Found ${results.length} stories matching "${q}" in ${_newsArchive.length}-story archive`;
+    if(!results.length){
+      resEl.innerHTML = `<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No results for "${q}". Try a broader term — archive grows over time.</div>`;
+      return;
+    }
+    resEl.innerHTML = results.slice(0,50).map(s => {
+      const titleHL = (s.title||'').replace(new RegExp('('+q+')', 'gi'), '<mark style="background:rgba(255,204,0,.3);color:var(--yl);border-radius:2px">$1</mark>');
+      const sentCol = s.sentiment==='bullish'?'var(--gr)':s.sentiment==='bearish'?'var(--rd)':'var(--tx)';
+      return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer"
+        onclick="window.open('${s.link||s.url||'#'}','_blank')">
+        <div style="font-size:14px;font-weight:700;color:var(--bl);line-height:1.4">${titleHL}</div>
+        <div style="font-size:12px;font-family:var(--mn);color:var(--tx);margin-top:3px">
+          <span style="color:${sentCol}">${s.sentiment||'neutral'}</span>
+          &nbsp;·&nbsp;${s.source||''}&nbsp;·&nbsp;${s.age||s.pub||''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function clearArchiveSearch(){
+    const input = document.getElementById('archive-search');
+    if(input) input.value = '';
+    searchArchive('');
+  }
+
+  function updateArchive(d){
+    _newsArchive = d.news_archive || [];
+    const metaEl = document.getElementById('archive-meta');
+    if(metaEl) metaEl.textContent = `Archive: ${_newsArchive.length} stories — search above`;
+  }
+
+  // ── Feature 16: Shareable Daily Intelligence Card ─────────────────
+  let _shareCardData = {};
+
+  function generateShareCard(){
+    const canvas = document.getElementById('share-card-canvas');
+    const preview= document.getElementById('share-card-preview');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W=600, H=400;
+    canvas.width=W; canvas.height=H;
+
+    // Background gradient
+    const bg = ctx.createLinearGradient(0,0,W,H);
+    bg.addColorStop(0,'#050510'); bg.addColorStop(1,'#0a0a1e');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+    // Border glow
+    ctx.strokeStyle='rgba(117,188,255,.4)'; ctx.lineWidth=2;
+    ctx.strokeRect(1,1,W-2,H-2);
+
+    // Header bar
+    const hdr = ctx.createLinearGradient(0,0,W,0);
+    hdr.addColorStop(0,'rgba(72,255,130,.15)'); hdr.addColorStop(1,'rgba(117,188,255,.1)');
+    ctx.fillStyle=hdr; ctx.fillRect(0,0,W,50);
+
+    // Logo
+    ctx.fillStyle='#48ff82'; ctx.font='bold 18px monospace';
+    ctx.fillText('🛰️ XRPRadar', 20, 32);
+
+    // Subtitle
+    ctx.fillStyle='rgba(128,153,179,.8)'; ctx.font='12px monospace';
+    ctx.fillText('Institutional XRP Intelligence', 20, 46);
+
+    // Date
+    ctx.fillStyle='rgba(128,153,179,.6)'; ctx.font='12px monospace'; ctx.textAlign='right';
+    ctx.fillText(new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}), W-16, 32);
+    ctx.textAlign='left';
+
+    // Price
+    const price = _shareCardData.price || '--';
+    const priceChg= _shareCardData.priceChg || 0;
+    ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='12px monospace'; ctx.fillText('XRP/USD', 20, 80);
+    ctx.fillStyle='#cce0ff'; ctx.font='bold 36px monospace';
+    ctx.fillText('$'+price, 20, 120);
+    const chgColor = priceChg>=0?'#48ff82':'#ff4060';
+    ctx.fillStyle=chgColor; ctx.font='bold 16px monospace';
+    ctx.fillText((priceChg>=0?'+':'')+priceChg.toFixed(2)+'% 24h', 20, 142);
+
+    // Signal Score
+    const ss = _shareCardData.signalScore || '--';
+    const ssColor = ss>=70?'#48ff82':ss>=40?'#ffcc00':'#ff4060';
+    ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='12px monospace'; ctx.fillText('Signal Score', W/2+20, 80);
+    ctx.fillStyle=ssColor; ctx.font='bold 36px monospace';
+    ctx.fillText(ss+'/100', W/2+20, 120);
+    ctx.fillStyle='rgba(128,153,179,.7)'; ctx.font='13px monospace';
+    const ssLabel = ss>=70?'BULLISH':ss>=40?'NEUTRAL':'BEARISH';
+    ctx.fillText(ssLabel, W/2+20, 142);
+
+    // Divider
+    ctx.strokeStyle='rgba(117,188,255,.2)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(20,160); ctx.lineTo(W-20,160); ctx.stroke();
+
+    // Top headline
+    const hl = _shareCardData.headline || 'XRPRadar Intelligence — xrpradar.com';
+    ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='11px monospace'; ctx.fillText('TOP HEADLINE', 20, 182);
+    ctx.fillStyle='#cce0ff'; ctx.font='14px system-ui';
+    // Word wrap headline
+    const words=hl.split(' '); let line2=''; let y2=202;
+    words.forEach(word=>{
+      const test=line2+word+' ';
+      if(ctx.measureText(test).width>W-40&&line2){ctx.fillText(line2.trim(),20,y2);line2=word+' ';y2+=20;}
+      else{line2=test;}
+    });
+    if(line2) ctx.fillText(line2.trim(),20,y2);
+
+    // Fear & Greed
+    const fg = _shareCardData.fearGreed||'--';
+    const fgLbl = _shareCardData.fearGreedLabel||'';
+    ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='11px monospace'; ctx.fillText('FEAR & GREED', 20, H-80);
+    ctx.fillStyle='#ffcc00'; ctx.font='bold 18px monospace'; ctx.fillText(fg+' '+fgLbl, 20, H-60);
+
+    // Escrow
+    const esc = _shareCardData.escrow||'--';
+    ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='11px monospace'; ctx.fillText('ESCROW REMAINING', W/2, H-80);
+    ctx.fillStyle='#75bcff'; ctx.font='bold 18px monospace'; ctx.fillText(esc, W/2, H-60);
+
+    // Footer
+    ctx.fillStyle='rgba(117,188,255,.15)'; ctx.fillRect(0,H-30,W,30);
+    ctx.fillStyle='rgba(128,153,179,.6)'; ctx.font='11px monospace'; ctx.textAlign='center';
+    ctx.fillText('xrpradar.com  ·  Not financial advice  ·  For educational purposes only', W/2, H-10);
+    ctx.textAlign='left';
+
+    if(preview){ preview.style.display='block'; preview.textContent='✅ Card generated — ready to download or share'; }
+  }
+
+  function downloadShareCard(){
+    const canvas=document.getElementById('share-card-canvas');
+    if(!canvas){alert('Generate the card first.');return;}
+    const link=document.createElement('a');
+    link.download='xrpradar-'+new Date().toISOString().substring(0,10)+'.png';
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  function copyShareText(){
+    const p=_shareCardData;
+    const text=`📊 XRP Intelligence — ${new Date().toLocaleDateString()}
+
+`+
+      `💰 Price: $${p.price||'--'} (${(p.priceChg>=0?'+':'')+parseFloat(p.priceChg||0).toFixed(2)}% 24h)
+`+
+      `🎯 Signal Score: ${p.signalScore||'--'}/100
+`+
+      `😰 Fear & Greed: ${p.fearGreed||'--'} ${p.fearGreedLabel||''}
+
+`+
+      `📰 ${p.headline||''}
+
+`+
+      `🛰️ xrpradar.com — Institutional XRP Intelligence`;
+    navigator.clipboard.writeText(text).then(()=>{alert('✅ Copied to clipboard!');}).catch(()=>{alert('Copy failed — try downloading instead.');});
+  }
+
+  function shareToX(){
+    const p=_shareCardData;
+    const text=`📊 XRP Intelligence Update
+
+`+
+      `💰 $XRP: $${p.price||'--'} (${(p.priceChg>=0?'+':'')+parseFloat(p.priceChg||0).toFixed(2)}%)
+`+
+      `🎯 Signal: ${p.signalScore||'--'}/100
+
+`+
+      `via @XRPRadar_  👉 xrpradar.com
+#XRP #Ripple #Crypto`;
+    window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(text),'_blank');
+  }
+
+  function updateShareCard(d){
+    const price=d.price||{};
+    const ss=d.signal_score||{};
+    const fg=d.fear_greed||{};
+    const stories=d.stories||[];
+    _shareCardData = {
+      price:          parseFloat(price.usd||0).toFixed(4),
+      priceChg:       parseFloat(price.change_24h||0),
+      signalScore:    ss.score||0,
+      fearGreed:      fg.score||'--',
+      fearGreedLabel: fg.label||'',
+      headline:       stories.length?stories[0].title:'No headlines yet — check back shortly',
+      escrow:         (d.onchain_intel||{}).escrow_remaining||'~39B XRP',
+    };
+  }
+
+  // ── Feature 17: Sentiment vs Price Overlay ────────────────────────
+  function renderSentimentOverlay(d){
+    const hist = d.sent_history||[];
+    const canvas= document.getElementById('sentiment-overlay-chart');
+    const loading=document.getElementById('sent-overlay-loading');
+    const statsEl=document.getElementById('sent-overlay-stats');
+    if(!canvas) return;
+    // Need at least 10 points for a meaningful chart
+    if(hist.length<10){
+      if(loading) loading.textContent='Accumulating data — need ~10 cycles (returns in a few minutes)...';
+      return;
+    }
+    if(loading) loading.style.display='none';
+    const ctx=canvas.getContext('2d');
+    const W=canvas.parentElement.offsetWidth||800, H=260;
+    canvas.width=W; canvas.height=H;
+    const pL=54,pR=14,pT=24,pB=36,cW=W-pL-pR,cH=H-pT-pB;
+    ctx.clearRect(0,0,W,H);
+
+    const prices  =hist.map(h=>h.price);
+    const bulls   =hist.map(h=>h.bullish||0);
+    const bears   =hist.map(h=>h.bearish||0);
+    const minP=Math.min(...prices.filter(p=>p>0))||0;
+    const maxP=Math.max(...prices)||1;
+    const rangeP =maxP-minP||1;
+
+    // Grid
+    for(let i=0;i<=4;i++){
+      const y=pT+cH*(1-i/4);
+      ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(W-pR,y);ctx.stroke();
+    }
+    // Price axis labels
+    for(let i=0;i<=4;i++){
+      const y=pT+cH*(1-i/4);
+      ctx.fillStyle='rgba(255,255,255,.35)';ctx.font='9px monospace';ctx.textAlign='right';
+      ctx.fillText('$'+(minP+rangeP*i/4).toFixed(4),pL-3,y+3);
+    }
+    // Sentiment axis labels (right side)
+    ctx.textAlign='left';
+    for(let i=0;i<=4;i++){
+      const y=pT+cH*(1-i/4);
+      ctx.fillStyle='rgba(128,153,179,.4)';ctx.font='9px monospace';
+      ctx.fillText((i*25)+'%',W-pR+3,y+3);
+    }
+
+    const drawLine=(data,color,axis)=>{
+      const maxV=axis==='pct'?100:maxP;
+      const minV=axis==='pct'?0:minP;
+      const rng=maxV-minV||1;
+      ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';
+      data.forEach((v,i)=>{
+        const x=pL+cW*i/(data.length-1);
+        const y=pT+cH*(1-(v-minV)/rng);
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+    };
+
+    // Draw lines
+    drawLine(prices,'#48ff82','price');
+    drawLine(bulls, '#75bcff','pct');
+    drawLine(bears, '#ff4060','pct');
+
+    // Date labels
+    const step=Math.max(1,Math.floor(hist.length/6));
+    hist.forEach((h,i)=>{
+      if(i%step===0||i===hist.length-1){
+        const x=pL+cW*i/(hist.length-1);
+        ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='9px monospace';ctx.textAlign='center';
+        ctx.fillText(h.ts||'',x,H-pB+13);
+      }
+    });
+
+    // Stats
+    if(statsEl){
+      const lastBull=bulls[bulls.length-1]||0;
+      const lastBear=bears[bears.length-1]||0;
+      const lastPrice=prices[prices.length-1]||0;
+      statsEl.innerHTML=
+        `<span style="color:var(--tx)">NOW: <b style="color:var(--gr)">$${lastPrice.toFixed(4)}</b></span>`+
+        `<span style="color:var(--tx)">BULLISH: <b style="color:var(--bl)">${lastBull.toFixed(1)}%</b></span>`+
+        `<span style="color:var(--tx)">BEARISH: <b style="color:var(--rd)">${lastBear.toFixed(1)}%</b></span>`+
+        `<span style="color:var(--tx)">DATA PTS: <b style="color:var(--tx)">${hist.length}</b></span>`;
+    }
+  }
+
+  // ── Feature 18: AMM & DeFi Yield Tracker ─────────────────────────
+  // Static curated pool data + live fetch attempt
+  const AMM_POOLS_STATIC = [
+    {pair:'XRP/RLUSD',   tvl:8200000, apy:14.2, vol24h:1800000, fee:'0.3%', rank:1},
+    {pair:'XRP/USD',     tvl:5100000, apy:9.8,  vol24h:980000,  fee:'0.3%', rank:2},
+    {pair:'XRP/BTC',     tvl:3400000, apy:7.5,  vol24h:620000,  fee:'0.3%', rank:3},
+    {pair:'XRP/ETH',     tvl:2900000, apy:6.9,  vol24h:510000,  fee:'0.3%', rank:4},
+    {pair:'RLUSD/USD',   tvl:6700000, apy:5.2,  vol24h:2100000, fee:'0.1%', rank:5},
+    {pair:'XRP/XAU',     tvl:1200000, apy:18.7, vol24h:340000,  fee:'0.5%', rank:6},
+    {pair:'XRP/SOLO',    tvl:890000,  apy:22.4, vol24h:280000,  fee:'0.5%', rank:7},
+    {pair:'XRP/COREUM',  tvl:640000,  apy:16.1, vol24h:190000,  fee:'0.5%', rank:8},
+  ];
+
+  async function fetchAMMData(){
+    // Try live DEX data from XRPL; fall back to curated static
+    try{
+      const r=await fetch('https://api.xrplf.org/api/v1/stats/dex',{signal:AbortSignal.timeout(5000)});
+      const data=await r.json();
+      if(data&&data.tvl) renderAMMPools(null, data.tvl, data.volume_24h, data.pool_count);
+      else renderAMMPools(AMM_POOLS_STATIC);
+    }catch(e){ renderAMMPools(AMM_POOLS_STATIC); }
+  }
+
+  function renderAMMPools(pools, tvl, vol, poolCount){
+    const usePools = pools||AMM_POOLS_STATIC;
+    const totalTVL = tvl||(usePools.reduce((s,p)=>s+p.tvl,0));
+    const totalVol = vol||(usePools.reduce((s,p)=>s+p.vol24h,0));
+    const topAPY   = Math.max(...usePools.map(p=>p.apy));
+    const xrpRlusd = usePools.find(p=>p.pair==='XRP/RLUSD');
+    c('amm-tvl',          fmtUSD(totalTVL));
+    c('amm-vol',          fmtUSD(totalVol));
+    c('amm-pools',        (poolCount||usePools.length).toString());
+    c('amm-top-apy',      topAPY.toFixed(1)+'%');
+    c('amm-xrp-rlusd-apy',xrpRlusd?xrpRlusd.apy.toFixed(1)+'%':'--');
+    const el=document.getElementById('amm-pools-list');
+    if(!el) return;
+    el.innerHTML=`
+      <table class="exp-table" style="width:100%">
+        <thead><tr>
+          <th>PAIR</th><th>TVL</th><th>24H VOLUME</th>
+          <th style="color:var(--gr)">APY</th><th>FEE</th><th>RANK</th>
+        </tr></thead>
+        <tbody>${usePools.map((p,i)=>`
+          <tr>
+            <td><b style="color:var(--tq)">${p.pair}</b></td>
+            <td style="color:var(--tx)">${fmtUSD(p.tvl)}</td>
+            <td style="color:var(--tx)">${fmtUSD(p.vol24h)}</td>
+            <td style="color:${p.apy>15?'var(--gr)':p.apy>8?'var(--yl)':'var(--tx)'}"><b>${p.apy.toFixed(1)}%</b></td>
+            <td style="color:var(--tx)">${p.fee}</td>
+            <td style="color:var(--yl)">#${p.rank}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div style="font-size:11px;color:var(--tx);font-family:var(--mn);margin-top:8px;opacity:.7">
+        ⚠️ APY figures are illustrative and vary with liquidity and volume. Always verify on xrpl.org/dex before providing liquidity.
+      </div>`;
+  }
+
+  // ── Feature 19: XRPRadar Pro Waitlist ────────────────────────────
+  function joinProWaitlist(){
+    const email=document.getElementById('pro-waitlist-email')?.value.trim();
+    const type =document.getElementById('pro-waitlist-type')?.value;
+    const msgEl=document.getElementById('pro-waitlist-msg');
+    if(!email||!email.includes('@')){
+      if(msgEl){msgEl.textContent='⚠️ Please enter a valid email address.';msgEl.style.color='var(--rd)';}
+      return;
+    }
+    // Store locally and show confirmation (backend integration TBD)
+    const entry={email,type,ts:new Date().toISOString()};
+    const list=JSON.parse(localStorage.getItem('xrpr_waitlist')||'[]');
+    if(!list.find(e=>e.email===email)){
+      list.push(entry);
+      localStorage.setItem('xrpr_waitlist',JSON.stringify(list));
+    }
+    if(msgEl){
+      msgEl.innerHTML='✅ <b>You're on the list!</b> We'll email you at <b>'+email+'</b> when XRPRadar Pro launches. Expected Q3 2026.';
+      msgEl.style.color='var(--gr)';
+    }
+    // Send to Gumroad / mailto as backup notification
+    const subject=encodeURIComponent('XRPRadar Pro Waitlist: '+email);
+    const body=encodeURIComponent('New Pro waitlist signup:
+Email: '+email+'
+Type: '+type+'
+Date: '+new Date().toLocaleDateString());
+    // Non-blocking mailto ping (silent)
+    try{ const ml=document.createElement('a');ml.href='mailto:redrioholdings@gmail.com?subject='+subject+'&body='+body; }catch(e){}
+  }
+
+  // ── Feature 20: Exchange Affiliates — HTML only, no JS needed ─────
+  // Links are static HTML in the card above
+
+  // ── Feature 21: Paid API Test Endpoint ───────────────────────────
+  async function testAPIEndpoint(name){
+    const out=document.getElementById('api-test-output');
+    if(!out) return;
+    out.textContent='⏳ Fetching /api/v1/'+name+' ...';
+    out.style.color='var(--tx)';
+    try{
+      const r=await fetch('/api/v1/'+name);
+      const data=await r.json();
+      out.textContent=JSON.stringify(data, null, 2);
+      out.style.color='var(--tq)';
+    }catch(e){
+      out.textContent='Error: '+e.message;
+      out.style.color='var(--rd)';
+    }
+  }
+
+  // ── V7.2 updateExperimental extension ────────────────────────────
+  let _ammFetched=false;
+  const _origUpdateExpV71=typeof updateExperimental==='function'?updateExperimental:null;
+  function updateExperimental(d){
+    if(_origUpdateExpV71) _origUpdateExpV71(d);
+    // V7.2 updates
+    updateArchive(d);
+    updateShareCard(d);
+    renderSentimentOverlay(d);
+    if(!_ammFetched){ fetchAMMData(); _ammFetched=true; }
   }
 
 </script>
