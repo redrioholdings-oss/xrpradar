@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2"
+BOT_FILE          = "XRPRadar_v7.2b"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 600
@@ -1424,9 +1424,18 @@ def fetch_prediction(force=False, session="am"):
         )
 
         raw = call_claude(prompt, system, max_tokens=4000)
-        if not raw or len(raw) < 200:
+        if not raw:
             pred["status"] = "error"
-            pred["error"]  = "Response too short or empty - check ANTHROPIC_API_KEY"
+            pred["error"]  = "No response from Anthropic API. Check ANTHROPIC_API_KEY in Railway Variables."
+            return
+        # If call_claude returned an error string (starts with "AI error:" etc), surface it
+        if raw.startswith("AI error:") or raw.startswith("Add ANTHROPIC_API_KEY") or raw.startswith("AI temporarily") or raw.startswith("AI briefing"):
+            pred["status"] = "error"
+            pred["error"]  = raw
+            return
+        if len(raw) < 100:
+            pred["status"] = "error"
+            pred["error"]  = f"Response too short ({len(raw)} chars). Model may be overloaded — try again in a minute."
             return
 
         # Parse sections
@@ -2785,8 +2794,8 @@ DASHBOARD = """<!DOCTYPE html>
   --or:#ff9900;--tx:#8099b3;--br:#cce0ff;
   --mn:'Courier New',monospace
 }
-body{background:var(--bg);color:var(--br);font-family:system-ui,sans-serif;font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased}
-.w{max-width:1900px;margin:0 auto;padding:10px 20px}
+body{background:var(--bg);color:var(--br);font-family:system-ui,sans-serif;font-size:15px;min-height:100vh;-webkit-font-smoothing:antialiased}
+.w{max-width:2400px;margin:0 auto;padding:10px 28px}
 /* HEADER */
 .hdr{display:flex;align-items:center;justify-content:space-between;
   margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--bl);flex-wrap:wrap;gap:6px}
@@ -2975,9 +2984,9 @@ body{background:var(--bg);color:var(--br);font-family:system-ui,sans-serif;font-
 /* BREAKING NEWS */
 #breaking{background:var(--s1);border-bottom:2px solid rgba(255,153,0,.4);
   padding:8px 0;display:flex;align-items:center;overflow:hidden}
-.bkinner{max-width:1900px;margin:0 auto;padding:0 16px;display:flex;align-items:center;width:100%}
+.bkinner{max-width:2400px;margin:0 auto;padding:0 28px;display:flex;align-items:center;width:100%}
 .bklbl{color:var(--or);font-weight:900;font-size:16px;font-family:var(--mn);flex-shrink:0;padding-right:14px;margin-right:14px;border-right:2px solid rgba(255,153,0,.5);text-transform:uppercase;letter-spacing:.08em}
-.bkscroll{flex:1;overflow:hidden;height:20px;position:relative;display:flex;align-items:center}
+.bkscroll{flex:1;overflow:hidden;height:26px;position:relative;display:flex;align-items:center}
 .bktext-base{font-size:15px;color:var(--br);font-family:system-ui;font-weight:500}
 @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 /* STORY POPUP */
@@ -3025,8 +3034,8 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
   background:rgba(117,188,255,.08);color:var(--bl);font-weight:700;
   border:1px solid rgba(117,188,255,.3);margin-left:6px;font-family:var(--mn)}
 
-@keyframes bkscroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
-.bktext{display:inline-block;animation:bkscroll 45s linear infinite;white-space:nowrap;cursor:pointer;will-change:transform;padding-left:100%}
+@keyframes bkscroll{0%{transform:translateX(0%)}100%{transform:translateX(-100%)}}
+.bktext{display:inline-block;animation:bkscroll 45s linear infinite;white-space:nowrap;cursor:default;will-change:transform;padding-left:100%;font-size:15px;color:var(--br);font-family:system-ui;font-weight:500;line-height:26px}
 .bkscroll:hover{animation-play-state:paused}
 .bk-item{display:inline-flex;align-items:center;padding:0 30px;border-right:1px solid rgba(255,153,0,.2);
   font-size:15px;color:var(--br);font-weight:500;white-space:nowrap;cursor:pointer;
@@ -4331,7 +4340,20 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           <div id="ds-stars" style="font-size:18px;font-weight:700;color:var(--or);font-family:var(--mn)">--</div>
         </div>
       </div>
-    </div>
+    
+      <!-- Mainstream News Feed -->
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)">
+        <div style="font-size:13px;font-weight:700;color:var(--tx);font-family:var(--mn);
+          text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">
+          📰 LATEST MAINSTREAM FINANCE & XRP NEWS
+        </div>
+        <div id="ms-news-feed" style="max-height:320px;overflow-y:auto;
+          border:1px solid var(--b);border-radius:6px;padding:0 12px">
+          <div style="font-size:13px;color:var(--tx);font-family:var(--mn);padding:10px 0">
+            Loading mainstream news...
+          </div>
+        </div>
+      </div></div>
 
   </div>
 </div>
@@ -4594,6 +4616,21 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
           📧 EMAIL FORMAT
         </a>
       </div>
+
+      <!-- Brief generation progress bar (hidden until Generate is pressed) -->
+      <div id="brief-progress-wrap" style="display:none;margin-top:12px;padding:12px 16px;
+        background:rgba(255,153,0,.06);border:1px solid rgba(255,153,0,.2);border-radius:6px">
+        <div id="brief-progress-label" style="font-size:12px;font-family:var(--mn);
+          color:var(--or);font-weight:700;margin-bottom:8px">Connecting to Anthropic API...</div>
+        <div style="background:rgba(255,255,255,.06);border-radius:4px;height:8px;overflow:hidden">
+          <div id="brief-progress-bar" style="height:100%;width:0%;background:var(--or);
+            border-radius:4px;transition:width 1.5s ease"></div>
+        </div>
+        <div style="font-size:11px;font-family:var(--mn);color:var(--tx);margin-top:6px">
+          Intelligence briefs typically take 20–45 seconds — Claude is reading all your feeds and writing a Goldman Sachs quality analysis.
+        </div>
+      </div>
+
     </div>
 
     <!-- Meta row -->
@@ -5487,14 +5524,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
         <span style="float:right;font-size:13px;color:var(--tx)">Updated Jun 2026</span>
       </div>
       <div id="reg-country-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px"></div>
-      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:13px;font-family:var(--mn)">
-        <span style="color:var(--gr)">✅ LEGAL</span>
-        <span style="color:var(--bl)">📋 TAXED</span>
-        <span style="color:var(--yl)">⚠️ CONTESTED</span>
-        <span style="color:var(--or)">🔶 RESTRICTED</span>
-        <span style="color:var(--tx)">🔍 PENDING</span>
-        <span style="color:var(--rd)">❌ BANNED</span>
-      </div>
+
     </div>
 
     <!-- 18. ETF Tracker -->
@@ -7252,19 +7282,58 @@ function updatePrediction(d){
 }
 
 async function triggerBrief(){
-  const badge = document.getElementById("pred-status-badge");
-  if(badge){ badge.textContent="⚙️ TRIGGERING..."; badge.style.color="var(--or)"; }
+  const badge  = document.getElementById("pred-status-badge");
+  const btn    = document.querySelector('button[onclick="triggerBrief()"]');
+  const progWrap= document.getElementById("brief-progress-wrap");
+  const progBar = document.getElementById("brief-progress-bar");
+  const progLbl = document.getElementById("brief-progress-label");
+
+  // Disable button and show progress
+  if(btn){ btn.disabled=true; btn.textContent="⏳ GENERATING..."; btn.style.opacity="0.6"; }
+  if(badge){ badge.textContent="⚙️ Compiling brief..."; badge.style.color="var(--or)"; }
+  if(progWrap) progWrap.style.display="block";
+  if(progBar)  { progBar.style.width="0%"; progBar.style.transition="none"; }
+
+  // Animate progress bar (Claude API typically takes 15-40s)
+  const stages = [
+    { pct:5,  label:"Connecting to Anthropic API...",   delay:500  },
+    { pct:15, label:"Scanning 306 news feeds...",        delay:2000 },
+    { pct:30, label:"Analysing market data...",          delay:4000 },
+    { pct:45, label:"Processing intelligence signals...",delay:8000 },
+    { pct:60, label:"Writing AM/PM brief...",            delay:14000},
+    { pct:75, label:"Reviewing for accuracy...",         delay:22000},
+    { pct:88, label:"Finalising brief...",               delay:32000},
+  ];
+  stages.forEach(s=>{
+    setTimeout(()=>{
+      if(progBar)  { progBar.style.transition="width 1.5s ease"; progBar.style.width=s.pct+"%"; }
+      if(progLbl)  progLbl.textContent=s.label;
+    }, s.delay);
+  });
+
   try{
     await fetch("/run-prediction");
-    // Poll for result every 3 seconds for up to 60 seconds
+    // Poll every 3 seconds up to 90 seconds
     let polls = 0;
     const timer = setInterval(async ()=>{
       polls++;
-      if(polls > 20){ clearInterval(timer); return; }
+      if(polls > 30){ 
+        clearInterval(timer);
+        if(progBar){ progBar.style.width="100%"; progBar.style.background="var(--rd)"; }
+        if(progLbl) progLbl.textContent="Timed out — check Railway logs.";
+        if(btn){ btn.disabled=false; btn.textContent="⚡ GENERATE NOW"; btn.style.opacity="1"; }
+        return;
+      }
       const d = await fetch("/api/data").then(r=>r.json());
       updatePrediction(d);
-      if(d.prediction && d.prediction.status === "complete"){
+      const pred = d.prediction||{};
+      if(pred.status === "complete" && pred.sections && pred.sections.market_pulse && pred.sections.market_pulse.length > 50){
         clearInterval(timer);
+        if(progBar){ progBar.style.width="100%"; progBar.style.background="var(--gr)"; }
+        if(progLbl) progLbl.textContent="✅ Brief ready!";
+        if(badge){ badge.textContent="✅ BRIEF READY"; badge.style.color="var(--gr)"; }
+        if(btn){ btn.disabled=false; btn.textContent="⚡ GENERATE NOW"; btn.style.opacity="1"; }
+        setTimeout(()=>{ if(progWrap) progWrap.style.display="none"; }, 3000);
       }
     }, 3000);
   }catch(e){
@@ -7896,8 +7965,36 @@ function updateMainstreamIntel(d){
           margin-top:5px;font-style:italic">${p.source}</div>
       </div>`;
     }).join("");
-    if(typeof activeMainstreamFilter !== 'undefined' && activeMainstreamFilter !== 'ALL'){
-      filterMainstream(activeMainstreamFilter);
+    // Always re-apply filter after grid rebuild (ensures count and visibility are correct)
+    if(typeof filterMainstream === 'function'){
+      filterMainstream(typeof activeMainstreamFilter !== 'undefined' ? activeMainstreamFilter : 'ALL');
+    }
+  }
+
+  // ── Mainstream News Feed ─────────────────────────────────────────────
+  const newsEl = document.getElementById("ms-news-feed");
+  if(newsEl){
+    const msKeywords = ['mainstream','bank','visa','paypal','jpmorgan','swift','mastercard',
+      'fidelity','wells fargo','bank of america','barclays','hsbc','blackrock','remittance',
+      'stripe','shopify','moneygram','western union','coinbase','ripple partner','rlusd'];
+    const msStories = (d.stories||[]).filter(s=>{
+      const t = (s.title||'').toLowerCase();
+      return msKeywords.some(kw=>t.includes(kw));
+    }).slice(0,12);
+    if(msStories.length){
+      newsEl.innerHTML = msStories.map(s=>`
+        <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer"
+          onclick="window.open('${s.link||s.url||'#'}','_blank')">
+          <div style="font-size:14px;font-weight:700;color:var(--bl);line-height:1.35">${s.title}</div>
+          <div style="font-size:12px;font-family:var(--mn);color:var(--tx);margin-top:3px">
+            ${s.source||''} · ${s.age||''}
+            <span style="color:${s.sentiment==='bullish'?'var(--gr)':s.sentiment==='bearish'?'var(--rd)':'var(--tx)'}">
+              ${s.sentiment==='bullish'?'🟢':s.sentiment==='bearish'?'🔴':'⚪'}
+            </span>
+          </div>
+        </div>`).join('');
+    } else {
+      newsEl.innerHTML='<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No mainstream finance stories yet — check back as feeds load.</div>';
     }
   }
 
@@ -7994,18 +8091,30 @@ function updateCompIntel(d){
   let activeMainstreamFilter = 'ALL';
   function filterMainstream(status){
     activeMainstreamFilter = status;
+    // Reset ALL buttons to dim inactive state
     document.querySelectorAll('[id^="msf-"]').forEach(btn=>{
-      btn.style.opacity='0.5'; btn.style.fontWeight='700'; btn.style.outline='none';
+      btn.style.opacity='0.45';
+      btn.style.outline='none';
+      btn.style.boxShadow='none';
+      btn.style.fontWeight='700';
     });
+    // Make the active button clearly lit
     const active = document.getElementById('msf-'+status);
-    if(active){ active.style.opacity='1'; active.style.outline='2px solid currentColor'; }
+    if(active){
+      active.style.opacity='1';
+      active.style.outline='2px solid currentColor';
+      active.style.boxShadow='0 0 8px rgba(255,255,255,.15)';
+    }
+    // Show/hide cards
     document.querySelectorAll('.ms-card').forEach(card=>{
       card.style.display = (status==='ALL'||card.dataset.status===status) ? '' : 'none';
     });
-    const visible = [...document.querySelectorAll('.ms-card')].filter(c=>c.style.display!=='none').length;
-    const el = document.getElementById('ms-count');
-    if(el) el.textContent = visible + ' partner' + (visible!==1?'s':'');
+    const visible=[...document.querySelectorAll('.ms-card')].filter(c=>c.style.display!=='none').length;
+    const el=document.getElementById('ms-count');
+    if(el) el.textContent=visible+' partner'+(visible!==1?'s':'');
   }
+  // Set ALL as active on page load
+  setTimeout(()=>filterMainstream('ALL'), 800);
 
 
 
@@ -8585,16 +8694,18 @@ function updateRegions(d){
   REGIONS.forEach(({k})=>fetchRegionStories(k));
 }
 
+const _regionExpanded = {};  // track which regions are expanded across refreshes
+
 async function fetchRegionStories(reg){
   try{
     const d=await fetch(`/api/news?region=${reg}&limit=50`).then(r=>r.json());
     const allReg=(d.stories||[]);
-    const total=d.total||allReg.length;
     const el=document.getElementById(`reg-stories-${reg}`);
     const cnt=document.getElementById(`reg-count-${reg}`);
-    if(cnt) cnt.textContent=`${total} stories`;
+    const reachable=allReg.length;
+    if(cnt) cnt.textContent=`${reachable} stories`;
     if(!el) return;
-    if(!allReg.length){el.innerHTML='<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No regional stories yet</div>';return;}
+    if(!allReg.length){el.innerHTML='<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No regional stories yet — feeds are loading</div>';return;}
     // Show first 8 in scrollable container; "View All" expands
     const preview=allReg.slice(0,8);
     const storyHtml=stories=>stories.map(s=>{
@@ -8629,19 +8740,33 @@ async function fetchRegionStories(reg){
       btn.onclick=()=>{
         if(!expanded){
           el.innerHTML=storyHtml(allReg);
-          el.style.maxHeight="600px";
-          btn.textContent=`▲ Collapse (showing all ${reachable})`;
+          el.style.maxHeight="none";
+          el.style.overflowY="visible";
+          btn.textContent=`▲ Collapse`;
+          btn.style.color="var(--tx)";
           expanded=true;
+          _regionExpanded[reg]=true;
         } else {
           el.innerHTML=storyHtml(preview);
           el.style.maxHeight="280px";
+          el.style.overflowY="auto";
           btn.textContent=`📋 View All ${reachable} Stories`;
+          btn.style.color="var(--bl)";
           expanded=false;
+          _regionExpanded[reg]=false;
         }
       };
       const oldBtn=el.parentElement.querySelector(".reg-viewall-btn");
       if(oldBtn) oldBtn.remove();
       el.parentElement.appendChild(btn);
+      // Restore previously expanded state after refresh
+      if(_regionExpanded[reg]){
+        btn.click();
+      }
+    } else if(reachable>0 && _regionExpanded[reg]){
+      // Region was expanded but now has 8 or fewer — show all anyway
+      el.innerHTML=storyHtml(allReg);
+      el.style.maxHeight="none";
     }
   }catch(e){console.error("fetchRegionStories:",e);}
 }
@@ -8719,8 +8844,26 @@ function updateRight(d){
 function updateBreaking(d){
   const bb=document.getElementById("breaking");
   const bt=document.getElementById("bktext");
-  if(d.breaking&&bt){
-    bt.textContent=`${d.breaking.title} — ${d.breaking.source} — ${d.breaking.age||""}`;
+  if(!bt) return;
+  // Collect stories: use d.breaking (single) + first 8 breaking stories from feed
+  const bkStories=[];
+  if(d.breaking&&d.breaking.title) bkStories.push(d.breaking);
+  (d.stories||[]).filter(s=>s.breaking).slice(0,8).forEach(s=>bkStories.push(s));
+  if(!bkStories.length){
+    // Fallback to first 5 regular stories
+    (d.stories||[]).slice(0,5).forEach(s=>bkStories.push(s));
+  }
+  if(bkStories.length){
+    // Build clickable spans separated by dividers
+    bt.innerHTML = bkStories.map(s=>`
+      <span onclick="window.open('${s.link||s.url||'#'}','_blank')"
+        style="cursor:pointer;color:var(--br);transition:color .2s"
+        onmouseover="this.style.color='var(--bl)'"
+        onmouseout="this.style.color='var(--br)'">
+        ⚡ ${s.title}${s.source?' <span style=\'color:var(--tx);font-size:13px\'> — '+s.source+'</span>':''}
+      </span>
+      <span style="color:rgba(255,153,0,.5);margin:0 20px">◆</span>`
+    ).join('');
     if(bb) bb.style.display="flex";
   }
 }
@@ -8744,12 +8887,12 @@ function updateFooter(d){
   if(qsEl){qsEl.textContent=d.qa_status==="PASS"?"✅ PASS":"❌ FAIL";qsEl.style.color=d.qa_status==="PASS"?"var(--gr)":"var(--rd)";}
   const maintEl=document.getElementById("ft-maint");
   if(maintEl){const m=d.maintenance||"OK";maintEl.textContent=m==="OK"?"✅ OK":"🔧 "+m;maintEl.style.color=m==="OK"?"var(--gr)":"var(--yl)";}
-  c("ft-feeds",`${d.feeds_active||0}/${d.feeds_total||230} active`);
+  c("ft-feeds",`${d.feeds_active||0}/${d.feeds_total||306} active`);
 }
 function openPFModal(){
   const d=pfData;
   c("pf-last",  d.qa_last||"--");
-  c("pf-feeds", `${d.feeds_active||0}/${d.feeds_total||230} feeds active`);
+  c("pf-feeds", `${d.feeds_active||0}/${d.feeds_total||306} feeds active`);
   c("pf-error", d.last_error||"None");
   const pfEl=document.getElementById("pf-error");
   if(pfEl) pfEl.style.color=d.last_error?"var(--rd)":"var(--gr)";
