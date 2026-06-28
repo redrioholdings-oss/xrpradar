@@ -13,11 +13,12 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2c"
+BOT_FILE          = "XRPRadar_v7.2d"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
 PRICE_INTERVAL    = 60
+MARKET_INTERVAL   = 180   # market_loop: order book, macro, derivatives etc.
 AI_INTERVAL       = 600
 MAX_STORIES       = 500
 QA_INTERVAL       = 14400
