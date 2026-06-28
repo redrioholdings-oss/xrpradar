@@ -13,8 +13,9 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v6.2b"
+BOT_FILE          = "XRPRadar_v6.3"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 600
 PRICE_INTERVAL    = 60
 AI_INTERVAL       = 600
@@ -66,7 +67,7 @@ REGION_KEYWORDS = {
     "LatAm":          ["latin","latam","mexico","brazil","argentina","colombia","peru","chile","venezuela"],
     "Africa":         ["africa","nigeria","kenya","south africa","ghana","ethiopia","naira","afri"],
     "India":          ["india","indian","wazirx","coinswitch","coindcx","inr","sebi","rbi"],
-    "Southeast Asia": ["singapore","thailand","vietnam","philippines","indonesia","malaysia","myanmar","sea"],
+    "SEA"           : ["singapore","thailand","vietnam","philippines","indonesia","malaysia","myanmar","sea"],
 }
 
 # ── Non-English detection ──────────────────────────────────────────────────────
@@ -443,6 +444,7 @@ STATE = {
     },
     "disp_intel": {
         "price_heatmap":  [],
+        "price_history_6m": [],
         "smart_money":    {
             "score":       0,
             "label":       "",
@@ -1490,7 +1492,7 @@ def fetch_disp_intel():
         import datetime as _dt
         hist = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-            "?vs_currency=usd&days=90&interval=daily",
+            "?vs_currency=usd&days=90",
             headers=hdr, timeout=20).json()
         raw_prices = hist.get("prices", [])
         if not raw_prices:
@@ -1514,23 +1516,39 @@ def fetch_disp_intel():
     except Exception as e:
         log_error(f"price_heatmap: {e}")
 
+    # 6-Month Price Trend (#9 — new)
+    try:
+        hist180 = requests.get(
+            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
+            "?vs_currency=usd&days=180",
+            headers=hdr, timeout=20).json()
+        raw180 = hist180.get("prices", [])
+        week_map = {}
+        for p in raw180:
+            ts_ms = p[0]
+            price = round(float(p[1]), 4)
+            day = _dt.datetime.fromtimestamp(ts_ms/1000, tz=_dt.timezone.utc)
+            wkey = day.strftime("%Y-W%W")
+            week_map[wkey] = {"date": day.strftime("%b %d"), "price": price}
+        di["price_history_6m"] = list(week_map.values())
+    except Exception as e:
+        log_error(f"price_6m: {e}")
+
     # 60-Month Price History (5 Years)
     try:
         hist60 = requests.get(
             "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-            "?vs_currency=usd&days=1825&interval=monthly",
-            headers=hdr, timeout=20).json()
+            "?vs_currency=usd&days=1825",
+            headers=hdr, timeout=25).json()
         raw60 = hist60.get("prices", [])
-        monthly = []
+        month_map = {}
         for p in raw60:
             ts_ms = p[0]
             price = round(float(p[1]), 4)
             day = _dt.datetime.fromtimestamp(ts_ms/1000, tz=_dt.timezone.utc)
-            monthly.append({
-                "date":  day.strftime("%Y-%m"),
-                "price": price,
-                "ts":    ts_ms,
-            })
+            mkey = day.strftime("%Y-%m")
+            month_map[mkey] = {"date": mkey, "price": price, "ts": ts_ms}
+        monthly = list(month_map.values())
         # Keep last 60 months
         di["price_history_60m"] = monthly[-60:]
     except Exception as e:
@@ -2122,7 +2140,7 @@ def fetch_news():
 
     # Group by region
     for r in REGIONS:
-        STATE["stories_by_region"][r] = [s for s in STATE["stories"][:100] if s.get("region") == r][:20]
+        STATE["stories_by_region"][r] = [s for s in STATE["stories"][:150] if s.get("region") == r][:40]
 
     today_cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     today_s = [s for s in STATE["stories"] if (s.get("pub") or "") >= today_cutoff]
@@ -2153,13 +2171,34 @@ def call_claude(prompt, system_prompt, max_tokens=1000):
         r = requests.post(
             "https://api.anthropic.com/v1/messages",
             headers={"Content-Type":"application/json","x-api-key":ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01"},
-            json={"model":"claude-sonnet-4-6","max_tokens":max_tokens,"system":system_prompt,"messages":[{"role":"user","content":prompt}]},
-            timeout=30)
+            json={"model":CLAUDE_MODEL,"max_tokens":max_tokens,"system":system_prompt,"messages":[{"role":"user","content":prompt}]},
+            timeout=45)
+        if r.status_code == 401:
+            log_error("Claude API 401: invalid or expired API key")
+            return "AI error: API key rejected (401). Re-check ANTHROPIC_API_KEY in Railway Variables."
+        if r.status_code == 400:
+            err = r.json().get("error",{}).get("message","bad request")
+            log_error(f"Claude API 400: {err}")
+            return f"AI error: {err[:120]}"
+        if r.status_code == 429:
+            log_error("Claude API 429: rate limited")
+            return "AI temporarily rate-limited. Will retry next cycle."
+        if r.status_code not in (200, 201):
+            log_error(f"Claude API {r.status_code}: {r.text[:200]}")
+            return f"AI error: HTTP {r.status_code}. Details in Railway logs."
         data = r.json()
-        return data.get("content",[{}])[0].get("text","No response")
+        if "error" in data:
+            log_error(f"Claude API body error: {data['error']}")
+            return f"AI error: {data['error'].get('message','unknown')[:120]}"
+        blocks = data.get("content", [])
+        text = "".join(b.get("text","") for b in blocks if b.get("type")=="text")
+        return text if text else "No response text returned."
+    except requests.exceptions.Timeout:
+        log_error("Claude API: timeout (45s)")
+        return "AI briefing timed out. Will retry."
     except Exception as e:
         log_error(f"Claude API: {e}")
-        return "AI briefing temporarily unavailable."
+        return f"AI temporarily unavailable ({type(e).__name__})."
 
 def fetch_ai_briefing():
     stories = STATE["stories"][:80]
@@ -2639,6 +2678,22 @@ def api_ai_analyze():
         return jsonify({"error": str(e), "success": False}), 500
 
 
+@app.route("/api/ai-status")
+def ai_status():
+    """Diagnostic: Anthropic API key health check."""
+    status = {
+        "key_present": bool(ANTHROPIC_API_KEY),
+        "key_prefix":  (ANTHROPIC_API_KEY[:12]+"...") if ANTHROPIC_API_KEY else "NOT SET",
+        "model":       CLAUDE_MODEL,
+        "last_error":  STATE.get("last_error",""),
+    }
+    if ANTHROPIC_API_KEY and request.args.get("test") == "1":
+        result = call_claude("Reply with only the word: OK", "Reply with only the word OK.", max_tokens=10)
+        status["test_result"] = result
+        status["test_passed"] = result.strip() == "OK"
+    return jsonify(status)
+
+
 @app.route("/")
 def index():
     STATE["visitor_count"] = STATE.get("visitor_count", 0) + 1
@@ -2861,8 +2916,8 @@ body{background:var(--bg);color:var(--br);font-family:system-ui,sans-serif;font-
   padding:8px 0;display:flex;align-items:center;overflow:hidden}
 .bkinner{max-width:1900px;margin:0 auto;padding:0 16px;display:flex;align-items:center;width:100%}
 .bklbl{color:var(--or);font-weight:900;font-size:16px;font-family:var(--mn);flex-shrink:0;padding-right:14px;margin-right:14px;border-right:2px solid rgba(255,153,0,.5);text-transform:uppercase;letter-spacing:.08em}
-.bkscroll{flex:1;overflow:hidden;height:18px;position:relative}
-.bktext{font-size:15px;color:var(--br);white-space:nowrap;font-family:system-ui;font-weight:500}
+.bkscroll{flex:1;overflow:hidden;height:20px;position:relative;display:flex;align-items:center}
+.bktext-base{font-size:15px;color:var(--br);font-family:system-ui;font-weight:500}
 @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 /* STORY POPUP */
 #story-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;
@@ -2909,8 +2964,8 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
   background:rgba(117,188,255,.08);color:var(--bl);font-weight:700;
   border:1px solid rgba(117,188,255,.3);margin-left:6px;font-family:var(--mn)}
 
-@keyframes bkscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.bkscroll{display:flex;animation:bkscroll 40s linear infinite;white-space:nowrap;cursor:pointer}
+@keyframes bkscroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+.bktext{display:inline-block;animation:bkscroll 45s linear infinite;white-space:nowrap;cursor:pointer;will-change:transform;padding-left:100%}
 .bkscroll:hover{animation-play-state:paused}
 .bk-item{display:inline-flex;align-items:center;padding:0 30px;border-right:1px solid rgba(255,153,0,.2);
   font-size:15px;color:var(--br);font-weight:500;white-space:nowrap;cursor:pointer;
@@ -3463,7 +3518,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
       <!-- Ecosystem Flow Diagram -->
       <div style="margin-bottom:14px">
         <div style="font-size:16px;font-weight:700;color:var(--tq);font-family:var(--mn);
-          text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;text-align:center">
+          text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;text-align:left">
           ⛓️ How the Layers Connect
         </div>
         <div style="display:flex;align-items:center;justify-content:center;gap:0;overflow-x:auto;padding:10px 0">
@@ -5415,21 +5470,47 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
 </div>
 
 
-<!-- SECTION 17b: 60-MONTH PRICE HISTORY -->
-<div style="margin-bottom:10px">
+<!-- SECTION 17b: XRP PRICE TRENDS — 30d / 90d / 6m / 60m -->
+<div style="margin-bottom:10px" id="price-trends-section">
   <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
-    <div class="sec-title" style="color:var(--yl);margin-bottom:4px">
-      📈 XRP 60-MONTH PRICE HISTORY
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+      <div class="sec-title" style="color:var(--yl)">📈 XRP PRICE TRENDS</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="trend-tab" data-tf="30d"  onclick="switchTrend('30d')"  style="background:rgba(255,204,0,.2);color:var(--yl);padding:5px 14px;border-radius:5px;border:1px solid rgba(255,204,0,.5);font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">30-DAY</button>
+        <button class="trend-tab" data-tf="90d"  onclick="switchTrend('90d')"  style="background:var(--s2);color:var(--tx);padding:5px 14px;border-radius:5px;border:1px solid var(--b);font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">90-DAY</button>
+        <button class="trend-tab" data-tf="6m"   onclick="switchTrend('6m')"   style="background:var(--s2);color:var(--tx);padding:5px 14px;border-radius:5px;border:1px solid var(--b);font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">6-MONTH</button>
+        <button class="trend-tab" data-tf="60m"  onclick="switchTrend('60m')"  style="background:var(--s2);color:var(--tx);padding:5px 14px;border-radius:5px;border:1px solid var(--b);font-family:var(--mn);font-size:13px;font-weight:700;cursor:pointer">60-MONTH</button>
+      </div>
     </div>
-    <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:14px">
-      Five years of XRP/USD monthly closing prices — the full bull/bear cycle in context
+    <div id="trend-subtitle" style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-bottom:12px">30-day daily closing prices — recent momentum</div>
+    <div class="trend-view" id="trend-view-30d">
+      <div style="position:relative;height:230px;background:var(--bg);border:1px solid var(--b);border-radius:8px;overflow:hidden">
+        <canvas id="chart-30d" style="width:100%;height:100%"></canvas>
+        <div id="chart-30d-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--mn);font-size:13px;color:var(--tx)">Loading 30-day data...</div>
+      </div>
+      <div id="chart-30d-stats" style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;font-family:var(--mn);font-size:13px"></div>
     </div>
-    <div style="position:relative;height:260px;background:var(--bg);border:1px solid var(--b);border-radius:8px;overflow:hidden">
-      <canvas id="chart-60m" style="width:100%;height:100%"></canvas>
-      <div id="chart-60m-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-        font-family:var(--mn);font-size:13px;color:var(--tx)">Loading 5-year price data...</div>
+    <div class="trend-view" id="trend-view-90d" style="display:none">
+      <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-bottom:8px">
+        Daily performance calendar — <span style="color:var(--gr)">green = gain</span> · <span style="color:var(--rd)">red = loss</span> · each square = one trading day
+      </div>
+      <div id="heatmap-grid-90" style="display:flex;flex-direction:column;gap:3px"></div>
+      <div id="chart-90d-stats" style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;font-family:var(--mn);font-size:13px"></div>
     </div>
-    <div id="chart-60m-stats" style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;font-family:var(--mn);font-size:13px"></div>
+    <div class="trend-view" id="trend-view-6m" style="display:none">
+      <div style="position:relative;height:230px;background:var(--bg);border:1px solid var(--b);border-radius:8px;overflow:hidden">
+        <canvas id="chart-6m" style="width:100%;height:100%"></canvas>
+        <div id="chart-6m-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--mn);font-size:13px;color:var(--tx)">Loading 6-month data...</div>
+      </div>
+      <div id="chart-6m-stats" style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;font-family:var(--mn);font-size:13px"></div>
+    </div>
+    <div class="trend-view" id="trend-view-60m" style="display:none">
+      <div style="position:relative;height:230px;background:var(--bg);border:1px solid var(--b);border-radius:8px;overflow:hidden">
+        <canvas id="chart-60m" style="width:100%;height:100%"></canvas>
+        <div id="chart-60m-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--mn);font-size:13px;color:var(--tx)">Loading 5-year data...</div>
+      </div>
+      <div id="chart-60m-stats" style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;font-family:var(--mn);font-size:13px"></div>
+    </div>
   </div>
 </div>
 
@@ -5912,6 +5993,7 @@ async function fetchData(){
     updateGeopoliticalRisk(d);
     checkWhaleAlerts(d);
     updateLeaderboard(d);
+    updatePriceTrends(d);
     // v6.2 new panels
     updateInstFlow(d);
     updateCBDCComp(d);
@@ -6341,7 +6423,7 @@ function updateDispIntel(d){
     updateWorldMap(mapCounts);
   }
   // ── 60-Month Price Chart ────────────────────────────────────────────────
-  const hist60  = (di.price_history_60m||[]);
+  st hist60  = (di.price_history_60m||[]);
   const canvas60 = document.getElementById("chart-60m");
   const loading60 = document.getElementById("chart-60m-loading");
   const stats60   = document.getElementById("chart-60m-stats");
@@ -6805,6 +6887,9 @@ function updateMainstreamIntel(d){
           margin-top:5px;font-style:italic">${p.source}</div>
       </div>`;
     }).join("");
+    if(typeof activeMainstreamFilter !== 'undefined' && activeMainstreamFilter !== 'ALL'){
+      filterMainstream(activeMainstreamFilter);
+    }
   }
 
   // ── Integration Timeline ──────────────────────────────────────────────
@@ -6897,9 +6982,11 @@ function updateCompIntel(d){
   }
 
   // ── Mainstream Integration Filter ──────────────────────────────────────
+  let activeMainstreamFilter = 'ALL';
   function filterMainstream(status){
+    activeMainstreamFilter = status;
     document.querySelectorAll('[id^="msf-"]').forEach(btn=>{
-      btn.style.opacity='0.5'; btn.style.fontWeight='700';
+      btn.style.opacity='0.5'; btn.style.fontWeight='700'; btn.style.outline='none';
     });
     const active = document.getElementById('msf-'+status);
     if(active){ active.style.opacity='1'; active.style.outline='2px solid currentColor'; }
@@ -7516,22 +7603,35 @@ async function fetchRegionStories(reg){
         </div>
       </div>`;
     }).join("");
-    // Build scrollable container with expand button
+    const reachable = allReg.length;
+    if(cnt) cnt.textContent=`${reachable} stories`;
     el.style.maxHeight="280px";
     el.style.overflowY="auto";
     el.style.paddingRight="4px";
     el.innerHTML = storyHtml(preview);
-    // Add "View All N Stories" button if more exist
-    if(total>8){
+    if(reachable>8){
       const btn=document.createElement("button");
+      btn.className="reg-viewall-btn";
       btn.style.cssText="margin-top:8px;width:100%;padding:8px;background:rgba(117,188,255,.1);"+
         "color:var(--bl);border:1px solid rgba(117,188,255,.3);border-radius:5px;"+
         "cursor:pointer;font-size:13px;font-weight:700;font-family:var(--mn)";
-      btn.textContent=`📋 View All ${total} Stories`;
+      btn.textContent=`📋 View All ${reachable} Stories`;
+      let expanded=false;
       btn.onclick=()=>{
-        el.innerHTML=storyHtml(allReg);
-        btn.remove();
+        if(!expanded){
+          el.innerHTML=storyHtml(allReg);
+          el.style.maxHeight="600px";
+          btn.textContent=`▲ Collapse (showing all ${reachable})`;
+          expanded=true;
+        } else {
+          el.innerHTML=storyHtml(preview);
+          el.style.maxHeight="280px";
+          btn.textContent=`📋 View All ${reachable} Stories`;
+          expanded=false;
+        }
       };
+      const oldBtn=el.parentElement.querySelector(".reg-viewall-btn");
+      if(oldBtn) oldBtn.remove();
       el.parentElement.appendChild(btn);
     }
   }catch(e){console.error("fetchRegionStories:",e);}
@@ -7755,6 +7855,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){document.getElement
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 fetchData();
+  switchTrend('30d');
 fetchNews();
 setInterval(fetchData,  60000);
 setInterval(fetchNews, 600000);
@@ -8727,6 +8828,155 @@ function updateWeeklyDigest(d){
     c("ds-contrib",  ds.contributors_30d||"--");
     c("ds-issues",   ds.open_issues||"--");
     c("ds-stars",    ds.stars_total||"--");
+  }
+
+
+  // ════════════════════════════════════════════════════════════════
+  // PRICE TRENDS — switchTrend + chart renderers (Items 8, 9, 10)
+  // ════════════════════════════════════════════════════════════════
+
+  let activeTrend = '30d';
+  const trendTitles = {
+    '30d': '30-day daily closing prices — recent momentum',
+    '90d': '90-day performance calendar — green=gain · red=loss · each square = one day',
+    '6m':  '6-month weekly closing prices — medium-term trend',
+    '60m': '60-month (five-year) monthly closing prices — the full bull/bear cycle',
+  };
+
+  function switchTrend(tf){
+    activeTrend = tf;
+    document.querySelectorAll('.trend-tab').forEach(btn=>{
+      const on = btn.dataset.tf === tf;
+      btn.style.background = on ? 'rgba(255,204,0,.2)' : 'var(--s2)';
+      btn.style.color      = on ? 'var(--yl)'          : 'var(--tx)';
+      btn.style.border     = on ? '1px solid rgba(255,204,0,.5)' : '1px solid var(--b)';
+    });
+    document.querySelectorAll('.trend-view').forEach(v=>v.style.display='none');
+    const view = document.getElementById('trend-view-'+tf);
+    if(view) view.style.display='block';
+    const sub = document.getElementById('trend-subtitle');
+    if(sub) sub.textContent = trendTitles[tf]||'';
+    if(tf==='30d')  renderChart30d();
+    if(tf==='90d')  renderChart90d();
+    if(tf==='6m')   renderChart6m();
+    if(tf==='60m')  renderChart60m();
+  }
+
+  function drawPriceLine(canvasId, loadingId, statsId, pts, lineColor, label){
+    const canvas  = document.getElementById(canvasId);
+    const loading = document.getElementById(loadingId);
+    const statsEl = document.getElementById(statsId);
+    if(!canvas||!pts||pts.length<3){if(loading)loading.textContent='No data — loading...';return;}
+    if(loading) loading.style.display='none';
+    const ctx = canvas.getContext('2d');
+    const W=canvas.parentElement.offsetWidth||800, H=230;
+    canvas.width=W; canvas.height=H;
+    const prices=pts.map(p=>p.price);
+    const minP=Math.min(...prices), maxP=Math.max(...prices), range=maxP-minP||1;
+    const pL=54,pR=16,pT=20,pB=36, cW=W-pL-pR, cH=H-pT-pB;
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<=5;i++){
+      const y=pT+cH*(1-i/5);
+      ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(W-pR,y);ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='10px monospace';ctx.textAlign='right';
+      ctx.fillText('$'+(minP+(maxP-minP)*i/5).toFixed(4),pL-4,y+4);
+    }
+    const step=Math.max(1,Math.floor(pts.length/6));
+    pts.forEach((p,i)=>{
+      if(i%step===0||i===pts.length-1){
+        const x=pL+cW*i/(pts.length-1);
+        ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='9px monospace';ctx.textAlign='center';
+        ctx.fillText((p.date||'').substring(0,7),x,H-pB+14);
+      }
+    });
+    // Gradient fill
+    const r=parseInt(lineColor.slice(1,3),16),g=parseInt(lineColor.slice(3,5),16),b=parseInt(lineColor.slice(5,7),16);
+    const grad=ctx.createLinearGradient(0,pT,0,pT+cH);
+    grad.addColorStop(0,`rgba(${r},${g},${b},.25)`);
+    grad.addColorStop(1,`rgba(${r},${g},${b},.02)`);
+    ctx.beginPath();
+    pts.forEach((p,i)=>{const x=pL+cW*i/(pts.length-1),y=pT+cH*(1-(p.price-minP)/range);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.lineTo(pL+cW,pT+cH);ctx.lineTo(pL,pT+cH);ctx.closePath();
+    ctx.fillStyle=grad;ctx.fill();
+    ctx.beginPath();ctx.strokeStyle=lineColor;ctx.lineWidth=2;ctx.lineJoin='round';
+    pts.forEach((p,i)=>{const x=pL+cW*i/(pts.length-1),y=pT+cH*(1-(p.price-minP)/range);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.stroke();
+    const athI=prices.indexOf(maxP);
+    if(athI>=0){
+      const ax=pL+cW*athI/(pts.length-1),ay=pT+cH*(1-(maxP-minP)/range);
+      ctx.fillStyle='#ffcc00';ctx.font='bold 9px monospace';ctx.textAlign='center';
+      ctx.fillText('▲ '+label,ax,Math.max(ay-6,pT+12));
+      ctx.beginPath();ctx.arc(ax,ay,3,0,Math.PI*2);ctx.fillStyle='#ffcc00';ctx.fill();
+    }
+    if(statsEl){
+      const first=prices[0],last=prices[prices.length-1];
+      const chg=first>0?((last-first)/first*100).toFixed(2):'0.00';
+      const cc=parseFloat(chg)>=0?'var(--gr)':'var(--rd)';
+      statsEl.innerHTML=
+        `<span style="color:var(--tx)">HIGH: <b style="color:var(--gr)">$${maxP.toFixed(4)}</b></span>`+
+        `<span style="color:var(--tx)">LOW: <b style="color:var(--rd)">$${minP.toFixed(4)}</b></span>`+
+        `<span style="color:var(--tx)">NOW: <b style="color:var(--br)">$${last.toFixed(4)}</b></span>`+
+        `<span style="color:var(--tx)">${label} CHG: <b style="color:${cc}">${parseFloat(chg)>=0?'+':''}${chg}%</b></span>`;
+    }
+  }
+
+  let _lastDi = {};
+
+  function renderChart30d(){
+    const hm = (_lastDi.price_heatmap||[]).slice(-30);
+    if(!hm.length) return;
+    const pts = hm.map(d=>({date:d.date.substring(5),price:d.price}));
+    drawPriceLine('chart-30d','chart-30d-loading','chart-30d-stats',pts,'#48ff82','30D');
+  }
+
+  function renderChart90d(){
+    const hm = _lastDi.price_heatmap||[];
+    const el = document.getElementById('heatmap-grid-90');
+    if(!el||!hm.length) return;
+    const maxAbs=Math.max(...hm.map(d=>Math.abs(d.change||0)),1);
+    const weeks={};
+    hm.forEach(d=>{const wk=d.week||d.date.substring(0,7);if(!weeks[wk])weeks[wk]=[];weeks[wk].push(d);});
+    const DOW=['M','T','W','T','F','S','S'];
+    el.innerHTML=Object.values(weeks).map(wd=>`<div style="display:flex;gap:3px">${wd.map(d=>{
+      const c=d.change||0,int=Math.min(Math.abs(c)/maxAbs,1),a=0.15+int*0.7;
+      const col=c>0?`rgba(72,255,130,${a})`:c<0?`rgba(255,64,96,${a})`:'rgba(128,153,179,.15)';
+      return `<div title="${d.date} ${c>=0?'+':''}${c.toFixed(2)}% $${d.price}"
+        style="width:26px;height:26px;border-radius:3px;background:${col};display:flex;align-items:center;
+        justify-content:center;cursor:default;font-size:9px;color:rgba(255,255,255,.4);font-family:monospace">
+        ${DOW[d.dow]||''}</div>`;}).join('')}</div>`).join('');
+    const statsEl=document.getElementById('chart-90d-stats');
+    if(statsEl){
+      const gains=hm.filter(d=>d.change>=0).length,tot=hm.length||1;
+      const first=hm[0]?.price||0,last=hm[hm.length-1]?.price||0;
+      const chg=first>0?((last-first)/first*100).toFixed(2):'0.00';
+      const cc=parseFloat(chg)>=0?'var(--gr)':'var(--rd)';
+      statsEl.innerHTML=
+        `<span style="color:var(--tx)">GREEN DAYS: <b style="color:var(--gr)">${gains}</b></span>`+
+        `<span style="color:var(--tx)">RED DAYS: <b style="color:var(--rd)">${tot-gains}</b></span>`+
+        `<span style="color:var(--tx)">WIN RATE: <b style="color:var(--yl)">${((gains/tot)*100).toFixed(0)}%</b></span>`+
+        `<span style="color:var(--tx)">90-DAY CHG: <b style="color:${cc}">${parseFloat(chg)>=0?'+':''}${chg}%</b></span>`;
+    }
+  }
+
+  function renderChart6m(){
+    const pts = _lastDi.price_history_6m||[];
+    if(!pts.length) return;
+    drawPriceLine('chart-6m','chart-6m-loading','chart-6m-stats',pts,'#00e5cc','6M');
+  }
+
+  function renderChart60m(){
+    const pts = _lastDi.price_history_60m||[];
+    if(!pts.length) return;
+    drawPriceLine('chart-60m','chart-60m-loading','chart-60m-stats',pts,'#48ff82','5Y');
+  }
+
+  function updatePriceTrends(d){
+    _lastDi = d.disp_intel||{};
+    if(activeTrend==='30d')  renderChart30d();
+    if(activeTrend==='90d')  renderChart90d();
+    if(activeTrend==='6m')   renderChart6m();
+    if(activeTrend==='60m')  renderChart60m();
   }
 
 </script>
