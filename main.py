@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.0"
+BOT_FILE          = "XRPRadar_v7.1"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 600
@@ -6310,6 +6310,315 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
     </div>
 
 
+
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 8: XRP DCA CALCULATOR ────────────────────── -->
+    <div class="exp-card" id="dca-calculator-section">
+      <div class="exp-title">📊 XRP DCA (DOLLAR-COST AVERAGE) CALCULATOR</div>
+      <div class="exp-sub">If you had invested a fixed amount every month, what would your XRP portfolio be worth today?</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
+        <div>
+          <label class="exp-lbl">Monthly Investment (USD)</label>
+          <input type="number" id="dca-amount" value="100" min="1" class="exp-input">
+        </div>
+        <div>
+          <label class="exp-lbl">Start Date</label>
+          <input type="date" id="dca-start" class="exp-input" value="2023-01-01">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button onclick="runDCA()" class="exp-btn exp-btn-gr" style="width:100%">⚡ CALCULATE DCA</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        <button onclick="setDCAStart('2021-01-01')" class="exp-tag">Since Jan 2021</button>
+        <button onclick="setDCAStart('2022-01-01')" class="exp-tag">Since Jan 2022</button>
+        <button onclick="setDCAStart('2023-01-01')" class="exp-tag">Since Jan 2023</button>
+        <button onclick="setDCAStart('2024-01-01')" class="exp-tag">Since Jan 2024</button>
+        <button onclick="setDCAStart('2025-01-01')" class="exp-tag">Since Jan 2025</button>
+      </div>
+      <div id="dca-results" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">
+          <div class="exp-stat-box"><div class="exp-stat-lbl">TOTAL INVESTED</div><div class="exp-stat-val" id="dca-total-invested" style="color:var(--tx)">--</div></div>
+          <div class="exp-stat-box"><div class="exp-stat-lbl">XRP ACCUMULATED</div><div class="exp-stat-val" id="dca-xrp-total" style="color:var(--bl)">--</div></div>
+          <div class="exp-stat-box"><div class="exp-stat-lbl">AVG COST BASIS</div><div class="exp-stat-val" id="dca-avg-cost" style="color:var(--yl)">--</div></div>
+          <div class="exp-stat-box"><div class="exp-stat-lbl">CURRENT VALUE</div><div class="exp-stat-val" id="dca-current-val">--</div></div>
+          <div class="exp-stat-box"><div class="exp-stat-lbl">TOTAL PROFIT/LOSS</div><div class="exp-stat-val" id="dca-pnl">--</div></div>
+          <div class="exp-stat-box"><div class="exp-stat-lbl">RETURN %</div><div class="exp-stat-val" id="dca-return">--</div></div>
+          <div class="exp-stat-box"><div class="exp-stat-lbl">MONTHS DCA'd</div><div class="exp-stat-val" id="dca-months" style="color:var(--tq)">--</div></div>
+          <div class="exp-stat-box" style="border-color:rgba(255,204,0,.3)"><div class="exp-stat-lbl">DCA VERDICT</div><div class="exp-stat-val" id="dca-verdict" style="font-size:14px">--</div></div>
+        </div>
+        <div id="dca-narrative" style="padding:12px;background:rgba(117,188,255,.05);border:1px solid rgba(117,188,255,.15);border-radius:6px;font-size:13px;color:var(--br);line-height:1.7"></div>
+      </div>
+      <div id="dca-loading" style="display:none;font-size:13px;color:var(--tq);font-family:var(--mn);padding:8px 0">⏳ Fetching monthly price data...</div>
+      <div id="dca-error" style="display:none;font-size:13px;color:var(--rd);font-family:var(--mn);padding:8px 0"></div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 9: GLOBAL REMITTANCE OPPORTUNITY MAP ──────── -->
+    <div class="exp-card" id="remittance-map-section">
+      <div class="exp-title">🌍 GLOBAL REMITTANCE MARKET OPPORTUNITY</div>
+      <div class="exp-sub">$800B/year remittance market — where XRP is already operating and where the remaining opportunity lies</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px">
+        <div class="exp-stat-box" style="border-color:rgba(72,255,130,.3)">
+          <div class="exp-stat-lbl">TOTAL MARKET/YR</div>
+          <div class="exp-stat-val" style="color:var(--gr)">$800B+</div>
+        </div>
+        <div class="exp-stat-box" style="border-color:rgba(72,255,130,.3)">
+          <div class="exp-stat-lbl">XRP ACTIVE CORRIDORS</div>
+          <div class="exp-stat-val" style="color:var(--gr)">8+</div>
+        </div>
+        <div class="exp-stat-box">
+          <div class="exp-stat-lbl">AVG SWIFT COST</div>
+          <div class="exp-stat-val" style="color:var(--rd)">5.8%</div>
+        </div>
+        <div class="exp-stat-box">
+          <div class="exp-stat-lbl">XRP ODL COST</div>
+          <div class="exp-stat-val" style="color:var(--gr)">&lt;1%</div>
+        </div>
+        <div class="exp-stat-box" style="border-color:rgba(255,204,0,.3)">
+          <div class="exp-stat-lbl">ANNUAL SAVINGS POSSIBLE</div>
+          <div class="exp-stat-val" style="color:var(--yl)">$39B+</div>
+        </div>
+        <div class="exp-stat-box">
+          <div class="exp-stat-lbl">WORLD BANK TARGET</div>
+          <div class="exp-stat-val" style="font-size:14px;color:var(--bl)">3% by 2030</div>
+        </div>
+      </div>
+      <!-- Corridor breakdown -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px">
+        <div>
+          <div style="font-size:12px;color:var(--gr);font-family:var(--mn);font-weight:700;margin-bottom:8px">✅ ACTIVE XRP ODL CORRIDORS</div>
+          <div id="rm-active-corridors" style="display:flex;flex-direction:column;gap:5px"></div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--yl);font-family:var(--mn);font-weight:700;margin-bottom:8px">🎯 NEXT OPPORTUNITY CORRIDORS</div>
+          <div id="rm-opportunity-corridors" style="display:flex;flex-direction:column;gap:5px"></div>
+        </div>
+      </div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 10: CONGRESSIONAL & POLITICAL TRACKER ─────── -->
+    <div class="exp-card" id="congress-tracker-section">
+      <div class="exp-title">🏛️ CONGRESSIONAL & POLITICAL TRACKER</div>
+      <div class="exp-sub">Key legislation, regulatory actions, and political developments that will shape XRP's legal and commercial future</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px">
+
+        <div style="background:var(--bg);border:1px solid rgba(72,255,130,.2);border-radius:8px;padding:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:8px">📋 CLARITY ACT</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:6px">Bipartisan legislation establishing USD stablecoin framework. XRP classified as commodity in payment corridors. Passed Senate Banking Committee June 2025.</div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">STATUS:</span> <span style="color:var(--gr)">Full Senate vote pending</span></div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">IMPACT:</span> <span style="color:var(--gr)">BULLISH — cements XRP legal status</span></div>
+        </div>
+
+        <div style="background:var(--bg);border:1px solid rgba(72,255,130,.2);border-radius:8px;padding:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:8px">📋 FIT21 ACT</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:6px">Financial Innovation and Technology for the 21st Century Act. Establishes CFTC authority over digital commodities. XRP expected to fall under CFTC, not SEC.</div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">STATUS:</span> <span style="color:var(--bl)">House passed — Senate Finance Committee review</span></div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">IMPACT:</span> <span style="color:var(--gr)">BULLISH — regulatory certainty</span></div>
+        </div>
+
+        <div style="background:var(--bg);border:1px solid rgba(72,255,130,.2);border-radius:8px;padding:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:8px">⚖️ SEC v. RIPPLE — SETTLED</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:6px">Judge Torres ruling: XRP NOT a security in programmatic sales. Settlement reached March 2025. $125M civil penalty — resolved. XRP legal precedent established.</div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">STATUS:</span> <span style="color:var(--gr)">✅ SETTLED — case closed</span></div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">IMPACT:</span> <span style="color:var(--gr)">RESOLVED — US institutions now free to use XRP</span></div>
+        </div>
+
+        <div style="background:var(--bg);border:1px solid rgba(117,188,255,.2);border-radius:8px;padding:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn);margin-bottom:8px">🏦 CRYPTO STRATEGIC RESERVE</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:6px">White House announced national crypto reserve framework including BTC, ETH, XRP, SOL, and ADA. Ripple CEO Brad Garlinghouse met with senior White House officials March 2025.</div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">STATUS:</span> <span style="color:var(--bl)">Executive order signed — framework implementation ongoing</span></div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">IMPACT:</span> <span style="color:var(--gr)">STRONGLY BULLISH — sovereign XRP holding</span></div>
+        </div>
+
+        <div style="background:var(--bg);border:1px solid rgba(255,204,0,.2);border-radius:8px;padding:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--yl);font-family:var(--mn);margin-bottom:8px">🌐 MIGA — GLOBAL CRYPTO FRAMEWORK</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:6px">Make It Great Act — bipartisan support for global digital asset framework alignment. Ripple actively lobbying. Key provisions include cross-border payment crypto recognition.</div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">STATUS:</span> <span style="color:var(--yl)">Drafting phase — Senate Finance</span></div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">IMPACT:</span> <span style="color:var(--yl)">BULLISH if enacted</span></div>
+        </div>
+
+        <div style="background:var(--bg);border:1px solid rgba(255,153,0,.2);border-radius:8px;padding:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--or);font-family:var(--mn);margin-bottom:8px">📡 CONGRESSIONAL CRYPTO CAUCUS</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:6px">115 members of Congress in bipartisan Blockchain Caucus. Ripple has met with 40+ congressional offices since settlement. Growing pro-crypto majority in both chambers.</div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">KEY ALLIES:</span> <span style="color:var(--tx)">Senators Lummis, Gillibrand, Scott, Warren (opposition)</span></div>
+          <div style="font-family:var(--mn);font-size:12px"><span style="color:var(--yl)">TREND:</span> <span style="color:var(--gr)">Pro-crypto momentum accelerating</span></div>
+        </div>
+
+      </div>
+      <!-- Live congressional news feed -->
+      <div style="margin-top:12px">
+        <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-bottom:8px">LATEST FROM CONGRESS / REGULATORS:</div>
+        <div id="congress-news-feed" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Loading regulatory news...</div>
+        </div>
+      </div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 11: PORTFOLIO COMPARISON TOOL ─────────────── -->
+    <div class="exp-card" id="portfolio-comparison-section">
+      <div class="exp-title">📈 PORTFOLIO COMPARISON TOOL</div>
+      <div class="exp-sub">Compare XRP performance vs BTC, ETH, Gold, S&P 500, and your own stocks over any period</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px">
+        <div>
+          <label class="exp-lbl">Investment Amount (USD)</label>
+          <input type="number" id="pc-amount" value="10000" class="exp-input">
+        </div>
+        <div>
+          <label class="exp-lbl">Start Date</label>
+          <input type="date" id="pc-start" class="exp-input" value="2023-01-01">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button onclick="runPortfolioComparison()" class="exp-btn" style="width:100%">⚡ COMPARE</button>
+        </div>
+      </div>
+      <div id="pc-results" style="display:none">
+        <div id="pc-table-wrap" style="overflow-x:auto">
+          <table class="exp-table" id="pc-table">
+            <thead><tr>
+              <th>ASSET</th><th>PRICE THEN</th><th>PRICE NOW</th>
+              <th>UNITS HELD</th><th>CURRENT VALUE</th><th>RETURN %</th><th>RANK</th>
+            </tr></thead>
+            <tbody id="pc-tbody"></tbody>
+          </table>
+        </div>
+        <div id="pc-winner" style="margin-top:12px;padding:12px;border-radius:6px;font-size:14px;font-weight:700;text-align:center"></div>
+      </div>
+      <div id="pc-loading" style="display:none;font-size:13px;color:var(--tq);font-family:var(--mn);padding:8px 0">⏳ Fetching asset prices...</div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 12: XRP EARNINGS MONITOR ──────────────────── -->
+    <div class="exp-card" id="earnings-monitor-section">
+      <div class="exp-title">📢 XRP EARNINGS MONITOR</div>
+      <div class="exp-sub">When major financial companies report earnings, we surface every XRP/crypto mention — because that's where institutional signals hide</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:12px">
+        <div style="padding:10px;background:var(--bg);border:1px solid rgba(72,255,130,.2);border-radius:6px">
+          <div style="font-size:12px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:6px">UPCOMING EARNINGS — CRYPTO-RELEVANT</div>
+          <div style="font-size:13px;color:var(--tx);display:flex;flex-direction:column;gap:4px">
+            <div><span style="color:var(--br)">PayPal</span> <span style="color:var(--tx)">— Q2 2026 earnings · Aug 2026</span></div>
+            <div><span style="color:var(--br)">JPMorgan Chase</span> <span style="color:var(--tx)">— Q2 2026 earnings · Jul 2026</span></div>
+            <div><span style="color:var(--br)">Coinbase</span> <span style="color:var(--tx)">— Q2 2026 earnings · Aug 2026</span></div>
+            <div><span style="color:var(--br)">Visa</span> <span style="color:var(--tx)">— Q3 2026 earnings · Oct 2026</span></div>
+            <div><span style="color:var(--br)">MoneyGram</span> <span style="color:var(--tx)">— Q2 2026 earnings · Aug 2026</span></div>
+          </div>
+        </div>
+        <div style="padding:10px;background:var(--bg);border:1px solid var(--b);border-radius:6px">
+          <div style="font-size:12px;font-weight:700;color:var(--yl);font-family:var(--mn);margin-bottom:6px">WATCH KEYWORDS IN CALLS</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">
+            <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:2px 8px;border-radius:3px;font-family:var(--mn);font-size:11px">XRP</span>
+            <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:2px 8px;border-radius:3px;font-family:var(--mn);font-size:11px">Ripple</span>
+            <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:2px 8px;border-radius:3px;font-family:var(--mn);font-size:11px">ODL</span>
+            <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:2px 8px;border-radius:3px;font-family:var(--mn);font-size:11px">blockchain</span>
+            <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:2px 8px;border-radius:3px;font-family:var(--mn);font-size:11px">crypto payments</span>
+            <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:2px 8px;border-radius:3px;font-family:var(--mn);font-size:11px">stablecoin</span>
+            <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:2px 8px;border-radius:3px;font-family:var(--mn);font-size:11px">RLUSD</span>
+            <span style="background:rgba(255,204,0,.1);color:var(--yl);padding:2px 8px;border-radius:3px;font-family:var(--mn);font-size:11px">digital asset</span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-bottom:8px">LATEST EARNINGS-RELATED XRP MENTIONS FROM NEWS FEEDS:</div>
+      <div id="earnings-feed" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:13px;color:var(--tx);font-family:var(--mn)">Scanning feeds...</div>
+      </div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 13: MOBILE PUSH NOTIFICATIONS ─────────────── -->
+    <div class="exp-card" id="push-notifications-section">
+      <div class="exp-title">📱 MOBILE PUSH NOTIFICATIONS</div>
+      <div class="exp-sub">Install XRPRadar as a mobile app (PWA) and get push notifications for price alerts, whale moves, and keyword matches — even when the app is closed</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px">
+        <div style="padding:12px;background:var(--bg);border:1px solid var(--b);border-radius:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:8px">STEP 1 — INSTALL AS APP</div>
+          <div style="font-size:13px;color:var(--tx);line-height:1.7;margin-bottom:8px">
+            <b style="color:var(--br)">iPhone/iPad:</b> Open in Safari → tap Share → "Add to Home Screen"<br>
+            <b style="color:var(--br)">Android:</b> Open in Chrome → tap menu → "Add to Home Screen" or "Install App"<br>
+            <b style="color:var(--br)">Desktop:</b> Click the ⊕ icon in the browser address bar
+          </div>
+        </div>
+        <div style="padding:12px;background:var(--bg);border:1px solid var(--b);border-radius:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--bl);font-family:var(--mn);margin-bottom:8px">STEP 2 — ENABLE NOTIFICATIONS</div>
+          <div style="font-size:13px;color:var(--tx);line-height:1.6;margin-bottom:10px">Allow XRPRadar to send push notifications. You'll be alerted for: price targets crossed, whale moves, keyword matches, and the AM/PM Intelligence Brief.</div>
+          <button onclick="enablePushNotifications()" class="exp-btn exp-btn-gr" id="push-enable-btn" style="width:100%">
+            🔔 ENABLE PUSH NOTIFICATIONS
+          </button>
+          <div id="push-status" style="font-size:12px;font-family:var(--mn);margin-top:8px;color:var(--tx)">Status: checking...</div>
+        </div>
+        <div style="padding:12px;background:var(--bg);border:1px solid var(--b);border-radius:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--yl);font-family:var(--mn);margin-bottom:8px">WHAT YOU'LL RECEIVE</div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--tx)">
+            <div>🔔 Price crosses your set target</div>
+            <div>🐋 Whale moves 5M+ XRP</div>
+            <div>🔍 Keyword alert match</div>
+            <div>🔮 Intelligence Brief ready (12PM & 9PM CST)</div>
+            <div>📊 Signal Score crosses 70 or drops below 30</div>
+          </div>
+        </div>
+      </div>
+      <div id="push-test-result" style="display:none;padding:10px;background:rgba(72,255,130,.08);border:1px solid rgba(72,255,130,.2);border-radius:6px;font-size:13px;color:var(--gr);font-family:var(--mn)"></div>
+    </div>
+
+      <div class="exp-divider"></div>
+
+    <!-- ─── FEATURE 14: SOUND ALERTS ──────────────────────────── -->
+    <div class="exp-card" id="sound-alerts-section">
+      <div class="exp-title">🔊 SOUND ALERTS</div>
+      <div class="exp-sub">Optional audio alerts for key events — hear when your price target is hit, a whale moves, or the Intelligence Brief is ready</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:12px">
+        <div style="padding:10px;background:var(--bg);border:1px solid var(--b);border-radius:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:10px">MASTER SOUND TOGGLE</div>
+          <button onclick="toggleSound()" id="sound-master-btn" class="exp-btn exp-btn-gr" style="width:100%;margin-bottom:8px">
+            🔊 SOUND: ON
+          </button>
+          <div style="display:flex;gap:8px">
+            <button onclick="testSound('price')" class="exp-btn" style="flex:1;padding:6px;font-size:12px">Test Price</button>
+            <button onclick="testSound('whale')" class="exp-btn" style="flex:1;padding:6px;font-size:12px">Test Whale</button>
+            <button onclick="testSound('brief')" class="exp-btn" style="flex:1;padding:6px;font-size:12px">Test Brief</button>
+          </div>
+        </div>
+        <div style="padding:10px;background:var(--bg);border:1px solid var(--b);border-radius:8px">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);font-family:var(--mn);margin-bottom:8px">PER-EVENT CONTROL</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--br);cursor:pointer">
+              <input type="checkbox" id="snd-price" checked onchange="saveSoundPrefs()" style="cursor:pointer"> Price Alert
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--br);cursor:pointer">
+              <input type="checkbox" id="snd-whale" checked onchange="saveSoundPrefs()" style="cursor:pointer"> Whale Move
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--br);cursor:pointer">
+              <input type="checkbox" id="snd-kw" checked onchange="saveSoundPrefs()" style="cursor:pointer"> Keyword Match
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--br);cursor:pointer">
+              <input type="checkbox" id="snd-brief" onchange="saveSoundPrefs()" style="cursor:pointer"> Intelligence Brief Ready
+            </label>
+          </div>
+        </div>
+        <div style="padding:10px;background:var(--bg);border:1px solid var(--b);border-radius:8px">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);font-family:var(--mn);margin-bottom:8px">VOLUME & TONE</div>
+          <label class="exp-lbl">Volume</label>
+          <input type="range" id="snd-volume" min="0" max="1" step="0.1" value="0.5"
+            onchange="saveSoundPrefs()" style="width:100%;margin-bottom:10px;cursor:pointer">
+          <label class="exp-lbl">Alert Tone</label>
+          <select id="snd-tone" onchange="saveSoundPrefs()" class="exp-input" style="font-size:13px">
+            <option value="ping">Ping (subtle)</option>
+            <option value="chime">Chime (pleasant)</option>
+            <option value="alert">Alert (sharp)</option>
+            <option value="bell">Bell (classic)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
   </div><!-- end inner container -->
 </div><!-- end experimental-metrics -->
 
@@ -9821,8 +10130,350 @@ function updateWeeklyDigest(d){
     updateMacroCalendar(d);
     updateEscrowAnalytics(d);
     checkKeywordAlerts(d.stories||[]);
-    // Render static features if not yet rendered
     if(!document.getElementById('validator-list').children.length) renderValidatorMap();
+    // V7.1
+    updateCongressTracker(d);
+    updateEarningsMonitor(d);
+    if(document.getElementById('rm-active-corridors')&&
+       !document.getElementById('rm-active-corridors').children.length) renderRemittanceMap();
+  }
+
+
+  // ════════════════════════════════════════════════════════════════
+  // V7.1 JAVASCRIPT — Features 8-14
+  // ════════════════════════════════════════════════════════════════
+
+  // ── Feature 8: DCA Calculator ────────────────────────────────────
+  function setDCAStart(d){ const el=document.getElementById('dca-start'); if(el) el.value=d; }
+
+  async function runDCA(){
+    const amtEl=document.getElementById('dca-amount');
+    const stEl =document.getElementById('dca-start');
+    const resEl=document.getElementById('dca-results');
+    const ldgEl=document.getElementById('dca-loading');
+    const errEl=document.getElementById('dca-error');
+    if(!amtEl||!stEl) return;
+    const monthly=parseFloat(amtEl.value)||0;
+    const startStr=stEl.value;
+    if(!monthly||!startStr){ if(errEl){errEl.textContent='Please enter amount and start date.';errEl.style.display='block';} return; }
+    if(resEl) resEl.style.display='none';
+    if(errEl) errEl.style.display='none';
+    if(ldgEl) ldgEl.style.display='block';
+    try{
+      const startDate=new Date(startStr+'T12:00:00');
+      const today=new Date();
+      const daysSince=Math.ceil((today-startDate)/86400000);
+      if(daysSince<30){ if(errEl){errEl.textContent='Start date must be at least 1 month in the past.';errEl.style.display='block';if(ldgEl)ldgEl.style.display='none';} return; }
+      const r=await fetch('https://api.coingecko.com/api/v3/coins/ripple/market_chart?vs_currency=usd&days='+Math.min(daysSince+5,2000));
+      const data=await r.json();
+      const prices=data.prices||[];
+      if(!prices.length) throw new Error('No price data');
+      // Simulate monthly buys
+      let totalInvested=0, totalXRP=0;
+      const priceNow=prices[prices.length-1][1];
+      let curDate=new Date(startDate);
+      const months=[];
+      while(curDate<=today){
+        const ts=curDate.getTime();
+        let best=null,bestDiff=Infinity;
+        prices.forEach(p=>{ const d2=Math.abs(p[0]-ts); if(d2<bestDiff){bestDiff=d2;best=p[1];} });
+        if(best&&best>0){
+          const xrpBought=monthly/best;
+          totalXRP+=xrpBought;
+          totalInvested+=monthly;
+          months.push({date:new Date(curDate),price:best,xrp:xrpBought});
+        }
+        curDate=new Date(curDate.getFullYear(),curDate.getMonth()+1,1);
+      }
+      const currentVal=totalXRP*priceNow;
+      const avgCost=totalInvested/totalXRP;
+      const pnl=currentVal-totalInvested;
+      const ret=((currentVal-totalInvested)/totalInvested*100);
+      c('dca-total-invested','$'+totalInvested.toLocaleString(undefined,{maximumFractionDigits:0}));
+      c('dca-xrp-total',totalXRP.toLocaleString(undefined,{maximumFractionDigits:0})+' XRP');
+      c('dca-avg-cost','$'+avgCost.toFixed(4));
+      const cvEl=document.getElementById('dca-current-val');
+      if(cvEl){cvEl.textContent='$'+currentVal.toLocaleString(undefined,{maximumFractionDigits:2});cvEl.style.color=currentVal>=totalInvested?'var(--gr)':'var(--rd)';}
+      const pnlEl=document.getElementById('dca-pnl');
+      if(pnlEl){pnlEl.textContent=(pnl>=0?'+':'')+' $'+Math.abs(pnl).toLocaleString(undefined,{maximumFractionDigits:2});pnlEl.style.color=pnl>=0?'var(--gr)':'var(--rd)';}
+      const retEl=document.getElementById('dca-return');
+      if(retEl){retEl.textContent=(ret>=0?'+':'')+ret.toFixed(1)+'%';retEl.style.color=ret>=0?'var(--gr)':'var(--rd)';}
+      c('dca-months',months.length+' months');
+      const verdict=ret>100?'🚀 EXCELLENT':'ret>50?👍 STRONG':ret>0?'✅ POSITIVE':'📉 UNDERWATER';
+      const vEl=document.getElementById('dca-verdict');
+      if(vEl){vEl.textContent=ret>100?'🚀 EXCELLENT':ret>50?'👍 STRONG':ret>0?'✅ POSITIVE':'📉 UNDERWATER';vEl.style.color=ret>0?'var(--gr)':'var(--rd)';}
+      const narr=document.getElementById('dca-narrative');
+      if(narr) narr.innerHTML=`💡 <b>DCA Strategy Result:</b> Investing <b style="color:var(--yl)">$${monthly}/month</b> in XRP starting <b style="color:var(--bl)">${startDate.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</b> over <b>${months.length} months</b> would have accumulated <b style="color:var(--gr)">${totalXRP.toLocaleString(undefined,{maximumFractionDigits:0})} XRP</b> at an average cost of <b style="color:var(--yl)">$${avgCost.toFixed(4)}</b>. Current price of <b>$${priceNow.toFixed(4)}</b> puts your portfolio at <b style="color:${ret>=0?'var(--gr)':'var(--rd)'}">${(ret>=0?'+':'')+ret.toFixed(1)}%</b>. DCA smooths out volatility — compare to a lump-sum investment at the start to see if timing would have mattered.`;
+      if(ldgEl) ldgEl.style.display='none';
+      if(resEl) resEl.style.display='block';
+    }catch(e){
+      if(ldgEl) ldgEl.style.display='none';
+      if(errEl){errEl.textContent='Error: '+e.message;errEl.style.display='block';}
+    }
+  }
+
+  // ── Feature 9: Remittance Opportunity Map ────────────────────────
+  const ACTIVE_CORRIDORS = [
+    {route:'🇺🇸→🇲🇽 USA→Mexico',      vol:'$1.8B/day', partner:'Bitso',    saving:'5.2%'},
+    {route:'🇺🇸→🇵🇭 USA→Philippines', vol:'$800M/day', partner:'Coins.ph', saving:'5.8%'},
+    {route:'🇯🇵→🇵🇭 Japan→Philippines',vol:'$600M/day', partner:'SBI Remit',saving:'4.5%'},
+    {route:'🇬🇧→🇳🇬 UK→Nigeria',       vol:'$180M/day', partner:'Flutterwave',saving:'6.2%'},
+    {route:'🇦🇺→🇵🇭 Australia→Philippines',vol:'$250M/day',partner:'FlashFX',saving:'4.8%'},
+    {route:'🇸🇬→🇵🇭 Singapore→SE Asia',vol:'$350M/day', partner:'Various',  saving:'5.1%'},
+    {route:'🇺🇸→🇮🇳 USA→India',        vol:'$2.1B/day', partner:'Growing',  saving:'4.9%'},
+    {route:'🇪🇺→🇲🇽 Europe→Mexico',    vol:'$400M/day', partner:'Bitso',    saving:'5.0%'},
+  ];
+  const OPPORTUNITY_CORRIDORS = [
+    {route:'🇦🇪→🇵🇰 UAE→Pakistan',    potential:'$1.2B/day', reason:'27M diaspora, failed USD transfers'},
+    {route:'🇩🇪→🇹🇷 Germany→Turkey',  potential:'$800M/day', reason:'3M diaspora, lira instability'},
+    {route:'🇸🇦→🇪🇬 Saudi→Egypt',     potential:'$1.5B/day', reason:'Largest Gulf-Africa corridor'},
+    {route:'🇺🇸→🇧🇷 USA→Brazil',      potential:'$400M/day', reason:'Post-PIX, growing crypto adoption'},
+    {route:'🇯🇵→🇻🇳 Japan→Vietnam',   potential:'$300M/day', reason:'Expanding manufacturing diaspora'},
+    {route:'🇨🇳→🇰🇪 China→Kenya',     potential:'$200M/day', reason:'Belt & Road — XRP could intercept'},
+  ];
+
+  function renderRemittanceMap(){
+    const actEl=document.getElementById('rm-active-corridors');
+    const oppEl=document.getElementById('rm-opportunity-corridors');
+    if(actEl) actEl.innerHTML=ACTIVE_CORRIDORS.map(c2=>`
+      <div style="padding:8px 10px;background:var(--bg);border-radius:5px;border:1px solid rgba(72,255,130,.15)">
+        <div style="font-size:13px;font-weight:700;color:var(--br)">${c2.route}</div>
+        <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-top:2px">
+          ${c2.vol} · Partner: <span style="color:var(--bl)">${c2.partner}</span> · Saves: <span style="color:var(--gr)">${c2.saving}</span>
+        </div>
+      </div>`).join('');
+    if(oppEl) oppEl.innerHTML=OPPORTUNITY_CORRIDORS.map(c2=>`
+      <div style="padding:8px 10px;background:var(--bg);border-radius:5px;border:1px solid rgba(255,204,0,.15)">
+        <div style="font-size:13px;font-weight:700;color:var(--br)">${c2.route}</div>
+        <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-top:2px">
+          ${c2.potential} · <span style="color:var(--yl)">${c2.reason}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Feature 10: Congressional Tracker ────────────────────────────
+  function updateCongressTracker(d){
+    const stories=d.stories||[];
+    const legalKW=['SEC','congress','legislation','CFTC','regulatory','bill','law','senate','house','crypto act','clarity','FIT21','stablecoin','ripple legal'];
+    const relevant=stories.filter(s=>legalKW.some(kw=>(s.title||'').toLowerCase().includes(kw))).slice(0,12);
+    const el=document.getElementById('congress-news-feed');
+    if(!el) return;
+    if(!relevant.length){el.innerHTML='<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No regulatory news in current feed — refreshing...</div>';return;}
+    el.innerHTML=relevant.map(s=>`
+      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="window.open('${s.link||s.url||'#'}','_blank')">
+        <div style="font-size:14px;font-weight:700;color:var(--bl);line-height:1.35">${s.title}</div>
+        <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-top:3px">${s.source||''} · ${s.age||''}</div>
+      </div>`).join('');
+  }
+
+  // ── Feature 11: Portfolio Comparison ─────────────────────────────
+  const COMPARISON_ASSETS = [
+    {id:'ripple',         symbol:'XRP',   name:'XRP',     cg_id:'ripple'},
+    {id:'bitcoin',        symbol:'BTC',   name:'Bitcoin', cg_id:'bitcoin'},
+    {id:'ethereum',       symbol:'ETH',   name:'Ethereum',cg_id:'ethereum'},
+    {id:'gold',           symbol:'GOLD',  name:'Gold',    yahoo:'^XAUUSD'},
+    {id:'sp500',          symbol:'SPX',   name:'S&P 500', yahoo:'^GSPC'},
+  ];
+
+  async function runPortfolioComparison(){
+    const amtEl=document.getElementById('pc-amount');
+    const stEl =document.getElementById('pc-start');
+    const resEl=document.getElementById('pc-results');
+    const ldgEl=document.getElementById('pc-loading');
+    if(!amtEl||!stEl) return;
+    const amt=parseFloat(amtEl.value)||10000;
+    const startDate=new Date(stEl.value+'T12:00:00');
+    if(resEl) resEl.style.display='none';
+    if(ldgEl) ldgEl.style.display='block';
+    try{
+      const daysSince=Math.ceil((new Date()-startDate)/86400000);
+      const results=[];
+      // Fetch crypto assets from CoinGecko
+      for(const asset of COMPARISON_ASSETS.filter(a=>a.cg_id)){
+        try{
+          const r=await fetch('https://api.coingecko.com/api/v3/coins/'+asset.cg_id+'/market_chart?vs_currency=usd&days='+Math.min(daysSince+5,2000));
+          const data=await r.json();
+          const prices2=data.prices||[];
+          if(prices2.length<2) continue;
+          const ts=startDate.getTime();
+          let best=null,bestD=Infinity;
+          prices2.forEach(p=>{const d2=Math.abs(p[0]-ts);if(d2<bestD){bestD=d2;best=p[1];}});
+          const priceThen=best, priceNow=prices2[prices2.length-1][1];
+          const units=amt/priceThen;
+          const valNow=units*priceNow;
+          const ret=((valNow-amt)/amt*100);
+          results.push({...asset,priceThen,priceNow,units,valNow,ret});
+        }catch(e2){}
+      }
+      // Sort by return descending
+      results.sort((a,b)=>b.ret-a.ret);
+      const tbody=document.getElementById('pc-tbody');
+      if(tbody){
+        tbody.innerHTML=results.map((r,i)=>`
+          <tr>
+            <td><b style="color:${r.id==='ripple'?'var(--gr)':'var(--br)'}">${r.name}</b></td>
+            <td style="color:var(--tx)">$${r.priceThen.toFixed(r.id==='sp500'?2:4)}</td>
+            <td style="color:var(--tx)">$${r.priceNow.toFixed(r.id==='sp500'?2:4)}</td>
+            <td style="color:var(--tx);font-size:12px">${r.units.toLocaleString(undefined,{maximumFractionDigits:4})} ${r.symbol}</td>
+            <td style="color:${r.valNow>=amt?'var(--gr)':'var(--rd)'}"><b>$${r.valNow.toLocaleString(undefined,{maximumFractionDigits:0})}</b></td>
+            <td style="color:${r.ret>=0?'var(--gr)':'var(--rd)'}"><b>${(r.ret>=0?'+':'')+r.ret.toFixed(1)}%</b></td>
+            <td style="color:var(--yl);font-weight:700">#${i+1}</td>
+          </tr>`).join('');
+      }
+      const winner=results[0];
+      const winEl=document.getElementById('pc-winner');
+      const xrpResult=results.find(r=>r.id==='ripple');
+      const xrpRank=results.findIndex(r=>r.id==='ripple')+1;
+      if(winEl&&winner){
+        const xrpMsg=xrpResult?` XRP ranks <b style="color:${xrpRank<=2?'var(--gr)':'var(--yl)'}">
+          #${xrpRank} of ${results.length}</b> with a ${(xrpResult.ret>=0?'+':'')+xrpResult.ret.toFixed(1)}% return.`:'';
+        winEl.style.background=winner.id==='ripple'?'rgba(72,255,130,.1)':'rgba(117,188,255,.08)';
+        winEl.style.border='1px solid '+(winner.id==='ripple'?'rgba(72,255,130,.3)':'rgba(117,188,255,.2)');
+        winEl.style.color=winner.id==='ripple'?'var(--gr)':'var(--bl)';
+        winEl.innerHTML=`🏆 Best performer: <b>${winner.name}</b> at ${(winner.ret>=0?'+':'')+winner.ret.toFixed(1)}%${xrpMsg}`;
+      }
+      if(ldgEl) ldgEl.style.display='none';
+      if(resEl) resEl.style.display='block';
+    }catch(e){if(ldgEl)ldgEl.style.display='none';}
+  }
+
+  // ── Feature 12: Earnings Monitor ─────────────────────────────────
+  const EARNINGS_KEYWORDS=['earnings','quarterly','revenue','Q1','Q2','Q3','Q4','annual report',
+    'PayPal','JPMorgan','Coinbase','Visa','MoneyGram','Western Union','Mastercard','Fidelity'];
+
+  function updateEarningsMonitor(d){
+    const stories=d.stories||[];
+    const earningsStories=stories.filter(s=>{
+      const t=(s.title||'').toLowerCase();
+      return EARNINGS_KEYWORDS.some(kw=>t.includes(kw.toLowerCase()));
+    }).slice(0,10);
+    const el=document.getElementById('earnings-feed');
+    if(!el) return;
+    if(!earningsStories.length){
+      el.innerHTML='<div style="font-size:13px;color:var(--tx);font-family:var(--mn)">No earnings-related stories in current feed. Stories appear here when major financial companies report results mentioning XRP/crypto.</div>';
+      return;
+    }
+    el.innerHTML=earningsStories.map(s=>`
+      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer" onclick="window.open('${s.link||s.url||'#'}','_blank')">
+        <div style="font-size:14px;font-weight:700;color:var(--or);line-height:1.35">${s.title}</div>
+        <div style="font-size:12px;color:var(--tx);font-family:var(--mn);margin-top:3px">${s.source||''} · ${s.age||''}</div>
+      </div>`).join('');
+  }
+
+  // ── Feature 13: Push Notifications ───────────────────────────────
+  let pushRegistration = null;
+
+  async function enablePushNotifications(){
+    const btn=document.getElementById('push-enable-btn');
+    const status=document.getElementById('push-status');
+    if(!('Notification' in window)){
+      if(status) status.textContent='Your browser does not support notifications.';
+      return;
+    }
+    const perm=await Notification.requestPermission();
+    if(perm==='granted'){
+      if(status){ status.textContent='✅ Notifications enabled!'; status.style.color='var(--gr)'; }
+      if(btn) btn.textContent='✅ NOTIFICATIONS ENABLED';
+      // Test notification
+      new Notification('🛰️ XRPRadar', {
+        body: 'Push notifications are now active. You'll be alerted for price targets, whale moves, and briefings.',
+        icon: '/favicon.ico'
+      });
+    } else if(perm==='denied'){
+      if(status){ status.textContent='❌ Blocked. Enable in browser settings → Site Settings → Notifications.'; status.style.color='var(--rd)'; }
+    } else {
+      if(status){ status.textContent='⚠️ Dismissed — tap the button again to try.'; }
+    }
+  }
+
+  function checkPushStatus(){
+    const status=document.getElementById('push-status');
+    if(!status) return;
+    if(!('Notification' in window)){ status.textContent='Not supported in this browser.'; return; }
+    if(Notification.permission==='granted'){ status.textContent='✅ Enabled — you will receive alerts.'; status.style.color='var(--gr)';
+      const btn=document.getElementById('push-enable-btn');
+      if(btn) btn.textContent='✅ NOTIFICATIONS ENABLED';
+    } else if(Notification.permission==='denied'){ status.textContent='❌ Blocked — enable in browser settings.'; status.style.color='var(--rd)'; }
+    else { status.textContent='⏸️ Not yet enabled — click the button above.'; }
+  }
+  setTimeout(checkPushStatus, 500);
+
+  // ── Feature 14: Sound Alerts ──────────────────────────────────────
+  let soundEnabled=JSON.parse(localStorage.getItem('xrpr_sound')||'true');
+  let soundPrefs=JSON.parse(localStorage.getItem('xrpr_sound_prefs')||'{"price":true,"whale":true,"kw":true,"brief":false}');
+  let soundVolume=parseFloat(localStorage.getItem('xrpr_sound_vol')||'0.5');
+
+  function toggleSound(){
+    soundEnabled=!soundEnabled;
+    localStorage.setItem('xrpr_sound',JSON.stringify(soundEnabled));
+    const btn=document.getElementById('sound-master-btn');
+    if(btn){ btn.textContent=soundEnabled?'🔊 SOUND: ON':'🔇 SOUND: OFF';
+      btn.className='exp-btn '+(soundEnabled?'exp-btn-gr':'exp-btn-rd'); }
+  }
+  function saveSoundPrefs(){
+    soundPrefs={
+      price: document.getElementById('snd-price')?.checked||false,
+      whale: document.getElementById('snd-whale')?.checked||false,
+      kw:    document.getElementById('snd-kw')?.checked||false,
+      brief: document.getElementById('snd-brief')?.checked||false,
+    };
+    soundVolume=parseFloat(document.getElementById('snd-volume')?.value||0.5);
+    localStorage.setItem('xrpr_sound_prefs',JSON.stringify(soundPrefs));
+    localStorage.setItem('xrpr_sound_vol',soundVolume.toString());
+  }
+  function playAlert(type){
+    if(!soundEnabled||!soundPrefs[type]) return;
+    try{
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
+      const tone=document.getElementById('snd-tone')?.value||'ping';
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(soundVolume,ctx.currentTime);
+      const freqs={ping:[880],chime:[523,659,784],alert:[440,880],bell:[523,523]};
+      const dur={ping:0.15,chime:0.4,alert:0.2,bell:0.6};
+      const notes=freqs[tone]||[880];
+      osc.type='sine';
+      osc.frequency.setValueAtTime(notes[0],ctx.currentTime);
+      if(notes[1]) osc.frequency.setValueAtTime(notes[1],ctx.currentTime+dur[tone]/2);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur[tone]);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime+dur[tone]);
+    }catch(e){}
+  }
+  function testSound(type){ playAlert(type); }
+
+  // Override showAlert to also play sound
+  const _origShowAlert=typeof showAlert!=='undefined'?showAlert:null;
+  window._origShowAlert=_origShowAlert;
+  function showAlertWithSound(msg){
+    if(_origShowAlert) _origShowAlert(msg);
+    playAlert('price');
+  }
+
+  // Initialize sound button state
+  (function initSoundUI(){
+    const btn=document.getElementById('sound-master-btn');
+    if(btn){ btn.textContent=soundEnabled?'🔊 SOUND: ON':'🔇 SOUND: OFF';
+      btn.className='exp-btn '+(soundEnabled?'exp-btn-gr':'exp-btn-rd'); }
+    ['price','whale','kw','brief'].forEach(k=>{
+      const el=document.getElementById('snd-'+k);
+      if(el) el.checked=soundPrefs[k]||false;
+    });
+    const volEl=document.getElementById('snd-volume');
+    if(volEl) volEl.value=soundVolume;
+  })();
+
+  // ── V7.1 updateExperimental extension ────────────────────────────
+  const _origUpdateExperimental=typeof updateExperimental==='function'?updateExperimental:null;
+  function updateExperimentalV71(d){
+    if(_origUpdateExperimental) _origUpdateExperimental(d);
+    updateCongressTracker(d);
+    updateEarningsMonitor(d);
+    // Render static features once
+    if(document.getElementById('rm-active-corridors')&&
+       !document.getElementById('rm-active-corridors').children.length) renderRemittanceMap();
+    if(document.getElementById('pc-results')) {} // Portfolio runs on demand
   }
 
 </script>
