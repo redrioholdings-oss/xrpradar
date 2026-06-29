@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2j"
+BOT_FILE          = "XRPRadar_v7.2k"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -1048,40 +1048,106 @@ def fetch_price():
         }
     except Exception as e:
         log_error(f"fetch_price CoinGecko: {e}")
-        try:
-            b = requests.get("https://api.binance.com/api/v3/ticker/24hr?symbol=XRPUSDT", timeout=5).json()
-            STATE["price"]["usd"]        = float(b.get("lastPrice", 0))
-            STATE["price"]["change_24h"] = float(b.get("priceChangePercent", 0))
-            STATE["price"]["volume_24h"] = float(b.get("quoteVolume", 0))
-            STATE["price"]["high_24h"]   = float(b.get("highPrice", 0))
-            STATE["price"]["low_24h"]    = float(b.get("lowPrice", 0))
-        except Exception as e2:
-            log_error(f"fetch_price Binance: {e2}")
-            # Third fallback: Kraken (different provider, different IP rules)
+        # Each fallback MUST set price > 0 or raise to cascade to next source
+        price_set = False
+
+        # Fallback 2: Binance
+        if not price_set:
+            try:
+                b = requests.get("https://api.binance.com/api/v3/ticker/24hr?symbol=XRPUSDT",
+                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+                p = float(b.get("lastPrice", 0))
+                if p > 0:
+                    STATE["price"]["usd"]        = p
+                    STATE["price"]["change_24h"] = float(b.get("priceChangePercent", 0))
+                    STATE["price"]["volume_24h"] = float(b.get("quoteVolume", 0))
+                    STATE["price"]["high_24h"]   = float(b.get("highPrice", 0))
+                    STATE["price"]["low_24h"]    = float(b.get("lowPrice", 0))
+                    price_set = True
+                    log_error(f"fetch_price: Binance OK ${p}")
+                else:
+                    log_error(f"fetch_price Binance returned 0: {str(b)[:80]}")
+            except Exception as e2:
+                log_error(f"fetch_price Binance: {e2}")
+
+        # Fallback 3: Kraken
+        if not price_set:
             try:
                 k = requests.get("https://api.kraken.com/0/public/Ticker?pair=XRPUSD",
-                    timeout=8).json()
+                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
                 kr = k.get("result", {}).get("XXRPZUSD", {})
-                if kr:
-                    STATE["price"]["usd"]       = float(kr.get("c", [0])[0])
-                    STATE["price"]["high_24h"]   = float(kr.get("h", [0,0])[1])
-                    STATE["price"]["low_24h"]    = float(kr.get("l", [0,0])[1])
-                    STATE["price"]["volume_24h"] = float(kr.get("v", [0,0])[1])
-                    log_error("fetch_price: Kraken fallback succeeded")
+                p = float(kr.get("c", [0])[0]) if kr else 0
+                if p > 0:
+                    STATE["price"]["usd"]       = p
+                    STATE["price"]["high_24h"]  = float(kr.get("h", [0,0])[1])
+                    STATE["price"]["low_24h"]   = float(kr.get("l", [0,0])[1])
+                    STATE["price"]["volume_24h"]= float(kr.get("v", [0,0])[1])
+                    price_set = True
+                    log_error(f"fetch_price: Kraken OK ${p}")
+                else:
+                    log_error(f"fetch_price Kraken returned 0: {str(k)[:80]}")
             except Exception as e3:
                 log_error(f"fetch_price Kraken: {e3}")
-                # Final fallback: Bitstamp (another independent source)
-                try:
-                    bs = requests.get("https://www.bitstamp.net/api/v2/ticker/xrpusd/",
-                        timeout=8).json()
-                    if bs.get("last"):
-                        STATE["price"]["usd"]       = float(bs.get("last", 0))
-                        STATE["price"]["high_24h"]   = float(bs.get("high", 0))
-                        STATE["price"]["low_24h"]    = float(bs.get("low", 0))
-                        STATE["price"]["volume_24h"] = float(bs.get("volume", 0))
-                        log_error("fetch_price: Bitstamp fallback succeeded")
-                except Exception as e4:
-                    log_error(f"fetch_price all sources failed: {e4}")
+
+        # Fallback 4: Bitstamp
+        if not price_set:
+            try:
+                bs = requests.get("https://www.bitstamp.net/api/v2/ticker/xrpusd/",
+                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+                p = float(bs.get("last", 0))
+                if p > 0:
+                    STATE["price"]["usd"]        = p
+                    STATE["price"]["high_24h"]   = float(bs.get("high", 0))
+                    STATE["price"]["low_24h"]    = float(bs.get("low", 0))
+                    STATE["price"]["volume_24h"] = float(bs.get("volume", 0))
+                    price_set = True
+                    log_error(f"fetch_price: Bitstamp OK ${p}")
+                else:
+                    log_error(f"fetch_price Bitstamp returned 0: {str(bs)[:80]}")
+            except Exception as e4:
+                log_error(f"fetch_price Bitstamp: {e4}")
+
+        # Fallback 5: CoinCap (built for server-side, rarely blocks)
+        if not price_set:
+            try:
+                cc = requests.get("https://api.coincap.io/v2/assets/ripple",
+                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+                d2 = cc.get("data", {})
+                p = float(d2.get("priceUsd", 0))
+                if p > 0:
+                    STATE["price"]["usd"]        = round(p, 6)
+                    STATE["price"]["change_24h"] = float(d2.get("changePercent24Hr", 0))
+                    STATE["price"]["volume_24h"] = float(d2.get("volumeUsd24Hr", 0))
+                    STATE["price"]["mcap"]       = float(d2.get("marketCapUsd", 0))
+                    STATE["price"]["supply_circ"]= float(d2.get("supply", 0))
+                    price_set = True
+                    log_error(f"fetch_price: CoinCap OK ${p}")
+                else:
+                    log_error(f"fetch_price CoinCap returned 0: {str(cc)[:80]}")
+            except Exception as e5:
+                log_error(f"fetch_price CoinCap: {e5}")
+
+        # Fallback 6: CoinPaprika (independent, different infrastructure)
+        if not price_set:
+            try:
+                cp = requests.get("https://api.coinpaprika.com/v1/tickers/xrp-xrp",
+                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+                q = cp.get("quotes", {}).get("USD", {})
+                p = float(q.get("price", 0))
+                if p > 0:
+                    STATE["price"]["usd"]        = round(p, 6)
+                    STATE["price"]["change_24h"] = float(q.get("percent_change_24h", 0))
+                    STATE["price"]["volume_24h"] = float(q.get("volume_24h", 0))
+                    STATE["price"]["mcap"]       = float(q.get("market_cap", 0))
+                    price_set = True
+                    log_error(f"fetch_price: CoinPaprika OK ${p}")
+                else:
+                    log_error(f"fetch_price CoinPaprika returned 0: {str(cp)[:80]}")
+            except Exception as e6:
+                log_error(f"fetch_price CoinPaprika: {e6}")
+
+        if not price_set:
+            log_error("fetch_price: ALL 6 SOURCES FAILED - price remains 0")
 
     # Fear & Greed
     try:
@@ -1108,8 +1174,10 @@ def fetch_price():
                 "?ids=ripple&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true",
                 headers=cg_hdr2, timeout=10).json()
             xrp = simple.get("ripple", {})
-            if xrp.get("usd"):
-                if not STATE["price"].get("usd"): STATE["price"]["usd"] = xrp["usd"]
+            p_simple = float(xrp.get("usd", 0))
+            if p_simple > 0:
+                if not STATE["price"].get("usd") or STATE["price"]["usd"] == 0:
+                    STATE["price"]["usd"] = p_simple
                 if xrp.get("usd_market_cap"):    STATE["price"]["mcap"] = xrp["usd_market_cap"]
                 if xrp.get("usd_24h_vol"):       STATE["price"]["volume_24h"] = xrp["usd_24h_vol"]
                 log_error("fetch_price: simple/price endpoint succeeded")
