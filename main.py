@@ -13,11 +13,11 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2o"
+BOT_FILE          = "XRPRadar_v7.2p"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
-PRICE_INTERVAL    = 60
+PRICE_INTERVAL    = 300  # 5 min — reduces rate-limit hits on shared Railway IPs
 MARKET_INTERVAL   = 180   # market_loop: order book, macro, derivatives etc.
 AI_INTERVAL       = 600
 MAX_STORIES       = 500
@@ -1143,8 +1143,71 @@ def fetch_price():
         except Exception as e:
             log_error(f"fetch_price CoinGecko: {e}")
 
+
+        # Fallback 7: Bitfinex public ticker (no auth, generous limits)
+        if not price_set:
+            try:
+                bfx = requests.get(
+                    "https://api-pub.bitfinex.com/v2/ticker/tXRPUSD",
+                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+                # Returns [BID,BID_SIZE,ASK,ASK_SIZE,DAILY_CHANGE,DAILY_CHANGE_REL,LAST,VOLUME,HIGH,LOW]
+                if isinstance(bfx, list) and len(bfx) >= 10:
+                    p = float(bfx[6])  # LAST_PRICE
+                    if p > 0:
+                        STATE["price"]["usd"]        = round(p, 6)
+                        STATE["price"]["change_24h"] = round(float(bfx[4]), 4)
+                        STATE["price"]["volume_24h"] = float(bfx[7])
+                        STATE["price"]["high_24h"]   = float(bfx[8])
+                        STATE["price"]["low_24h"]    = float(bfx[9])
+                        price_set = True
+                        log_error(f"fetch_price: Bitfinex OK ${p:.4f}")
+                    else:
+                        log_error(f"fetch_price Bitfinex returned 0: {str(bfx)[:80]}")
+            except Exception as e7:
+                log_error(f"fetch_price Bitfinex: {e7}")
+
+        # Fallback 8: OKX public ticker (major exchange, different IP profile)
+        if not price_set:
+            try:
+                okx = requests.get(
+                    "https://www.okx.com/api/v5/market/ticker?instId=XRP-USDT",
+                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+                d_okx = okx.get("data", [{}])[0]
+                p = float(d_okx.get("last", 0))
+                if p > 0:
+                    STATE["price"]["usd"]        = round(p, 6)
+                    STATE["price"]["high_24h"]   = float(d_okx.get("high24h", 0))
+                    STATE["price"]["low_24h"]    = float(d_okx.get("low24h", 0))
+                    STATE["price"]["volume_24h"] = float(d_okx.get("vol24h", 0))
+                    price_set = True
+                    log_error(f"fetch_price: OKX OK ${p:.4f}")
+                else:
+                    log_error(f"fetch_price OKX returned 0: {str(okx)[:80]}")
+            except Exception as e8:
+                log_error(f"fetch_price OKX: {e8}")
+
+        # Fallback 9: Gate.io (Asia-Pacific exchange, independent infra)
+        if not price_set:
+            try:
+                gate = requests.get(
+                    "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=XRP_USDT",
+                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+                if isinstance(gate, list) and gate:
+                    p = float(gate[0].get("last", 0))
+                    if p > 0:
+                        STATE["price"]["usd"]        = round(p, 6)
+                        STATE["price"]["high_24h"]   = float(gate[0].get("high_24h", 0))
+                        STATE["price"]["low_24h"]    = float(gate[0].get("low_24h", 0))
+                        STATE["price"]["volume_24h"] = float(gate[0].get("quote_volume", 0))
+                        price_set = True
+                        log_error(f"fetch_price: Gate.io OK ${p:.4f}")
+                    else:
+                        log_error(f"fetch_price Gate.io returned 0: {str(gate)[:80]}")
+            except Exception as e9:
+                log_error(f"fetch_price Gate.io: {e9}")
+
     if not price_set:
-        log_error("fetch_price: ALL SOURCES FAILED — price remains unchanged")
+        log_error("fetch_price: ALL 9 SOURCES FAILED — price remains unchanged")
 
     # ── Fear & Greed ──
     try:
