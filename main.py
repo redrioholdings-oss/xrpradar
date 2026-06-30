@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2r"
+BOT_FILE          = "XRPRadar_v7.2s"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -1745,7 +1745,8 @@ def fetch_disp_intel():
         di["price_heatmap"] = heatmap[-90:]
         log_error(f"price_heatmap: loaded {len(di['price_heatmap'])} days")
     except Exception as e:
-        log_error(f"price_heatmap CoinGecko: {e}")
+        # CoinGecko history is expected to fail on Railway (rate-limited) — do NOT
+        # write this to last_error; the Binance fallback below is the real result.
         # Fallback: Binance daily klines (free, no key)
         try:
             import datetime as _dt
@@ -1800,7 +1801,7 @@ def fetch_disp_intel():
             week_map[wkey] = {"date": day.strftime("%b %d"), "price": price}
         di["price_history_6m"] = list(week_map.values())
     except Exception as e:
-        log_error(f"price_6m CoinGecko: {e}")
+        # CoinGecko 6m history expected to fail on Railway; Binance fallback handles it
         # Fallback: Binance daily klines for 6 months
         try:
             bk6 = requests.get(
@@ -1849,7 +1850,7 @@ def fetch_disp_intel():
         # Keep last 60 months
         di["price_history_60m"] = monthly[-60:]
     except Exception as e:
-        log_error(f"price_history_60m CoinGecko: {e}")
+        # CoinGecko 60m history expected to fail on Railway; Binance fallback handles it
         # Fallback: Binance weekly klines (interval=1w) — 260 weeks = 5 years
         try:
             bk60 = requests.get(
