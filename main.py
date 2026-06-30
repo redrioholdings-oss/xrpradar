@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2p"
+BOT_FILE          = "XRPRadar_v7.2q"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -2835,7 +2835,7 @@ def debug():
 @app.route("/api/v1/price")
 def api_v1_price():
     """Public API: Live XRP price data."""
-    p = STATE.get("price_data", {})
+    p = STATE.get("price", {})
     return jsonify({
         "price_usd":    p.get("price_usd", 0),
         "change_24h":   p.get("change_24h", 0),
@@ -2926,7 +2926,7 @@ def email_digest():
     """#79 — Returns today's Intelligence Brief formatted as a clean email/newsletter."""
     pred = STATE.get("prediction", {})
     sections = pred.get("sections", {})
-    price = STATE.get("price_data", {})
+    price = STATE.get("price", {})
     si    = STATE.get("sent_intel", {})
     ss    = STATE.get("signal_score", {})
 
@@ -12227,7 +12227,7 @@ def fetch_macro_data():
 
     # XRP vs Macro correlation (30-day, simplified directional)
     try:
-        xrp_chg  = STATE["price_data"].get("change_24h", 0)
+        xrp_chg  = STATE["price"].get("change_24h", 0)
         dxy_chg  = md["dxy"]["change_pct"]
         sp_chg   = md["sp500"]["change_pct"]
         gold_chg = md["gold"]["change_pct"]
@@ -12337,7 +12337,7 @@ def compute_signal_score():
 
     # 1. Price Momentum (15pts) — 24h change
     try:
-        chg = STATE["price_data"].get("change_24h", 0)
+        chg = STATE["price"].get("change_24h", 0)
         if   chg > 5:    comp["price_momentum"] = {"score":15,"signal":"STRONG BULL","weight":15}
         elif chg > 2:    comp["price_momentum"] = {"score":12,"signal":"BULLISH","weight":15}
         elif chg > 0:    comp["price_momentum"] = {"score": 8,"signal":"MILD BULL","weight":15}
@@ -12444,7 +12444,7 @@ def fetch_adoption_velocity():
         bull  = si.get("bullish_today",0)
         retail_score = int(40 + (bull/total)*40 + (100-fg)*0.2)
         # Developer: from GitHub commits
-        commits = STATE["github_data"].get("commits_7d", 0)
+        commits = STATE.get("github_data", {}).get("commits_7d", 0)
         dev_score = min(40 + commits*2, 100)
         # Regulatory: based on country legal status (17/20 legal = 85%)
         reg_score = 72
@@ -12466,7 +12466,7 @@ def fetch_nvt_ratio():
     """#49 — Network Value to Transactions ratio."""
     nvt = STATE["nvt_ratio"]
     try:
-        market_cap  = STATE["price_data"].get("market_cap", 0)
+        market_cap  = STATE["price"].get("mcap", 0)
         tx_vol      = STATE["onchain_intel"].get("dex_vol_24h", 0)
         if tx_vol and market_cap:
             daily_nvt = market_cap / (tx_vol * 365) if tx_vol else 0
@@ -12555,7 +12555,7 @@ def fetch_community_poll():
     if poll.get("date") == today: return
     # Rotate daily questions based on day of week
     dow   = _dt.datetime.now(timezone.utc).weekday()
-    price = STATE["price_data"].get("price_usd", 1.0)
+    price = STATE["price"].get("usd", 1.0)
     targets = [round(price*1.05,3), round(price*1.10,3), round(price*0.95,3)]
     questions = [
         {"q": f"Where does XRP close today?",
