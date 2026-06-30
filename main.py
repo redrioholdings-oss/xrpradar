@@ -1673,7 +1673,7 @@ def fetch_disp_intel():
     di  = STATE["disp_intel"]
     now = datetime.now(timezone.utc)
 
-    # 36. Price History Heatmap — Binance primary, CoinGecko fallback
+    # 36. Price History Heatmap — Binance (CoinGecko removed)
     try:
         import datetime as _dt
         raw_prices = []
@@ -1701,9 +1701,7 @@ def fetch_disp_intel():
         di["price_heatmap"] = heatmap[-90:]
         log_error(f"price_heatmap: loaded {len(di['price_heatmap'])} days")
     except Exception as e:
-        # CoinGecko history is expected to fail on Railway (rate-limited) — do NOT
-        # write this to last_error; the Binance fallback below is the real result.
-        # Fallback: Binance daily klines (free, no key)
+        # Binance fallback (free, no key)
         try:
             import datetime as _dt
             bk = requests.get(
@@ -1730,7 +1728,7 @@ def fetch_disp_intel():
         except Exception as eb:
             log_error(f"price_heatmap Binance: {eb}")
 
-    # 6-Month Price Trend — Binance primary, CoinGecko fallback
+    # 6-Month Price Trend — Binance (CoinGecko removed)
     try:
         raw180 = []
         bk6m = requests.get(
@@ -1767,7 +1765,7 @@ def fetch_disp_intel():
         except Exception as eb:
             log_error(f"price_6m Binance: {eb}")
 
-    # 60-Month Price History — Binance weekly primary, CoinGecko fallback
+    # 60-Month Price History — Binance weekly (CoinGecko removed)
     try:
         raw60 = []
         try:
@@ -2257,10 +2255,9 @@ def fetch_onchain_intel():
     try:
         # RLUSD live fetch retired (CoinGecko removed). RLUSD is a USD-pegged
         # stablecoin; price is ~$1.00 by design. Supply data not free-sourced.
-        md = {}
         oc["rlusd_price"]   = 1.0
-        oc["rlusd_supply"]  = float(md.get("circulating_supply", 0) or 0)
-        oc["rlusd_vol_24h"] = float(md.get("total_volume", {}).get("usd", 0) or 0)
+        oc["rlusd_supply"]  = 0
+        oc["rlusd_vol_24h"] = 0
     except Exception as e:
         log_error(f"rlusd: {e}")
         # Fallback: XRPScan RLUSD issuer
