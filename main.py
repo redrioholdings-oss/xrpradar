@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2q"
+BOT_FILE          = "XRPRadar_v7.2r"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -1130,8 +1130,6 @@ def fetch_price():
                     "change_24h": md.get("price_change_percentage_24h", 0),
                     "mcap":       md.get("market_cap", {}).get("usd", 0),
                     "volume_24h": md.get("total_volume", {}).get("usd", 0),
-                    "ath":        md.get("ath", {}).get("usd", 0),
-                    "ath_pct":    md.get("ath_change_percentage", {}).get("usd", 0),
                     "high_24h":   md.get("high_24h", {}).get("usd", 0),
                     "low_24h":    md.get("low_24h",  {}).get("usd", 0),
                     "rank":       cg.get("market_cap_rank", 0),
@@ -3543,7 +3541,6 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
   <div class="agrid">
     <div class="abox hi"><div class="albl">Market Cap</div><div class="aval b" id="mk-mcap">--</div><div class="asub" id="mk-rank">Rank --</div></div>
     <div class="abox"><div class="albl">24h Volume</div><div class="aval" id="mk-vol">--</div><div class="asub" id="mk-vratio">Vol/MCap: --</div></div>
-    <div class="abox"><div class="albl">All-Time High</div><div class="aval y" id="mk-ath">--</div><div class="asub" id="mk-athpct">-- below ATH</div></div>
     <div class="abox"><div class="albl">24h High</div><div class="aval g" id="mk-high">--</div><div class="asub">Session high</div></div>
     <div class="abox neg"><div class="albl">24h Low</div><div class="aval r" id="mk-low">--</div><div class="asub">Session low</div></div>
     <div class="abox"><div class="albl">XRP / BTC</div><div class="aval" id="mk-btc">--</div><div class="asub">Altseason signal</div></div>
@@ -4927,8 +4924,6 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
       <div class="rrow"><span class="rk">Market Cap</span><span class="rv" id="rm-mcap">--</span></div>
       <div class="rrow"><span class="rk">24h Volume</span><span class="rv" id="rm-vol">--</span></div>
       <div class="rrow"><span class="rk">Vol / MCap</span><span class="rv y" id="rm-ratio">--</span></div>
-      <div class="rrow"><span class="rk">ATH</span><span class="rv" id="rm-ath">--</span></div>
-      <div class="rrow"><span class="rk">% Below ATH</span><span class="rv r" id="rm-athpct">--</span></div>
       <div class="rrow"><span class="rk">24h High</span><span class="rv g" id="rm-high">--</span></div>
       <div class="rrow"><span class="rk">24h Low</span><span class="rv r" id="rm-low">--</span></div>
       <div class="rrow"><span class="rk">XRP/BTC</span><span class="rv" id="rm-btc">--</span></div>
@@ -4966,7 +4961,6 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
       <div class="bstat"><span class="bk">24h Volume</span><span class="bv y" id="al-vol">--</span></div>
       <div class="bstat"><span class="bk">Vol / MCap %</span><span class="bv b" id="al-vratio">--</span></div>
       <div class="bstat"><span class="bk">Fear &amp; Greed</span><span class="bv y" id="al-fg">--</span></div>
-      <div class="bstat"><span class="bk">% Below ATH</span><span class="bv r" id="al-athpct">--</span></div>
     </div>
     <div class="labp">
       <div class="labt">🔍 Feed Intelligence</div>
@@ -9097,8 +9091,6 @@ function updateMarket(d){
   c("mk-rank",   `Rank #${p.rank||"--"}`);
   c("mk-vol",    fmtUSD(p.volume_24h));
   c("mk-vratio", `Vol/MCap: ${p.vol_mcap_ratio||"--"}%`);
-  c("mk-ath",    p.ath?`$${parseFloat(p.ath).toFixed(4)}`:"--");
-  c("mk-athpct", p.ath_pct?`${Math.abs(parseFloat(p.ath_pct)).toFixed(1)}% below ATH`:"--");
   const hi=document.getElementById("mk-high");
   if(hi&&p.high_24h){hi.textContent=`$${parseFloat(p.high_24h).toFixed(4)}`;}
   const lo=document.getElementById("mk-low");
@@ -9112,8 +9104,6 @@ function updateMarket(d){
   c("rm-mcap",   fmtUSD(p.mcap));
   c("rm-vol",    fmtUSD(p.volume_24h));
   c("rm-ratio",  p.vol_mcap_ratio?`${p.vol_mcap_ratio}%`:"--");
-  c("rm-ath",    p.ath?`$${parseFloat(p.ath).toFixed(4)}`:"--");
-  c("rm-athpct", p.ath_pct?`${Math.abs(parseFloat(p.ath_pct)).toFixed(1)}% below`:"--");
   if(p.high_24h) c("rm-high",`$${parseFloat(p.high_24h).toFixed(4)}`);
   if(p.low_24h)  c("rm-low", `$${parseFloat(p.low_24h).toFixed(4)}`);
   c("rm-btc",    p.btc?`${parseFloat(p.btc).toFixed(8)}`:"--");
@@ -9297,7 +9287,6 @@ function updateAnalytics(d){
   c("al-vratio", p.vol_mcap_ratio?`${p.vol_mcap_ratio}%`:"--");
   const fgEl2=document.getElementById("al-fg");
   if(fgEl2&&fg.score){fgEl2.textContent=`${fg.score} — ${fg.label||""}`;fgEl2.style.color=fg.score<30?"var(--rd)":fg.score>70?"var(--gr)":"var(--yl)";}
-  c("al-athpct", p.ath_pct?`${Math.abs(parseFloat(p.ath_pct)).toFixed(1)}% below`:"--");
   c("al-feeds",  `${d.feeds_active||0}/${d.feeds_total||230}`);
   c("al2-total", st.total||0);
   c("al2-bull-pct",`${Math.round((st.bullish||0)/t*100)}%`);
