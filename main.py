@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2s"
+BOT_FILE          = "XRPRadar_v7.2t"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -1113,99 +1113,62 @@ def fetch_price():
         except Exception as e:
             log_error(f"fetch_price Bitstamp: {e}")
 
-    # ── Source 6: CoinGecko (now fallback — may be rate-limited on Railway) ──
+    # (CoinGecko price fallback removed — CoinCap/Binance/exchanges cover price)
+
+    # ── Source 6: Bitfinex ──
     if not price_set:
         try:
-            cg_key = os.environ.get("COINGECKO_API_KEY", "")
-            cg_hdr = {**hdr, "x-cg-demo-apikey": cg_key} if cg_key else hdr
-            cg = requests.get(
-                "https://api.coingecko.com/api/v3/coins/ripple"
-                "?localization=false&tickers=false&community_data=false&developer_data=false",
-                headers=cg_hdr, timeout=15).json()
-            md = cg.get("market_data", {})
-            p  = md.get("current_price", {}).get("usd", 0) if md else 0
-            if p and float(p) > 0:
-                STATE["price"].update({
-                    "usd":        float(p),
-                    "change_24h": md.get("price_change_percentage_24h", 0),
-                    "mcap":       md.get("market_cap", {}).get("usd", 0),
-                    "volume_24h": md.get("total_volume", {}).get("usd", 0),
-                    "high_24h":   md.get("high_24h", {}).get("usd", 0),
-                    "low_24h":    md.get("low_24h",  {}).get("usd", 0),
-                    "rank":       cg.get("market_cap_rank", 0),
-                })
-                price_set = True
-                log_error(f"fetch_price: CoinGecko OK ${p:.4f}")
-            else:
-                log_error(f"fetch_price CoinGecko empty: {str(cg)[:80]}")
-        except Exception as e:
-            log_error(f"fetch_price CoinGecko: {e}")
-
-
-        # Fallback 7: Bitfinex public ticker (no auth, generous limits)
-        if not price_set:
-            try:
-                bfx = requests.get(
-                    "https://api-pub.bitfinex.com/v2/ticker/tXRPUSD",
-                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
-                # Returns [BID,BID_SIZE,ASK,ASK_SIZE,DAILY_CHANGE,DAILY_CHANGE_REL,LAST,VOLUME,HIGH,LOW]
-                if isinstance(bfx, list) and len(bfx) >= 10:
-                    p = float(bfx[6])  # LAST_PRICE
-                    if p > 0:
-                        STATE["price"]["usd"]        = round(p, 6)
-                        STATE["price"]["change_24h"] = round(float(bfx[4]), 4)
-                        STATE["price"]["volume_24h"] = float(bfx[7])
-                        STATE["price"]["high_24h"]   = float(bfx[8])
-                        STATE["price"]["low_24h"]    = float(bfx[9])
-                        price_set = True
-                        log_error(f"fetch_price: Bitfinex OK ${p:.4f}")
-                    else:
-                        log_error(f"fetch_price Bitfinex returned 0: {str(bfx)[:80]}")
-            except Exception as e7:
-                log_error(f"fetch_price Bitfinex: {e7}")
-
-        # Fallback 8: OKX public ticker (major exchange, different IP profile)
-        if not price_set:
-            try:
-                okx = requests.get(
-                    "https://www.okx.com/api/v5/market/ticker?instId=XRP-USDT",
-                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
-                d_okx = okx.get("data", [{}])[0]
-                p = float(d_okx.get("last", 0))
+            bfx = requests.get("https://api-pub.bitfinex.com/v2/ticker/tXRPUSD",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+            if isinstance(bfx, list) and len(bfx) >= 10:
+                p = float(bfx[6])
                 if p > 0:
                     STATE["price"]["usd"]        = round(p, 6)
-                    STATE["price"]["high_24h"]   = float(d_okx.get("high24h", 0))
-                    STATE["price"]["low_24h"]    = float(d_okx.get("low24h", 0))
-                    STATE["price"]["volume_24h"] = float(d_okx.get("vol24h", 0))
+                    STATE["price"]["change_24h"] = round(float(bfx[5])*100, 2)
+                    STATE["price"]["volume_24h"] = float(bfx[7])
+                    STATE["price"]["high_24h"]   = float(bfx[8])
+                    STATE["price"]["low_24h"]    = float(bfx[9])
                     price_set = True
-                    log_error(f"fetch_price: OKX OK ${p:.4f}")
-                else:
-                    log_error(f"fetch_price OKX returned 0: {str(okx)[:80]}")
-            except Exception as e8:
-                log_error(f"fetch_price OKX: {e8}")
+                    log_error(f"fetch_price: Bitfinex OK ${p:.4f}")
+        except Exception as e:
+            log_error(f"fetch_price Bitfinex: {e}")
 
-        # Fallback 9: Gate.io (Asia-Pacific exchange, independent infra)
-        if not price_set:
-            try:
-                gate = requests.get(
-                    "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=XRP_USDT",
-                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
-                if isinstance(gate, list) and gate:
-                    p = float(gate[0].get("last", 0))
-                    if p > 0:
-                        STATE["price"]["usd"]        = round(p, 6)
-                        STATE["price"]["high_24h"]   = float(gate[0].get("high_24h", 0))
-                        STATE["price"]["low_24h"]    = float(gate[0].get("low_24h", 0))
-                        STATE["price"]["volume_24h"] = float(gate[0].get("quote_volume", 0))
-                        price_set = True
-                        log_error(f"fetch_price: Gate.io OK ${p:.4f}")
-                    else:
-                        log_error(f"fetch_price Gate.io returned 0: {str(gate)[:80]}")
-            except Exception as e9:
-                log_error(f"fetch_price Gate.io: {e9}")
+    # ── Source 7: OKX ──
+    if not price_set:
+        try:
+            okx = requests.get("https://www.okx.com/api/v5/market/ticker?instId=XRP-USDT",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+            d_okx = okx.get("data", [{}])[0]
+            p = float(d_okx.get("last", 0))
+            if p > 0:
+                STATE["price"]["usd"]        = round(p, 6)
+                STATE["price"]["high_24h"]   = float(d_okx.get("high24h", 0))
+                STATE["price"]["low_24h"]    = float(d_okx.get("low24h", 0))
+                STATE["price"]["volume_24h"] = float(d_okx.get("vol24h", 0))
+                price_set = True
+                log_error(f"fetch_price: OKX OK ${p:.4f}")
+        except Exception as e:
+            log_error(f"fetch_price OKX: {e}")
+
+    # ── Source 8: Gate.io ──
+    if not price_set:
+        try:
+            gate = requests.get("https://api.gateio.ws/api/v4/spot/tickers?currency_pair=XRP_USDT",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+            if isinstance(gate, list) and gate:
+                p = float(gate[0].get("last", 0))
+                if p > 0:
+                    STATE["price"]["usd"]        = round(p, 6)
+                    STATE["price"]["high_24h"]   = float(gate[0].get("high_24h", 0))
+                    STATE["price"]["low_24h"]    = float(gate[0].get("low_24h", 0))
+                    STATE["price"]["volume_24h"] = float(gate[0].get("quote_volume", 0))
+                    price_set = True
+                    log_error(f"fetch_price: Gate.io OK ${p:.4f}")
+        except Exception as e:
+            log_error(f"fetch_price Gate.io: {e}")
 
     if not price_set:
-        log_error("fetch_price: ALL 9 SOURCES FAILED — price remains unchanged")
+        log_error("fetch_price: ALL 8 SOURCES FAILED — price unchanged")
 
     # ── Fear & Greed ──
     try:
@@ -1265,10 +1228,14 @@ def fetch_price_intel():
 
     # 1. XRP Market Dominance
     try:
-        gl = requests.get("https://api.coingecko.com/api/v3/global",
+        # CoinPaprika global (CoinGecko removed)
+        gl = requests.get("https://api.coinpaprika.com/v1/global",
                           headers=hdr, timeout=10).json()
-        pct = gl.get("data", {}).get("market_cap_percentage", {}).get("xrp", 0)
-        pi["dominance"] = round(float(pct), 3)
+        # Paprika doesn't give per-coin dominance directly; derive from XRP mcap / total mcap
+        xrp_mc = float(STATE["price"].get("mcap", 0) or 0)
+        total_mc = float(gl.get("market_cap_usd", 0) or 0)
+        if xrp_mc and total_mc:
+            pi["dominance"] = round(xrp_mc / total_mc * 100, 3)
     except Exception as e:
         log_error(f"dominance: {e}")
 
@@ -1298,10 +1265,9 @@ def fetch_price_intel():
 
     # 4. ETH/USD price + XRP/ETH pair
     try:
-        eth = requests.get(
-            "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+        eth = requests.get("https://api.coincap.io/v2/assets/ethereum",
             headers=hdr, timeout=8).json()
-        eth_usd = float(eth.get("ethereum", {}).get("usd", 0))
+        eth_usd = float(eth.get("data", {}).get("priceUsd", 0))
         xrp_usd = float(STATE["price"].get("usd", 0) or 0)
         pi["eth_usd"] = round(eth_usd, 2)
         if eth_usd > 0 and xrp_usd > 0:
@@ -1311,11 +1277,10 @@ def fetch_price_intel():
 
     # 5. 30-Day Rolling Volatility (annualised)
     try:
-        hist = requests.get(
-            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-            "?vs_currency=usd&days=31&interval=daily",
+        bk = requests.get(
+            "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=31",
             headers=hdr, timeout=8).json()
-        prices = [p[1] for p in hist.get("prices", [])]
+        prices = [float(c[4]) for c in bk] if isinstance(bk, list) else []
         if len(prices) >= 10:
             import math
             returns = [math.log(prices[i]/prices[i-1])
@@ -1443,11 +1408,10 @@ def fetch_tech_intel():
     # 14 + 15. 52-Week High/Low + Support & Resistance
     # Reuse 365-day price history (also needed for #16)
     try:
-        hist = requests.get(
-            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-            "?vs_currency=usd&days=365&interval=daily",
+        bk365 = requests.get(
+            "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=365",
             headers=hdr, timeout=8).json()
-        prices_365 = [p[1] for p in hist.get("prices", [])]
+        prices_365 = [float(c[4]) for c in bk365] if isinstance(bk365, list) else []
 
         if len(prices_365) >= 90:
             # 14. 52-Week High/Low
@@ -1713,21 +1677,13 @@ def fetch_disp_intel():
     try:
         import datetime as _dt
         raw_prices = []
-        try:
-            bk90b = requests.get(
-                "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=92",
-                headers={"User-Agent":"XRPRadar/1.1"}, timeout=10).json()
-            if isinstance(bk90b, list) and bk90b:
-                raw_prices = [[int(c[0]), float(c[4])] for c in bk90b]
-        except: pass
+        bk90b = requests.get(
+            "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=92",
+            headers={"User-Agent":"XRPRadar/1.1"}, timeout=10).json()
+        if isinstance(bk90b, list) and bk90b:
+            raw_prices = [[int(c[0]), float(c[4])] for c in bk90b]
         if not raw_prices:
-            hist = requests.get(
-                "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-                "?vs_currency=usd&days=90",
-                headers=hdr, timeout=10).json()
-            raw_prices = hist.get("prices", [])
-            if not raw_prices:
-                raise ValueError("No price data returned")
+            raise ValueError("No price data returned")
         prices = [float(p[1]) for p in raw_prices]
         heatmap = []
         for i in range(1, len(prices)):
@@ -1777,21 +1733,11 @@ def fetch_disp_intel():
     # 6-Month Price Trend — Binance primary, CoinGecko fallback
     try:
         raw180 = []
-        try:
-            bk6m = requests.get(
-                "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=182",
-                headers={"User-Agent":"XRPRadar/1.1"}, timeout=10).json()
-            if isinstance(bk6m, list) and bk6m:
-                raw180 = [[int(c[0]), float(c[4])] for c in bk6m]
-                log_error(f"price_6m: Binance primary OK ({len(raw180)} days)")
-        except Exception as eb6m:
-            log_error(f"price_6m Binance: {eb6m}")
-        if not raw180:
-            hist180 = requests.get(
-                "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-                "?vs_currency=usd&days=180",
-                headers=hdr, timeout=20).json()
-            raw180 = hist180.get("prices", [])
+        bk6m = requests.get(
+            "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=182",
+            headers={"User-Agent":"XRPRadar/1.1"}, timeout=10).json()
+        if isinstance(bk6m, list) and bk6m:
+            raw180 = [[int(c[0]), float(c[4])] for c in bk6m]
         week_map = {}
         for p in raw180:
             ts_ms = p[0]
@@ -1833,12 +1779,7 @@ def fetch_disp_intel():
                 log_error(f"price_60m: Binance primary OK ({len(raw60)} points)")
         except Exception as eb60:
             log_error(f"price_60m Binance primary: {eb60}")
-        if not raw60:
-            hist60 = requests.get(
-                "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-                "?vs_currency=usd&days=1825",
-                headers=hdr, timeout=25).json()
-            raw60 = hist60.get("prices", [])
+        # (CoinGecko 60m fallback removed — Binance weekly is the source)
         month_map = {}
         for p in raw60:
             ts_ms = p[0]
@@ -2119,13 +2060,9 @@ def fetch_comp_intel():
 
     # 24. XRP vs SOL / ETH / ADA / XLM — CoinGecko /coins/markets (free tier reliable)
     try:
-        ids = "ripple,solana,ethereum,cardano,stellar"
         markets = requests.get(
-            f"https://api.coingecko.com/api/v3/coins/markets"
-            f"?vs_currency=usd&ids={ids}&order=market_cap_desc"
-            f"&per_page=5&page=1&sparkline=false"
-            f"&price_change_percentage=24h%2C7d",
-            headers=hdr, timeout=8).json()
+            "https://api.coincap.io/v2/assets?ids=ripple,solana,ethereum,cardano,stellar",
+            headers=hdr, timeout=8).json().get("data", [])
 
         id_map = {
             "ripple":   "xrp_vs",
@@ -2139,10 +2076,10 @@ def fetch_comp_intel():
             target = id_map.get(cid)
             if not target: continue
             record = {
-                "price":      round(float(coin.get("current_price") or 0), 6),
-                "change_24h": round(float(coin.get("price_change_percentage_24h") or 0), 2),
-                "change_7d":  round(float(coin.get("price_change_percentage_7d_in_currency") or 0), 2),
-                "mcap":       round(float(coin.get("market_cap") or 0), 0),
+                "price":      round(float(coin.get("priceUsd") or 0), 6),
+                "change_24h": round(float(coin.get("changePercent24Hr") or 0), 2),
+                "change_7d":  0,
+                "mcap":       round(float(coin.get("marketCapUsd") or 0), 0),
             }
             if isinstance(target, tuple):
                 ci[target[0]][target[1]].update(record)
@@ -2318,12 +2255,10 @@ def fetch_onchain_intel():
 
     # 9. RLUSD Circulation & Volume via CoinGecko
     try:
-        rlusd = requests.get(
-            "https://api.coingecko.com/api/v3/coins/ripple-usd"
-            "?localization=false&tickers=false&community_data=false&developer_data=false",
-            headers=hdr, timeout=10).json()
-        md = rlusd.get("market_data", {})
-        oc["rlusd_price"]   = float(md.get("current_price", {}).get("usd", 1.0))
+        # RLUSD live fetch retired (CoinGecko removed). RLUSD is a USD-pegged
+        # stablecoin; price is ~$1.00 by design. Supply data not free-sourced.
+        md = {}
+        oc["rlusd_price"]   = 1.0
         oc["rlusd_supply"]  = float(md.get("circulating_supply", 0) or 0)
         oc["rlusd_vol_24h"] = float(md.get("total_volume", {}).get("usd", 0) or 0)
     except Exception as e:
@@ -4254,7 +4189,7 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
     <div class="sbox lc"><div class="snum r" id="sc-bear">--</div><div class="snlbl">Bearish</div><div class="snsub" id="sc-bear-pct">--%</div></div>
     <div class="sbox"><div class="snum" id="sc-neut">--</div><div class="snlbl">Neutral</div><div class="snsub" id="sc-net">Net: --</div></div>
     <div class="sbox yc"><div class="snum y" id="sc-fg">--</div><div class="snlbl">Fear &amp; Greed</div><div class="snsub" id="sc-fg-lbl">--</div></div>
-    <div class="sbox"><div class="snum b" id="sc-rank">#--</div><div class="snlbl">Global Rank</div><div class="snsub">CoinGecko</div></div>
+    <div class="sbox"><div class="snum b" id="sc-rank">#--</div><div class="snlbl">Global Rank</div><div class="snsub">CoinCap</div></div>
   </div>
   <div class="sgrid4" style="margin-top:8px">
     <div class="sbox bc"><div class="snum b" id="sc-mcap">--</div><div class="snlbl">Market Cap</div></div>
@@ -10629,12 +10564,13 @@ function updateWeeklyDigest(d){
       const msPerDay = 86400000;
       const daysSince = Math.ceil((today - purchaseDate)/msPerDay);
       const daysNeeded = Math.max(daysSince+2, 1);
-      const fetchDays = Math.min(daysNeeded, 2000); // CoinGecko max ~2000 days free
+      const fetchDays = Math.min(daysNeeded, 1000); // Binance klines max 1000
       const r = await fetch(
-        `https://api.coingecko.com/api/v3/coins/ripple/market_chart?vs_currency=usd&days=${fetchDays}`
+        `https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=${fetchDays}`
       );
-      const data = await r.json();
-      const prices = data.prices||[];
+      const kl = await r.json();
+      // Convert Binance klines [openTime,o,h,l,close,...] -> [[ts,price]]
+      const prices = Array.isArray(kl) ? kl.map(c=>[c[0], parseFloat(c[4])]) : [];
       if(!prices.length) throw new Error('No price data returned');
       // Find price on purchase date
       const purchaseTs = purchaseDate.getTime();
@@ -10846,13 +10782,8 @@ function updateWeeklyDigest(d){
 
   async function fetchRLUSDLive(){
     try{
-      const r = await fetch('https://api.coingecko.com/api/v3/coins/ripple-usd?localization=false&tickers=false&community_data=false');
-      const data = await r.json();
-      const md = data.market_data||{};
-      if(md.current_price) c('rlusd-price','$'+(md.current_price.usd||1).toFixed(4));
-      if(md.market_cap)    c('rlusd-mcap', fmtUSD(md.market_cap.usd||0));
-      if(md.total_volume)  c('rlusd-vol',  fmtUSD(md.total_volume.usd||0));
-      if(md.circulating_supply) c('rlusd-supply', (md.circulating_supply/1e6).toFixed(2)+'M RLUSD');
+      // RLUSD live data retired (CoinGecko removed). RLUSD is USD-pegged.
+      c('rlusd-price','$1.0000');
       if(data.market_cap_rank) c('rlusd-rank','#'+data.market_cap_rank);
       const chg=md.price_change_percentage_24h||0;
       const chgEl=document.getElementById('rlusd-change');
@@ -11079,9 +11010,9 @@ function updateWeeklyDigest(d){
       const today=new Date();
       const daysSince=Math.ceil((today-startDate)/86400000);
       if(daysSince<30){ if(errEl){errEl.textContent='Start date must be at least 1 month in the past.';errEl.style.display='block';if(ldgEl)ldgEl.style.display='none';} return; }
-      const r=await fetch('https://api.coingecko.com/api/v3/coins/ripple/market_chart?vs_currency=usd&days='+Math.min(daysSince+5,2000));
-      const data=await r.json();
-      const prices=data.prices||[];
+      const r=await fetch('https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit='+Math.min(daysSince+5,1000));
+      const kl=await r.json();
+      const prices=Array.isArray(kl)?kl.map(c=>[c[0],parseFloat(c[4])]):[];
       if(!prices.length) throw new Error('No price data');
       // Simulate monthly buys
       let totalInvested=0, totalXRP=0;
@@ -11203,12 +11134,14 @@ function updateWeeklyDigest(d){
     try{
       const daysSince=Math.ceil((new Date()-startDate)/86400000);
       const results=[];
-      // Fetch crypto assets from CoinGecko
-      for(const asset of COMPARISON_ASSETS.filter(a=>a.cg_id)){
+      // Fetch crypto assets from Binance (CoinGecko removed)
+      const BINANCE_SYM={ripple:'XRPUSDT',bitcoin:'BTCUSDT',ethereum:'ETHUSDT',solana:'SOLUSDT',cardano:'ADAUSDT',stellar:'XLMUSDT',dogecoin:'DOGEUSDT'};
+      for(const asset of COMPARISON_ASSETS.filter(a=>a.cg_id && BINANCE_SYM[a.cg_id])){
         try{
-          const r=await fetch('https://api.coingecko.com/api/v3/coins/'+asset.cg_id+'/market_chart?vs_currency=usd&days='+Math.min(daysSince+5,2000));
-          const data=await r.json();
-          const prices2=data.prices||[];
+          const sym=BINANCE_SYM[asset.cg_id];
+          const r=await fetch('https://api.binance.com/api/v3/klines?symbol='+sym+'&interval=1d&limit='+Math.min(daysSince+5,1000));
+          const kl=await r.json();
+          const prices2=Array.isArray(kl)?kl.map(c=>[c[0],parseFloat(c[4])]):[];
           if(prices2.length<2) continue;
           const ts=startDate.getTime();
           let best=null,bestD=Infinity;
