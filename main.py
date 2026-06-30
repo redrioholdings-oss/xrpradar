@@ -13,7 +13,7 @@ from flask import Flask, jsonify, Response, request
 app = Flask(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BOT_FILE          = "XRPRadar_v7.2k"
+BOT_FILE          = "XRPRadar_v7.2o"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL      = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 SCAN_INTERVAL     = 300
@@ -1014,187 +1014,157 @@ def fmt_ts(ts):
 
 # ── Price & Data Fetch ─────────────────────────────────────────────────────────
 def fetch_price():
+    hdr = {"User-Agent": "XRPRadar/1.1"}
+    price_set = False
+
+    # ── Source 1: CoinCap (primary — built for server-side, rarely rate-limited) ──
     try:
-        hdr = {"User-Agent": "XRPRadar/1.1"}
-        # CoinGecko: add demo API key if set (bypasses Railway IP rate limits)
-        cg_key = os.environ.get("COINGECKO_API_KEY", "")
-        cg_hdr = {**hdr, "x-cg-demo-apikey": cg_key} if cg_key else hdr
-        cg = requests.get(
-            "https://api.coingecko.com/api/v3/coins/ripple"
-            "?localization=false&tickers=false&community_data=false&developer_data=false",
-            headers=cg_hdr, timeout=15).json()
-        # If rate limited (returns error dict instead of coin data)
-        if "error" in cg or "status" in cg:
-            raise ValueError(f"CoinGecko error: {cg}")
-        md = cg.get("market_data", {})
-        # If CoinGecko rate-limited or returned error, md will be empty — trigger fallback
-        if not md or not md.get("current_price"):
-            raise ValueError(f"CoinGecko empty response: {str(cg)[:100]}")
-        STATE["price"] = {
-            "usd":          md.get("current_price", {}).get("usd", 0),
-            "btc":          md.get("current_price", {}).get("btc", 0),
-            "change_24h":   md.get("price_change_percentage_24h", 0),
-            "change_7d":    md.get("price_change_percentage_7d",  0),
-            "change_30d":   md.get("price_change_percentage_30d", 0),
-            "mcap":         md.get("market_cap",      {}).get("usd", 0),
-            "volume_24h":   md.get("total_volume",    {}).get("usd", 0),
-            "ath":          md.get("ath",              {}).get("usd", 0),
-            "ath_pct":      md.get("ath_change_percentage", {}).get("usd", 0),
-            "supply_circ":  md.get("circulating_supply", 0),
-            "supply_total": cg.get("market_data", {}).get("total_supply", 100000000000),
-            "rank":         cg.get("market_cap_rank", 0),
-            "high_24h":     md.get("high_24h", {}).get("usd", 0),
-            "low_24h":      md.get("low_24h",  {}).get("usd", 0),
-        }
+        cc = requests.get("https://api.coincap.io/v2/assets/ripple",
+            headers=hdr, timeout=8).json()
+        d2 = cc.get("data", {})
+        p  = float(d2.get("priceUsd", 0))
+        if p > 0:
+            STATE["price"]["usd"]         = round(p, 6)
+            STATE["price"]["change_24h"]  = round(float(d2.get("changePercent24Hr", 0)), 2)
+            STATE["price"]["volume_24h"]  = float(d2.get("volumeUsd24Hr", 0))
+            STATE["price"]["mcap"]        = float(d2.get("marketCapUsd", 0))
+            STATE["price"]["supply_circ"] = float(d2.get("supply", 0))
+            STATE["price"]["rank"]        = int(d2.get("rank", 0))
+            price_set = True
+            log_error(f"fetch_price: CoinCap OK ${p:.4f}")
+        else:
+            log_error(f"fetch_price CoinCap returned 0: {str(cc)[:80]}")
     except Exception as e:
-        log_error(f"fetch_price CoinGecko: {e}")
-        # Each fallback MUST set price > 0 or raise to cascade to next source
-        price_set = False
+        log_error(f"fetch_price CoinCap: {e}")
 
-        # Fallback 2: Binance
-        if not price_set:
-            try:
-                b = requests.get("https://api.binance.com/api/v3/ticker/24hr?symbol=XRPUSDT",
-                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
-                p = float(b.get("lastPrice", 0))
-                if p > 0:
-                    STATE["price"]["usd"]        = p
-                    STATE["price"]["change_24h"] = float(b.get("priceChangePercent", 0))
-                    STATE["price"]["volume_24h"] = float(b.get("quoteVolume", 0))
-                    STATE["price"]["high_24h"]   = float(b.get("highPrice", 0))
-                    STATE["price"]["low_24h"]    = float(b.get("lowPrice", 0))
-                    price_set = True
-                    log_error(f"fetch_price: Binance OK ${p}")
-                else:
-                    log_error(f"fetch_price Binance returned 0: {str(b)[:80]}")
-            except Exception as e2:
-                log_error(f"fetch_price Binance: {e2}")
+    # ── Source 2: CoinPaprika (independent, different infrastructure) ──
+    if not price_set:
+        try:
+            cp = requests.get("https://api.coinpaprika.com/v1/tickers/xrp-xrp",
+                headers=hdr, timeout=8).json()
+            q  = cp.get("quotes", {}).get("USD", {})
+            p  = float(q.get("price", 0))
+            if p > 0:
+                STATE["price"]["usd"]        = round(p, 6)
+                STATE["price"]["change_24h"] = float(q.get("percent_change_24h", 0))
+                STATE["price"]["volume_24h"] = float(q.get("volume_24h", 0))
+                STATE["price"]["mcap"]       = float(q.get("market_cap", 0))
+                STATE["price"]["rank"]       = int(cp.get("rank", 0))
+                price_set = True
+                log_error(f"fetch_price: CoinPaprika OK ${p:.4f}")
+            else:
+                log_error(f"fetch_price CoinPaprika returned 0: {str(cp)[:80]}")
+        except Exception as e:
+            log_error(f"fetch_price CoinPaprika: {e}")
 
-        # Fallback 3: Kraken
-        if not price_set:
-            try:
-                k = requests.get("https://api.kraken.com/0/public/Ticker?pair=XRPUSD",
-                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
-                kr = k.get("result", {}).get("XXRPZUSD", {})
-                p = float(kr.get("c", [0])[0]) if kr else 0
-                if p > 0:
-                    STATE["price"]["usd"]       = p
-                    STATE["price"]["high_24h"]  = float(kr.get("h", [0,0])[1])
-                    STATE["price"]["low_24h"]   = float(kr.get("l", [0,0])[1])
-                    STATE["price"]["volume_24h"]= float(kr.get("v", [0,0])[1])
-                    price_set = True
-                    log_error(f"fetch_price: Kraken OK ${p}")
-                else:
-                    log_error(f"fetch_price Kraken returned 0: {str(k)[:80]}")
-            except Exception as e3:
-                log_error(f"fetch_price Kraken: {e3}")
+    # ── Source 3: Binance ──
+    if not price_set:
+        try:
+            b = requests.get("https://api.binance.com/api/v3/ticker/24hr?symbol=XRPUSDT",
+                headers=hdr, timeout=8).json()
+            p = float(b.get("lastPrice", 0))
+            if p > 0:
+                STATE["price"]["usd"]        = p
+                STATE["price"]["change_24h"] = float(b.get("priceChangePercent", 0))
+                STATE["price"]["volume_24h"] = float(b.get("quoteVolume", 0))
+                STATE["price"]["high_24h"]   = float(b.get("highPrice", 0))
+                STATE["price"]["low_24h"]    = float(b.get("lowPrice", 0))
+                price_set = True
+                log_error(f"fetch_price: Binance OK ${p:.4f}")
+            else:
+                log_error(f"fetch_price Binance returned 0: {str(b)[:80]}")
+        except Exception as e:
+            log_error(f"fetch_price Binance: {e}")
 
-        # Fallback 4: Bitstamp
-        if not price_set:
-            try:
-                bs = requests.get("https://www.bitstamp.net/api/v2/ticker/xrpusd/",
-                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
-                p = float(bs.get("last", 0))
-                if p > 0:
-                    STATE["price"]["usd"]        = p
-                    STATE["price"]["high_24h"]   = float(bs.get("high", 0))
-                    STATE["price"]["low_24h"]    = float(bs.get("low", 0))
-                    STATE["price"]["volume_24h"] = float(bs.get("volume", 0))
-                    price_set = True
-                    log_error(f"fetch_price: Bitstamp OK ${p}")
-                else:
-                    log_error(f"fetch_price Bitstamp returned 0: {str(bs)[:80]}")
-            except Exception as e4:
-                log_error(f"fetch_price Bitstamp: {e4}")
+    # ── Source 4: Kraken ──
+    if not price_set:
+        try:
+            k  = requests.get("https://api.kraken.com/0/public/Ticker?pair=XRPUSD",
+                headers=hdr, timeout=8).json()
+            kr = k.get("result", {}).get("XXRPZUSD", {})
+            p  = float(kr.get("c", [0])[0]) if kr else 0
+            if p > 0:
+                STATE["price"]["usd"]        = p
+                STATE["price"]["high_24h"]   = float(kr.get("h", [0,0])[1])
+                STATE["price"]["low_24h"]    = float(kr.get("l", [0,0])[1])
+                STATE["price"]["volume_24h"] = float(kr.get("v", [0,0])[1])
+                price_set = True
+                log_error(f"fetch_price: Kraken OK ${p:.4f}")
+            else:
+                log_error(f"fetch_price Kraken returned 0: {str(k)[:80]}")
+        except Exception as e:
+            log_error(f"fetch_price Kraken: {e}")
 
-        # Fallback 5: CoinCap (built for server-side, rarely blocks)
-        if not price_set:
-            try:
-                cc = requests.get("https://api.coincap.io/v2/assets/ripple",
-                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
-                d2 = cc.get("data", {})
-                p = float(d2.get("priceUsd", 0))
-                if p > 0:
-                    STATE["price"]["usd"]        = round(p, 6)
-                    STATE["price"]["change_24h"] = float(d2.get("changePercent24Hr", 0))
-                    STATE["price"]["volume_24h"] = float(d2.get("volumeUsd24Hr", 0))
-                    STATE["price"]["mcap"]       = float(d2.get("marketCapUsd", 0))
-                    STATE["price"]["supply_circ"]= float(d2.get("supply", 0))
-                    price_set = True
-                    log_error(f"fetch_price: CoinCap OK ${p}")
-                else:
-                    log_error(f"fetch_price CoinCap returned 0: {str(cc)[:80]}")
-            except Exception as e5:
-                log_error(f"fetch_price CoinCap: {e5}")
+    # ── Source 5: Bitstamp ──
+    if not price_set:
+        try:
+            bs = requests.get("https://www.bitstamp.net/api/v2/ticker/xrpusd/",
+                headers=hdr, timeout=8).json()
+            p  = float(bs.get("last", 0))
+            if p > 0:
+                STATE["price"]["usd"]        = p
+                STATE["price"]["high_24h"]   = float(bs.get("high", 0))
+                STATE["price"]["low_24h"]    = float(bs.get("low", 0))
+                STATE["price"]["volume_24h"] = float(bs.get("volume", 0))
+                price_set = True
+                log_error(f"fetch_price: Bitstamp OK ${p:.4f}")
+            else:
+                log_error(f"fetch_price Bitstamp returned 0: {str(bs)[:80]}")
+        except Exception as e:
+            log_error(f"fetch_price Bitstamp: {e}")
 
-        # Fallback 6: CoinPaprika (independent, different infrastructure)
-        if not price_set:
-            try:
-                cp = requests.get("https://api.coinpaprika.com/v1/tickers/xrp-xrp",
-                    headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
-                q = cp.get("quotes", {}).get("USD", {})
-                p = float(q.get("price", 0))
-                if p > 0:
-                    STATE["price"]["usd"]        = round(p, 6)
-                    STATE["price"]["change_24h"] = float(q.get("percent_change_24h", 0))
-                    STATE["price"]["volume_24h"] = float(q.get("volume_24h", 0))
-                    STATE["price"]["mcap"]       = float(q.get("market_cap", 0))
-                    price_set = True
-                    log_error(f"fetch_price: CoinPaprika OK ${p}")
-                else:
-                    log_error(f"fetch_price CoinPaprika returned 0: {str(cp)[:80]}")
-            except Exception as e6:
-                log_error(f"fetch_price CoinPaprika: {e6}")
+    # ── Source 6: CoinGecko (now fallback — may be rate-limited on Railway) ──
+    if not price_set:
+        try:
+            cg_key = os.environ.get("COINGECKO_API_KEY", "")
+            cg_hdr = {**hdr, "x-cg-demo-apikey": cg_key} if cg_key else hdr
+            cg = requests.get(
+                "https://api.coingecko.com/api/v3/coins/ripple"
+                "?localization=false&tickers=false&community_data=false&developer_data=false",
+                headers=cg_hdr, timeout=15).json()
+            md = cg.get("market_data", {})
+            p  = md.get("current_price", {}).get("usd", 0) if md else 0
+            if p and float(p) > 0:
+                STATE["price"].update({
+                    "usd":        float(p),
+                    "change_24h": md.get("price_change_percentage_24h", 0),
+                    "mcap":       md.get("market_cap", {}).get("usd", 0),
+                    "volume_24h": md.get("total_volume", {}).get("usd", 0),
+                    "ath":        md.get("ath", {}).get("usd", 0),
+                    "ath_pct":    md.get("ath_change_percentage", {}).get("usd", 0),
+                    "high_24h":   md.get("high_24h", {}).get("usd", 0),
+                    "low_24h":    md.get("low_24h",  {}).get("usd", 0),
+                    "rank":       cg.get("market_cap_rank", 0),
+                })
+                price_set = True
+                log_error(f"fetch_price: CoinGecko OK ${p:.4f}")
+            else:
+                log_error(f"fetch_price CoinGecko empty: {str(cg)[:80]}")
+        except Exception as e:
+            log_error(f"fetch_price CoinGecko: {e}")
 
-        if not price_set:
-            log_error("fetch_price: ALL 6 SOURCES FAILED - price remains 0")
+    if not price_set:
+        log_error("fetch_price: ALL SOURCES FAILED — price remains unchanged")
 
-    # Fear & Greed
+    # ── Fear & Greed ──
     try:
-        fg = requests.get("https://api.alternative.me/fng/", timeout=8).json()
-        d  = fg.get("data", [{}])[0]
+        fg = requests.get("https://api.alternative.me/fng/", headers=hdr, timeout=8).json()
+        d3 = fg.get("data", [{}])[0]
         STATE["fear_greed"] = {
-            "score": int(d.get("value", 50)),
-            "label": d.get("value_classification", "Neutral")
+            "score": int(d3.get("value", 50)),
+            "label": d3.get("value_classification", "Neutral")
         }
     except Exception as e:
         log_error(f"fetch_fear_greed: {e}")
 
-    # Escrow
-    STATE["escrow"] = {"next_date": "1st of next month", "amount_b": 1.0, "note": "1B XRP monthly release"}
+    # ── Escrow ──
+    STATE["escrow"] = {"next_date":"1st of next month","amount_b":1.0,
+                       "note":"1B XRP monthly release"}
 
-    # If mcap still 0 (CoinGecko failed), try simpler endpoint
-    if not STATE["price"].get("mcap"):
-        try:
-            cg_key2 = os.environ.get("COINGECKO_API_KEY", "")
-            cg_hdr2 = {"User-Agent":"XRPRadar/1.1"}
-            if cg_key2: cg_hdr2["x-cg-demo-apikey"] = cg_key2
-            simple = requests.get(
-                "https://api.coingecko.com/api/v3/simple/price"
-                "?ids=ripple&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true",
-                headers=cg_hdr2, timeout=10).json()
-            xrp = simple.get("ripple", {})
-            p_simple = float(xrp.get("usd", 0))
-            if p_simple > 0:
-                if not STATE["price"].get("usd") or STATE["price"]["usd"] == 0:
-                    STATE["price"]["usd"] = p_simple
-                if xrp.get("usd_market_cap"):    STATE["price"]["mcap"] = xrp["usd_market_cap"]
-                if xrp.get("usd_24h_vol"):       STATE["price"]["volume_24h"] = xrp["usd_24h_vol"]
-                log_error("fetch_price: simple/price endpoint succeeded")
-        except Exception as es:
-            log_error(f"fetch_price simple: {es}")
-
-    # Vol/Mcap ratio
-    try:
-        p = STATE["price"]
-        if p.get("mcap") and p.get("volume_24h"):
-            STATE["price"]["vol_mcap_ratio"] = round(p["volume_24h"] / p["mcap"] * 100, 2)
-    except: pass
-
-    # On-chain metrics via XRPScan
+    # ── On-chain / XRPL ──
     try:
         stats = requests.get("https://api.xrpscan.com/api/v1/ledger/stats",
-            headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
+            headers=hdr, timeout=8).json()
         STATE["onchain"] = {
             "ledger_index": stats.get("ledger_index", "--"),
             "tps":          round(float(stats.get("tps", 0)), 2),
@@ -1202,28 +1172,32 @@ def fetch_price():
             "transactions": stats.get("transactions", "--"),
         }
     except:
-        # Fallback: XRPL Foundation public API (free, separate infrastructure)
         try:
-            xrpl = requests.get("https://api.xrpldata.com/api/v1/xls20-nfts/stats",
-                headers={"User-Agent":"XRPRadar/1.1"}, timeout=8).json()
-            # Try xrpl.org ledger info endpoint
             xrpl2 = requests.get("https://xrplcluster.com",
                 json={"method":"server_info","params":[{}]},
                 headers={"Content-Type":"application/json"}, timeout=8).json()
             info = xrpl2.get("result",{}).get("info",{})
             STATE["onchain"] = {
                 "ledger_index": info.get("validated_ledger",{}).get("seq","--"),
-                "tps":          round(float(info.get("load_factor",1)), 2),
+                "tps":          round(float(info.get("load_factor",1)),2),
                 "accounts":     "--",
                 "transactions": "--",
             }
         except:
-            STATE["onchain"] = {"ledger_index":"--","tps":"--","accounts":"--","transactions":"--"}
+            STATE["onchain"] = {"ledger_index":"--","tps":"--",
+                                "accounts":"--","transactions":"--"}
+
+    # ── Vol/Mcap ratio ──
+    try:
+        p2 = STATE["price"]
+        if p2.get("mcap") and p2.get("volume_24h"):
+            STATE["price"]["vol_mcap_ratio"] = round(
+                p2["volume_24h"]/p2["mcap"]*100, 2)
+    except: pass
 
     STATE["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
-# ── Price Intelligence Fetch (v3.0a) ──────────────────────────────────────
 def fetch_price_intel():
     hdr = {"User-Agent": "XRPRadar/3.0"}
     pi  = STATE["price_intel"]
@@ -1674,16 +1648,25 @@ def fetch_disp_intel():
     di  = STATE["disp_intel"]
     now = datetime.now(timezone.utc)
 
-    # 36. Price History Heatmap — 90 days of daily % changes
+    # 36. Price History Heatmap — Binance primary, CoinGecko fallback
     try:
         import datetime as _dt
-        hist = requests.get(
-            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-            "?vs_currency=usd&days=90",
-            headers=hdr, timeout=10).json()
-        raw_prices = hist.get("prices", [])
+        raw_prices = []
+        try:
+            bk90b = requests.get(
+                "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=92",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=10).json()
+            if isinstance(bk90b, list) and bk90b:
+                raw_prices = [[int(c[0]), float(c[4])] for c in bk90b]
+        except: pass
         if not raw_prices:
-            raise ValueError("No price data returned")
+            hist = requests.get(
+                "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
+                "?vs_currency=usd&days=90",
+                headers=hdr, timeout=10).json()
+            raw_prices = hist.get("prices", [])
+            if not raw_prices:
+                raise ValueError("No price data returned")
         prices = [float(p[1]) for p in raw_prices]
         heatmap = []
         for i in range(1, len(prices)):
@@ -1729,13 +1712,24 @@ def fetch_disp_intel():
         except Exception as eb:
             log_error(f"price_heatmap Binance: {eb}")
 
-    # 6-Month Price Trend (#9 — new)
+    # 6-Month Price Trend — Binance primary, CoinGecko fallback
     try:
-        hist180 = requests.get(
-            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-            "?vs_currency=usd&days=180",
-            headers=hdr, timeout=10).json()
-        raw180 = hist180.get("prices", [])
+        raw180 = []
+        try:
+            bk6m = requests.get(
+                "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1d&limit=182",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=10).json()
+            if isinstance(bk6m, list) and bk6m:
+                raw180 = [[int(c[0]), float(c[4])] for c in bk6m]
+                log_error(f"price_6m: Binance primary OK ({len(raw180)} days)")
+        except Exception as eb6m:
+            log_error(f"price_6m Binance: {eb6m}")
+        if not raw180:
+            hist180 = requests.get(
+                "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
+                "?vs_currency=usd&days=180",
+                headers=hdr, timeout=20).json()
+            raw180 = hist180.get("prices", [])
         week_map = {}
         for p in raw180:
             ts_ms = p[0]
@@ -1765,13 +1759,24 @@ def fetch_disp_intel():
         except Exception as eb:
             log_error(f"price_6m Binance: {eb}")
 
-    # 60-Month Price History (5 Years)
+    # 60-Month Price History — Binance weekly primary, CoinGecko fallback
     try:
-        hist60 = requests.get(
-            "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
-            "?vs_currency=usd&days=1825",
-            headers=hdr, timeout=25).json()
-        raw60 = hist60.get("prices", [])
+        raw60 = []
+        try:
+            bk60 = requests.get(
+                "https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval=1w&limit=260",
+                headers={"User-Agent":"XRPRadar/1.1"}, timeout=15).json()
+            if isinstance(bk60, list) and bk60:
+                raw60 = [[int(c[0]), float(c[4])] for c in bk60]
+                log_error(f"price_60m: Binance primary OK ({len(raw60)} points)")
+        except Exception as eb60:
+            log_error(f"price_60m Binance primary: {eb60}")
+        if not raw60:
+            hist60 = requests.get(
+                "https://api.coingecko.com/api/v3/coins/ripple/market_chart"
+                "?vs_currency=usd&days=1825",
+                headers=hdr, timeout=25).json()
+            raw60 = hist60.get("prices", [])
         month_map = {}
         for p in raw60:
             ts_ms = p[0]
@@ -6384,6 +6389,63 @@ footer::before{content:"";position:absolute;top:-8px;left:0;right:0;
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- GLOBAL XRP ENTERPRISE DIRECTORY                                 -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div style="margin-bottom:10px" id="enterprise-directory-section">
+  <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:16px">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div>
+        <div class="sec-title" style="color:var(--yl)">🌐 GLOBAL XRP ENTERPRISE DIRECTORY</div>
+        <div style="font-size:13px;color:var(--tx);font-family:var(--mn);margin-top:3px">
+          100 banks, institutions &amp; enterprises using XRP, XRPL, or Ripple technology — production deployments to ETF filings
+        </div>
+      </div>
+      <div style="font-size:22px;font-weight:900;color:var(--yl);font-family:var(--mn)">100+</div>
+    </div>
+
+    <!-- Search + Filter -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <input type="text" id="ent-search" placeholder="Search institution, country, category..."
+        oninput="filterEnterprises()"
+        style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--b);
+          color:var(--br);padding:8px 12px;border-radius:5px;font-size:14px;
+          font-family:var(--mn);outline:none">
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="ent-filter-btns">
+        <button onclick="filterEnterprises('ALL')"   class="exp-tag ent-cat-btn" data-cat="ALL"   style="color:var(--yl);font-weight:800">ALL</button>
+        <button onclick="filterEnterprises('A')"     class="exp-tag ent-cat-btn" data-cat="A"     style="color:var(--gr)">🚀 ODL/XRP Live</button>
+        <button onclick="filterEnterprises('B')"     class="exp-tag ent-cat-btn" data-cat="B"     style="color:var(--bl)">🏛️ Global Banks</button>
+        <button onclick="filterEnterprises('C')"     class="exp-tag ent-cat-btn" data-cat="C"     style="color:var(--tq)">🛠️ Tech/Custody</button>
+        <button onclick="filterEnterprises('D')"     class="exp-tag ent-cat-btn" data-cat="D"     style="color:var(--or)">🌍 Regional/ME/LatAm</button>
+        <button onclick="filterEnterprises('E')"     class="exp-tag ent-cat-btn" data-cat="E"     style="color:var(--yl)">🟡 ETF/Treasury</button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--mn);font-size:13px">
+      <span id="ent-count" style="color:var(--yl);font-weight:700">100 institutions</span>
+      <span style="color:var(--tx)">·</span>
+      <span style="color:var(--gr)">23 live ODL/XRP deployments</span>
+      <span style="color:var(--tx)">·</span>
+      <span style="color:var(--bl)">32 global banking giants</span>
+      <span style="color:var(--tx)">·</span>
+      <span style="color:var(--tq)">25 tech/custody providers</span>
+    </div>
+
+    <!-- Scrollable directory -->
+    <div id="ent-grid" style="max-height:520px;overflow-y:auto;border:1px solid var(--b);
+      border-radius:8px;padding:4px"></div>
+
+    <div style="margin-top:10px;font-size:11px;color:var(--tx);font-family:var(--mn);opacity:.7">
+      Sources: Ripple.com partner listings, SEC filings, central bank announcements, verified corporate press releases.
+      Directory is for informational purposes. Some partnerships may be pilots or historical integrations.
     </div>
   </div>
 </div>
@@ -11729,6 +11791,186 @@ Date: '+new Date().toLocaleDateString());
     document.body.style.overflow='';
   }
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeStoryReader(); });
+
+
+  // ════════════════════════════════════════════════════════════════
+  // GLOBAL XRP ENTERPRISE DIRECTORY
+  // ════════════════════════════════════════════════════════════════
+
+  const ENTERPRISE_DATA = [
+    // ── CATEGORY A: Live ODL / XRP Production Users ──────────────
+    {name:"SBI Remit / SBI Holdings",       country:"🇯🇵 Japan",           cat:"A", status:"LIVE ODL",    detail:"Multi-corridor APAC retail & commercial remittance powered by XRP"},
+    {name:"Tranglo",                         country:"🇲🇾 Malaysia/SE Asia", cat:"A", status:"LIVE ODL",    detail:"Regional processing giant fully integrated into ODL"},
+    {name:"Bitso",                           country:"🇲🇽 Mexico/LatAm",    cat:"A", status:"LIVE ODL",    detail:"Core liquidity hub routing heavy institutional USD-to-MXN lanes"},
+    {name:"Travelex Bank",                   country:"🇧🇷 Brazil",           cat:"A", status:"LIVE ODL",    detail:"First operational Latin American bank using XRP liquidity corridors"},
+    {name:"Zand Bank",                       country:"🇦🇪 UAE",             cat:"A", status:"LIVE",        detail:"Digital corporate bank processing payments via XRP and RLUSD"},
+    {name:"AMINA Bank",                      country:"🇨🇭 Switzerland",     cat:"A", status:"LIVE",        detail:"FINMA-regulated digital asset institution with live native Ripple Payments"},
+    {name:"Siam Commercial Bank",            country:"🇹🇭 Thailand",         cat:"A", status:"LIVE ODL",    detail:"Active live ODL corridors for inbound Japanese capital"},
+    {name:"UnionBank",                       country:"🇵🇭 Philippines",      cat:"A", status:"LIVE ODL",    detail:"Automated processing for inbound domestic overseas worker remittances"},
+    {name:"CIBC",                            country:"🇨🇦 Canada",           cat:"A", status:"LIVE ODL",    detail:"Settles institutional growth transfers via ODL infrastructure"},
+    {name:"Qatar National Bank",             country:"🇶🇦 Qatar",           cat:"A", status:"LIVE ODL",    detail:"Cross-border pipeline targeting Philippine remittance partners"},
+    {name:"ChinaBank",                       country:"🇵🇭 Philippines",      cat:"A", status:"LIVE",        detail:"Clears Gulf-region corporate payments anchored to digital liquidity"},
+    {name:"Independent Reserve",             country:"🇦🇺 Australia",        cat:"A", status:"LIVE",        detail:"Regional liquidity exchange partner providing settlement architecture"},
+    {name:"BTC Markets",                     country:"🇦🇺 Australia",        cat:"A", status:"LIVE",        detail:"Currency bridge managing the AUD leg of regional ODL clearing"},
+    {name:"Coins.ph",                        country:"🇵🇭 Philippines",      cat:"A", status:"LIVE ODL",    detail:"Digital consumer network handling incoming XRP liquid conversions"},
+    {name:"FlashFX",                         country:"🇦🇺 Australia",        cat:"A", status:"LIVE ODL",    detail:"Automated FX software routing transfers via on-chain token paths"},
+    {name:"Mercury FX",                      country:"🇬🇧 UK",              cat:"A", status:"LIVE ODL",    detail:"Enterprise currency platform processing instant commercial payments via XRP"},
+    {name:"Cuallix",                         country:"🇺🇸/🇲🇽 USA/Mexico",   cat:"A", status:"PIONEER",    detail:"First fintech to pilot original xRapid/ODL settlement engines"},
+    {name:"X Money",                         country:"🌐 Global",            cat:"A", status:"LIVE",        detail:"Retail cross-border digital financial platform using decentralized settlement"},
+    {name:"Novatti",                         country:"🇦🇺 Australia",        cat:"A", status:"LIVE ODL",    detail:"Payments processor using XRP ledger routes for Southeast Asian corridors"},
+    {name:"iRemit",                          country:"🇵🇭 Philippines",      cat:"A", status:"LIVE",        detail:"Non-bank remittance giant using ledger for real-time treasury management"},
+    {name:"Azimo",                           country:"🇪🇺 Europe",           cat:"A", status:"LIVE",        detail:"International digital money transmitter processing enterprise payouts"},
+    {name:"Pyypl",                           country:"🌍 Middle East/Africa", cat:"A", status:"LIVE ODL",   detail:"Blockchain fintech offering consumer digital wallets via ODL"},
+    {name:"MoneyMatch",                      country:"🇲🇾 Malaysia",         cat:"A", status:"LIVE",        detail:"Digital conversion firm routing commercial payments to European endpoints"},
+    // ── CATEGORY B: Global Banking Giants ────────────────────────
+    {name:"Bank of America",                 country:"🇺🇸 USA",             cat:"B", status:"PILOT",       detail:"Infrastructure pilot participant holding patents referencing XRP settlement"},
+    {name:"Banco Santander",                 country:"🇪🇸 Spain/UK",        cat:"B", status:"PRODUCTION",  detail:"Powers international One Pay FX app via RippleNet messaging"},
+    {name:"PNC Bank",                        country:"🇺🇸 USA",             cat:"B", status:"PRODUCTION",  detail:"First major domestic U.S. institutional network client"},
+    {name:"American Express",               country:"🇺🇸 USA",             cat:"B", status:"PRODUCTION",  detail:"Commercial B2B international payments clearing partner"},
+    {name:"Deutsche Bank",                   country:"🇩🇪 Germany",         cat:"B", status:"PILOT",       detail:"Combined Ripple blockchain architecture with legacy SWIFT mechanisms"},
+    {name:"Standard Chartered",             country:"🇬🇧 UK",              cat:"B", status:"PRODUCTION",  detail:"Core early corporate investor and active digital clearing hub collaborator"},
+    {name:"JPMorgan Chase",                  country:"🌐 Global",            cat:"B", status:"PARTICIPANT", detail:"Overlapping participant in multi-network settlement ledger groups"},
+    {name:"HSBC",                            country:"🇬🇧 UK",              cat:"B", status:"PARTICIPANT", detail:"Multi-national banking network mapped via active system routing IDs"},
+    {name:"MUFG Bank",                       country:"🇯🇵 Japan",           cat:"B", status:"PRODUCTION",  detail:"Tier-1 retail giant optimizing transaction messaging across APAC"},
+    {name:"ING Group",                       country:"🇳🇱 Netherlands",      cat:"B", status:"REGISTERED",  detail:"Multi-national bank registered in regional backend messaging directories"},
+    {name:"BBVA",                            country:"🇪🇸 Spain",           cat:"B", status:"PILOT",       detail:"Corporate banking implementing cross-border branch liquidity trials"},
+    {name:"Commonwealth Bank (CBA)",         country:"🇦🇺 Australia",        cat:"B", status:"PILOT",       detail:"Major retail institution participating in pilot ecosystem networks"},
+    {name:"Westpac",                         country:"🇦🇺 Australia",        cat:"B", status:"REGISTERED",  detail:"Registered network member maintaining live backend communication IDs"},
+    {name:"ANZ Bank",                        country:"🇦🇺 Australia",        cat:"B", status:"HISTORICAL",  detail:"Historical testing partner of the underlying clearing protocol"},
+    {name:"National Australia Bank (NAB)",   country:"🇦🇺 Australia",        cat:"B", status:"REGISTERED",  detail:"Incorporated into the ledger settlement network indexing systems"},
+    {name:"Macquarie Bank",                  country:"🇦🇺 Australia",        cat:"B", status:"REGISTERED",  detail:"Financial and transaction group listed on official routing logs"},
+    {name:"Royal Bank of Canada (RBC)",      country:"🇨🇦 Canada",           cat:"B", status:"EXPLORING",   detail:"Explored the decentralized rail protocol for automated settlement"},
+    {name:"SEB",                             country:"🇸🇪 Sweden",           cat:"B", status:"PRODUCTION",  detail:"Operates high-volume corporate lines over Ripple software rails"},
+    {name:"UBS",                             country:"🇨🇭 Switzerland",     cat:"B", status:"EVALUATING",   detail:"Asset and investment firm evaluating high-speed distributed ledgers"},
+    {name:"BMO Financial Group",             country:"🇨🇦 Canada",           cat:"B", status:"EXPLORING",   detail:"North American commercial entity exploring cross-border clearing efficiency"},
+    {name:"Intesa Sanpaolo",                 country:"🇮🇹 Italy",           cat:"B", status:"PARTICIPANT", detail:"Enterprise participant tracking structural digital payment innovations"},
+    {name:"Akbank",                          country:"🇹🇷 Turkey",           cat:"B", status:"PILOT",       detail:"Early regional banking partner conducting secure real-time automated tests"},
+    {name:"Axis Bank",                       country:"🇮🇳 India",           cat:"B", status:"LIVE",        detail:"Live infrastructure client managing real-time regional transaction tunnels"},
+    {name:"IndusInd Bank",                   country:"🇮🇳 India",           cat:"B", status:"LIVE",        detail:"Captures inbound international money transfers using decentralized engines"},
+    {name:"Kotak Mahindra Bank",             country:"🇮🇳 India",           cat:"B", status:"LIVE",        detail:"Fintech clearing provider handling instant retail capital inflows"},
+    {name:"Yes Bank",                        country:"🇮🇳 India",           cat:"B", status:"LIVE",        detail:"Commercial institution conducting high-velocity payment remittance operations"},
+    {name:"Federal Bank",                    country:"🇮🇳 India",           cat:"B", status:"LIVE",        detail:"Major localized retail bank utilizing automated routing systems"},
+    {name:"Shinhan Bank",                    country:"🇰🇷 South Korea",      cat:"B", status:"LIVE",        detail:"Top South Korean network client maintaining active system access keys"},
+    {name:"Woori Bank",                      country:"🇰🇷 South Korea",      cat:"B", status:"LIVE",        detail:"Multi-channel asset institution utilizing programmatic payment lines"},
+    {name:"Krungsri (Bank of Ayudhya)",      country:"🇹🇭 Thailand",         cat:"B", status:"LIVE",        detail:"Streamlines real-time corporate pipelines between Thailand and Japan"},
+    {name:"CIMB Bank",                       country:"🇲🇾 Malaysia",         cat:"B", status:"LIVE",        detail:"Deep integration node managing corridors across ASEAN borders"},
+    {name:"BDO Unibank",                     country:"🇵🇭 Philippines",      cat:"B", status:"LIVE",        detail:"Major destination settlement point for international inbound money streams"},
+    // ── CATEGORY C: Enterprise Tech, Custody & Infrastructure ────
+    {name:"Amazon Web Services (AWS)",       country:"🌐 Global",            cat:"C", status:"INFRASTRUCTURE", detail:"Hosts architecture allowing global nodes to run XRPL validation configurations"},
+    {name:"Finastra",                        country:"🇬🇧 UK",              cat:"C", status:"PRODUCTION",  detail:"Core banking software opening network access to 2,000+ regional banks"},
+    {name:"Deloitte",                        country:"🌐 Global",            cat:"C", status:"PRODUCTION",  detail:"Integrated distributed financial systems into client business models"},
+    {name:"DZ Bank",                         country:"🇩🇪 Germany",         cat:"C", status:"PRODUCTION",  detail:"Leverages digital custody solutions for tokenized asset issuance"},
+    {name:"BNY Mellon",                      country:"🇺🇸 USA",             cat:"C", status:"PRODUCTION",  detail:"Primary tier-1 institutional reserve custodian for stablecoin offerings"},
+    {name:"DBS Bank",                        country:"🇸🇬 Singapore",        cat:"C", status:"LIVE",        detail:"Southeast Asian institution utilizing bank-grade digital asset vaults"},
+    {name:"Kbank",                           country:"🇰🇷 South Korea",      cat:"C", status:"LIVE",        detail:"Digital platform implementing secure cryptographic wallet structures"},
+    {name:"Kyobo Life Insurance",            country:"🇰🇷 South Korea",      cat:"C", status:"LIVE",        detail:"Utilizing token ledger blueprint for corporate structural bond settlement"},
+    {name:"BDACS",                           country:"🇰🇷 South Korea",      cat:"C", status:"LIVE",        detail:"Regulated secure vault platform for native ledger token storage"},
+    {name:"Hidden Road",                     country:"🇺🇸 USA",             cat:"C", status:"EXPANDING",   detail:"Major institutional prime brokerage expanding liquidity paths for digital assets"},
+    {name:"GTreasury",                       country:"🇺🇸 USA",             cat:"C", status:"LIVE",        detail:"Corporate liquidity software suite managing modern capital balance sheets"},
+    {name:"Metaco",                          country:"🇨🇭 Switzerland",     cat:"C", status:"ACQUIRED",    detail:"Institutional crypto custody firm acquired by Ripple to secure bank assets globally"},
+    {name:"Temenos",                         country:"🇨🇭 Switzerland",     cat:"C", status:"PRODUCTION",  detail:"Core banking software provider embedding automated accounting rails"},
+    {name:"Accenture",                       country:"🌐 Global",            cat:"C", status:"PRODUCTION",  detail:"Consulting giant managing global deployment strategies for payment architecture"},
+    {name:"CGI Group",                       country:"🇨🇦 Canada",           cat:"C", status:"PRODUCTION",  detail:"IT consulting firm incorporating decentralized financial frameworks"},
+    {name:"Modulr",                          country:"🇬🇧 UK/Europe",        cat:"C", status:"LIVE",        detail:"Payments provider optimizing massive local commercial transaction times"},
+    {name:"Sentbe",                          country:"🇰🇷 South Korea",      cat:"C", status:"LIVE",        detail:"High-speed international remittance engine using the global banking network"},
+    {name:"Currencycloud",                   country:"🇬🇧 UK",              cat:"C", status:"LIVE",        detail:"B2B multi-currency platform streamlining automated foreign exchange"},
+    {name:"Nium",                            country:"🇸🇬 Singapore",        cat:"C", status:"LIVE",        detail:"Fintech provider optimizing massive outbound payment paths across global corridors"},
+    {name:"InstaReM",                        country:"🇸🇬 Singapore",        cat:"C", status:"LIVE",        detail:"High-speed digital payment gateway connected via localized nodes"},
+    {name:"BeeTech",                         country:"🇧🇷 Brazil",           cat:"C", status:"LIVE",        detail:"Digital financial operator executing automated Latin American clearings"},
+    {name:"Fidor Bank",                      country:"🇩🇪 Germany",         cat:"C", status:"PIONEER",     detail:"Digital banking pioneer integrating alternative clearing protocol tools"},
+    {name:"Sabadell",                        country:"🇪🇸 Spain",           cat:"C", status:"LIVE",        detail:"Commercial infrastructure partner running real-time corporate data modules"},
+    {name:"Cross River Bank",               country:"🇺🇸 USA",             cat:"C", status:"LIVE",        detail:"Financial tech enabler providing direct underlying banking backbone"},
+    {name:"Frankenmuth Credit Union",        country:"🇺🇸 USA",             cat:"C", status:"LIVE",        detail:"Local cooperative providing digital asset services to local consumers"},
+    // ── CATEGORY D: Regional / Middle East / LatAm ───────────────
+    {name:"Al Ansari Exchange",              country:"🇦🇪 UAE",             cat:"D", status:"LIVE",        detail:"High-volume Middle Eastern exchange network routing institutional transfers"},
+    {name:"National Bank of Fujairah",       country:"🇦🇪 UAE",             cat:"D", status:"LIVE",        detail:"Trade finance group optimizing real-time B2B payment workflows"},
+    {name:"Saudi Central Bank (SAMA)",       country:"🇸🇦 Saudi Arabia",    cat:"D", status:"PILOT",       detail:"Central entity piloting distributed frameworks for commercial branches"},
+    {name:"National Bank of Kuwait (NBK)",   country:"🇰🇼 Kuwait",           cat:"D", status:"LIVE",        detail:"Runs international corporate transfer paths targeting the Gulf"},
+    {name:"RAKBANK",                         country:"🇦🇪 UAE",             cat:"D", status:"LIVE",        detail:"Integrates transaction routes to improve speed across enterprise pipelines"},
+    {name:"Itaú Unibanco",                   country:"🇧🇷 Brazil",           cat:"D", status:"LIVE",        detail:"Giant South American banking provider utilizing alternative communication networks"},
+    {name:"Banco Rendimento",                country:"🇧🇷 Brazil",           cat:"D", status:"LIVE",        detail:"Foreign currency commercial bank using optimized digital payment tunnels"},
+    {name:"Intercorp",                       country:"🇵🇪 Peru",             cat:"D", status:"LIVE",        detail:"Large conglomerate stabilizing localized payment legs for regional retail assets"},
+    {name:"Faysal Bank",                     country:"🇵🇰 Pakistan",         cat:"D", status:"LIVE",        detail:"Specialized commercial banking provider processing inward retail cash flows"},
+    {name:"Bank Alfalah",                    country:"🇵🇰 Pakistan",         cat:"D", status:"LIVE",        detail:"Manages automated digital channels targeting the UAE-to-Pakistan corridor"},
+    {name:"bKash",                           country:"🇧🇩 Bangladesh",       cat:"D", status:"LIVE",        detail:"Mobile financial giant plugged in to capture worker remittances"},
+    {name:"Vietcombank",                     country:"🇻🇳 Vietnam",          cat:"D", status:"PILOT",       detail:"Explores modern asset frameworks under regional digital banking pilots"},
+    {name:"Interbank",                       country:"🇵🇪 Peru",             cat:"D", status:"LIVE",        detail:"Traditional retail banking destination tied to alternative clearing systems"},
+    // ── CATEGORY E: ETF Issuers & Corporate Treasury ─────────────
+    {name:"Grayscale Investments",           country:"🇺🇸 USA",             cat:"E", status:"LIVE ETF",    detail:"Asset manager operating the regulated Grayscale XRP Trust and spot fund"},
+    {name:"Bitwise Asset Management",        country:"🇺🇸 USA",             cat:"E", status:"LIVE ETF",    detail:"Regulated Wall Street provider offering institutional XRP exposure"},
+    {name:"Franklin Templeton",              country:"🇺🇸 USA",             cat:"E", status:"FILED",       detail:"Legacy asset firm filing for exchange-traded digital investment products"},
+    {name:"Canary Capital Partners",         country:"🇺🇸 USA",             cat:"E", status:"LIVE ETF",    detail:"Asset management firm deploying institutional-grade XRP capital avenues"},
+    {name:"Hashdex Asset Management",        country:"🌐 Global",            cat:"E", status:"LIVE ETF",    detail:"Global investment manager offering systemic access to ledger tokens"},
+    {name:"Worksport Ltd.",                  country:"🇺🇸 USA",             cat:"E", status:"TREASURY",    detail:"Clean automotive developer utilizing digital assets for inventory clearings"},
+    {name:"Nature's Miracle Holding",        country:"🇺🇸 USA",             cat:"E", status:"TREASURY",    detail:"Agriculture Tech firm implementing a $20M Corporate Treasury on the XRPL"},
+  ];
+
+  let activeEntCat = 'ALL';
+
+  function filterEnterprises(cat){
+    if(cat !== undefined) activeEntCat = cat;
+    // Update button styles
+    document.querySelectorAll('.ent-cat-btn').forEach(btn=>{
+      const on = btn.dataset.cat === activeEntCat;
+      btn.style.fontWeight = on ? '900' : '400';
+      btn.style.background = on ? 'rgba(255,204,0,.15)' : '';
+      btn.style.border     = on ? '1px solid rgba(255,204,0,.4)' : '';
+    });
+    const q = (document.getElementById('ent-search')?.value||'').toLowerCase();
+    const filtered = ENTERPRISE_DATA.filter(e=>{
+      const catMatch = activeEntCat==='ALL' || e.cat===activeEntCat;
+      const qMatch   = !q || e.name.toLowerCase().includes(q) ||
+                       e.country.toLowerCase().includes(q) ||
+                       e.detail.toLowerCase().includes(q) ||
+                       e.status.toLowerCase().includes(q);
+      return catMatch && qMatch;
+    });
+    renderEnterprises(filtered);
+  }
+
+  function renderEnterprises(list){
+    const el = document.getElementById('ent-grid');
+    const countEl = document.getElementById('ent-count');
+    if(!el) return;
+    if(countEl) countEl.textContent = list.length + ' institution' + (list.length!==1?'s':'');
+    if(!list.length){
+      el.innerHTML='<div style="padding:20px;font-size:13px;color:var(--tx);font-family:var(--mn);text-align:center">No results. Try a different search or filter.</div>';
+      return;
+    }
+    const catColors = {A:'var(--gr)',B:'var(--bl)',C:'var(--tq)',D:'var(--or)',E:'var(--yl)'};
+    const catLabels = {A:'ODL/XRP',B:'BANKING',C:'TECH',D:'REGIONAL',E:'ETF/TREASURY'};
+    const statusColors = {
+      'LIVE ODL':'var(--gr)','LIVE':'var(--gr)','LIVE ETF':'var(--gr)',
+      'PRODUCTION':'var(--bl)','REGISTERED':'var(--bl)',
+      'PILOT':'var(--yl)','EXPLORING':'var(--yl)','EVALUATING':'var(--yl)','EXPANDING':'var(--yl)',
+      'FILED':'var(--or)','TREASURY':'var(--or)','PARTICIPANT':'var(--or)',
+      'PIONEER':'var(--tx)','HISTORICAL':'var(--tx)','INFRASTRUCTURE':'var(--tq)',
+      'ACQUIRED':'var(--tq)',
+    };
+    el.innerHTML = list.map(e=>{
+      const cc = catColors[e.cat]||'var(--tx)';
+      const sc = statusColors[e.status]||'var(--tx)';
+      return `<div style="display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);
+        align-items:flex-start;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.02)'"
+        onmouseout="this.style.background=''">
+        <div style="min-width:80px;padding-top:2px">
+          <span style="font-size:10px;font-weight:700;color:${cc};background:${cc}18;
+            padding:2px 7px;border-radius:3px;font-family:var(--mn)">${catLabels[e.cat]}</span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:3px">
+            <span style="font-size:14px;font-weight:700;color:var(--br)">${e.name}</span>
+            <span style="font-size:12px;color:var(--tx)">${e.country}</span>
+            <span style="font-size:11px;font-weight:700;color:${sc};font-family:var(--mn)">${e.status}</span>
+          </div>
+          <div style="font-size:13px;color:var(--tx);line-height:1.5">${e.detail}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Initialize on page load
+  setTimeout(()=>filterEnterprises('ALL'), 600);
 
 </script>
 
