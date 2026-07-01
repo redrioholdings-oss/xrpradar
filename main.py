@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 1 — Frame / Baseline Shell (black, exact Iteration-1 look)
+Version 2 — Frame + Status Row (black, exact Iteration-1 look)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -38,7 +38,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "1"
+APP_VERSION = "2"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -103,7 +103,7 @@ def render_page():
     --yl:#ffcc00; --yld:rgba(255,204,0,.1);
     --bl:#75bcff; --bld:rgba(117,188,255,.12);
     --tq:#00e5cc; --tqd:rgba(0,229,204,.15);
-    --or:#ff9900; --tx:#8099b3; --br:#cce0ff;
+    --or:#FF3D08; --tx:#8099b3; --br:#cce0ff;
     --mn:'Courier New',monospace;
   }}
   *{{ box-sizing:border-box; }}
@@ -138,7 +138,7 @@ def render_page():
   /* ─── HEADER ─────────────────────────────────────────────────── */
   .hdr{{
     display:flex; align-items:center; justify-content:space-between;
-    margin-bottom:10px; padding-bottom:8px;
+    margin-bottom:10px; padding-top:18px; padding-bottom:20px;
     border-bottom:2px solid var(--bl); flex-wrap:wrap; gap:6px;
   }}
   .logo{{ display:flex; align-items:center; gap:10px; }}
@@ -160,6 +160,16 @@ def render_page():
   .pill{{ padding:5px 14px; border-radius:20px; font-size:13px; font-family:var(--mn); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }}
   .plive{{ background:var(--grd); color:var(--gr); border:1px solid rgba(72,255,130,.4); }}
   .upd{{ font-family:var(--mn); font-size:13px; color:var(--tx); }}
+
+
+  /* ─── STATUS ROW (3 equal rectangles) ───────────────────────── */
+  .srow{{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0; }}
+  .si{{
+    background:var(--s1); border:1px solid var(--b); border-radius:8px;
+    padding:10px 14px; display:flex; align-items:center; justify-content:space-between;
+  }}
+  .si-lbl{{ color:var(--tx); font-size:13px; font-family:var(--mn); }}
+  .sv{{ font-weight:800; font-size:24px; font-family:var(--mn); color:var(--tq); }}  /* values turquoise */
 
   /* ─── MAIN ───────────────────────────────────────────────────── */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:50vh; }}
@@ -238,6 +248,14 @@ def render_page():
         <span class="pill plive" id="feedPill">SHELL OK</span>
         <span class="upd" id="uts">{boot_str}</span>
       </div>
+    </div>
+    </div>
+
+    <!-- ═══ SECTION 2: STATUS ROW (3 equal rectangles) ═══ -->
+    <div class="srow">
+      <div class="si"><span class="si-lbl">💲 XRP / USD</span><span class="sv" id="st-price">—</span></div>
+      <div class="si"><span class="si-lbl">📡 Active Sources</span><span class="sv" id="st-feeds">—</span></div>
+      <div class="si"><span class="si-lbl">😰 Fear &amp; Greed</span><span class="sv" id="st-fg">—</span></div>
     </div>
   </div>
 
