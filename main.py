@@ -1,24 +1,25 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 3 — Status Row with live values + Fear & Greed gauge
+Version 4 — Status row refinements
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
 Freshly written. No code copied from Iteration 1.
 
-Version 3 changes:
-  1. Breaking News label returned to the original orange (#ff9900).
-  2. Status row: labels are now white, a bit larger, and each rectangle
-     shows a real numeric value.
-  3. Fear & Greed is rendered as a traditional color-coded semicircle
-     gauge with a needle.
-  4. The little label icons are a bit larger.
+Version 4 changes:
+  1. Status rectangles return to the compact horizontal layout (label on
+     the left, value on the right) like the prior version.
+  2. Fear & Greed is a horizontal color-coded line with a ball that shows
+     the number, the ball tinted by zone color.
+  3. XRP price is red or green based on 24h movement.
+  4. Active Sources value uses the same blue as the headers.
+  5. The three little label icons are larger.
 
-Live data (fetched in a background thread, so page loads stay fast):
-  • XRP / USD       — CoinCap (free, reliable; not CoinGecko)
-  • Fear & Greed    — alternative.me (free)
-  • Active Sources  — count of live data sources currently connected
+Live data (background thread, refreshed every 60s):
+  • XRP / USD      — CoinCap
+  • Fear & Greed   — alternative.me
+  • Active Sources — count of live data sources connected
 ATH, CoinGecko, and access-limited feeds remain permanently excluded.
 ═══════════════════════════════════════════════════════════════════════
 """
@@ -34,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "3"
+APP_VERSION = "4"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -54,9 +55,7 @@ MARKET = {
 
 def fetch_market():
     active = 0
-    hdr = {"User-Agent": "XRPRadar/3"}
-
-    # XRP / USD — CoinCap (free, reliable)
+    hdr = {"User-Agent": "XRPRadar/4"}
     try:
         r = requests.get("https://api.coincap.io/v2/assets/xrp", headers=hdr, timeout=5)
         d = r.json().get("data", {})
@@ -68,8 +67,6 @@ def fetch_market():
             active += 1
     except Exception:
         pass
-
-    # Fear & Greed — alternative.me (free)
     try:
         r = requests.get("https://api.alternative.me/fng/", headers=hdr, timeout=5)
         d = r.json().get("data", [{}])[0]
@@ -78,7 +75,6 @@ def fetch_market():
         active += 1
     except Exception:
         pass
-
     MARKET["sources_active"] = active
     MARKET["updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -95,38 +91,27 @@ threading.Thread(target=_bg_refresh, daemon=True).start()
 
 
 # ─────────────────────────────────────────────────────────────────────
-# FEAR & GREED GAUGE (traditional color-coded semicircle + needle)
+# FEAR & GREED — horizontal color-coded line + tinted ball with number
 # ─────────────────────────────────────────────────────────────────────
-def fng_gauge_svg(value):
-    import math
-    v = 0 if value is None else max(0, min(100, int(value)))
-    cx, cy, r = 90, 92, 66
-    segs = [
-        (0, 20,  "#ea3943"),   # extreme fear  — red
-        (20, 40, "#ea8c00"),   # fear          — orange
-        (40, 60, "#f3d42f"),   # neutral       — yellow
-        (60, 80, "#93d900"),   # greed         — light green
-        (80, 100,"#16c784"),   # extreme greed — green
-    ]
-    def pt(val, rr):
-        theta = math.radians(180 - 1.8 * val)
-        return (cx + rr * math.cos(theta), cy - rr * math.sin(theta))
+def fng_zone_color(v):
+    if v < 25:   return "#ea3943"   # extreme fear  — red
+    if v < 45:   return "#ea8c00"   # fear          — orange
+    if v < 55:   return "#f3d42f"   # neutral       — yellow
+    if v < 75:   return "#93d900"   # greed         — light green
+    return "#16c784"                # extreme greed — green
 
-    arcs = ""
-    for v1, v2, col in segs:
-        x1, y1 = pt(v1, r)
-        x2, y2 = pt(v2, r)
-        arcs += (f'<path d="M {x1:.1f},{y1:.1f} A {r},{r} 0 0,1 {x2:.1f},{y2:.1f}" '
-                 f'stroke="{col}" stroke-width="13" fill="none"/>')
-    nx, ny = pt(v, r - 12)
-    needle = (f'<line x1="{cx}" y1="{cy}" x2="{nx:.1f}" y2="{ny:.1f}" '
-              f'stroke="#ffffff" stroke-width="3"/>'
-              f'<circle cx="{cx}" cy="{cy}" r="5" fill="#ffffff"/>')
-    num = (f'<text x="{cx}" y="{cy-16}" text-anchor="middle" fill="#00e5cc" '
-           f'font-family="Courier New,monospace" font-size="28" font-weight="800">'
-           f'{v if value is not None else "--"}</text>')
-    return (f'<svg viewBox="0 0 180 112" width="180" height="112" '
-            f'xmlns="http://www.w3.org/2000/svg">{arcs}{needle}{num}</svg>')
+def fng_bar_html(value):
+    if value is None:
+        return ('<div class="fng-wrap">'
+                '<div class="fng-bar"></div>'
+                '<div class="fng-ball" style="left:50%;background:#555">--</div>'
+                '</div>')
+    v = max(0, min(100, int(value)))
+    col = fng_zone_color(v)
+    return (f'<div class="fng-wrap">'
+            f'<div class="fng-bar"></div>'
+            f'<div class="fng-ball" style="left:{v}%;background:{col}">{v}</div>'
+            f'</div>')
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -143,14 +128,13 @@ def run_preflight():
         checks.append(("Uptime clock running", False, str(e)))
     port = os.environ.get("PORT", "8080")
     checks.append(("Port configured", bool(port), f"PORT={port}"))
-    # Informational only (does not affect PASS/FAIL): live sources may be 0
-    # until the app is on a network that can reach the data providers.
-    data_note = f"{MARKET['sources_active']}/{MARKET['sources_total']} connected"
 
     passed = sum(1 for _, ok, _ in checks if ok)
     total  = len(checks)
     overall = "PASS" if passed == total else "FAIL"
-    checks.append(("Live data sources", True, data_note))
+    # informational (does not affect PASS/FAIL)
+    checks.append(("Live data sources", True,
+                   f"{MARKET['sources_active']}/{MARKET['sources_total']} connected"))
     return checks, passed, total, overall
 
 
@@ -162,24 +146,21 @@ def render_page():
     overall_color = "#48ff82" if overall == "PASS" else "#ff4060"
     boot_str = BOOT_TIME.strftime("%Y-%m-%d %H:%M:%S UTC")
 
-    # Values for the status row
+    # XRP price — red or green by movement
     if MARKET["xrp_price"] is not None:
-        price_str = f"${MARKET['xrp_price']:.4f}"
         chg = MARKET["xrp_chg"] or 0
+        price_color = "#48ff82" if chg >= 0 else "#ff4060"
         arrow = "\u25B2" if chg >= 0 else "\u25BC"
+        price_str = f"${MARKET['xrp_price']:.4f}"
         chg_str = f"{arrow} {abs(chg):.2f}%"
     else:
+        price_color = "#8099b3"
         price_str = "\u2014"
         chg_str = ""
 
-    if MARKET["sources_active"] is not None:
-        sources_str = f"{MARKET['sources_active']} / {MARKET['sources_total']}"
-    else:
-        sources_str = "\u2014"
-
-    fng_val   = MARKET["fng"]
+    sources_str = f"{MARKET['sources_active']} / {MARKET['sources_total']}"
     fng_label = MARKET["fng_label"] or ""
-    gauge = fng_gauge_svg(fng_val)
+    fng_bar = fng_bar_html(MARKET["fng"])
 
     modal_rows = ""
     for label, ok, detail in checks:
@@ -237,17 +218,26 @@ def render_page():
   .plive{{ background:var(--grd); color:var(--gr); border:1px solid rgba(72,255,130,.4); }}
   .upd{{ font-family:var(--mn); font-size:13px; color:var(--tx); }}
 
-  /* STATUS ROW (3 equal rectangles) */
+  /* STATUS ROW — compact horizontal rectangles */
   .srow{{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0; }}
-  .si{{ background:var(--s1); border:1px solid var(--b); border-radius:8px; padding:14px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:150px; gap:6px; }}
-  .si-lbl{{ color:#ffffff; font-size:16px; font-family:var(--mn); font-weight:700; letter-spacing:.5px; display:flex; align-items:center; gap:8px; }}
-  .si-lbl .ic{{ font-size:24px; }}
-  .sv{{ font-weight:800; font-size:30px; font-family:var(--mn); color:var(--tq); line-height:1; }}
-  .sv-sub{{ font-size:14px; font-family:var(--mn); color:var(--tq); }}
-  .fng-cap{{ color:#ffffff; font-size:14px; font-family:var(--mn); font-weight:700; letter-spacing:.5px; }}
+  .si{{ background:var(--s1); border:1px solid var(--b); border-radius:8px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:64px; }}
+  .si-lbl{{ color:#ffffff; font-size:16px; font-family:var(--mn); font-weight:700; letter-spacing:.5px; display:flex; align-items:center; gap:9px; white-space:nowrap; }}
+  .si-lbl .ic{{ font-size:30px; }}
+  .sv{{ font-weight:800; font-size:24px; font-family:var(--mn); line-height:1; text-align:right; }}
+  .sv-sub{{ font-size:13px; font-family:var(--mn); margin-top:2px; }}
+
+  /* FEAR & GREED horizontal line + ball */
+  .fng-wrap{{ position:relative; width:180px; height:34px; display:flex; align-items:center; flex-shrink:0; }}
+  .fng-bar{{ width:100%; height:10px; border-radius:6px;
+    background:linear-gradient(90deg,#ea3943,#ea8c00,#f3d42f,#93d900,#16c784); }}
+  .fng-ball{{ position:absolute; top:50%; transform:translate(-50%,-50%);
+    width:32px; height:32px; border-radius:50%; border:2px solid #fff;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mn); font-weight:800; font-size:14px; color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.7); box-shadow:0 0 6px rgba(0,0,0,.5); }}
 
   /* MAIN */
-  main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:44vh; }}
+  main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
   h1.page-title{{ font-size:22px; font-weight:900; font-style:italic; margin:4px 0; color:var(--br); }}
   .subtitle{{ color:var(--tx); font-size:13px; font-family:var(--mn); letter-spacing:1px; margin-bottom:22px; }}
   .note{{ border:1px solid var(--b); border-radius:8px; background:var(--s1); padding:16px 20px; color:var(--tx); font-size:14px; }}
@@ -315,22 +305,22 @@ def render_page():
       </div>
     </div>
 
-    <!-- SECTION 2: STATUS ROW (3 equal rectangles) -->
+    <!-- SECTION 2: STATUS ROW (3 compact rectangles) -->
     <div class="srow">
       <div class="si">
         <span class="si-lbl"><span class="ic">\U0001F4B2</span> XRP / USD</span>
-        <span class="sv" id="st-price">{price_str}</span>
-        <span class="sv-sub" id="st-chg">{chg_str}</span>
+        <span>
+          <span class="sv" id="st-price" style="color:{price_color};display:block">{price_str}</span>
+          <span class="sv-sub" id="st-chg" style="color:{price_color};text-align:right;display:block">{chg_str}</span>
+        </span>
       </div>
       <div class="si">
         <span class="si-lbl"><span class="ic">\U0001F4E1</span> Active Sources</span>
-        <span class="sv" id="st-feeds">{sources_str}</span>
-        <span class="sv-sub">live data sources</span>
+        <span class="sv" id="st-feeds" style="color:var(--bl)">{sources_str}</span>
       </div>
       <div class="si">
         <span class="si-lbl"><span class="ic">\U0001F630</span> Fear &amp; Greed</span>
-        {gauge}
-        <span class="fng-cap" id="st-fg">{fng_label}</span>
+        {fng_bar}
       </div>
     </div>
   </div>
@@ -338,13 +328,13 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; STATUS ROW + FEAR &amp; GREED GAUGE</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; STATUS ROW REFINEMENTS</div>
     <div class="note">
-      Status row now carries live values: XRP / USD (CoinCap), Active Sources
-      (live data-source count), and a color-coded Fear &amp; Greed gauge
-      (alternative.me). Labels are white and larger; values are turquoise.
-      More sections follow, each verified first. ATH, CoinGecko, and
-      access-limited feeds remain permanently excluded.
+      Status rectangles are compact and horizontal again. XRP price is red or
+      green by movement; Active Sources uses header blue; Fear &amp; Greed is a
+      horizontal color-coded line with a tinted ball showing the number. Labels
+      are white with larger icons. More sections follow, each verified first.
+      ATH, CoinGecko, and access-limited feeds remain permanently excluded.
     </div>
   </main>
 
@@ -459,7 +449,6 @@ def debug():
     })
 
 
-# Initial fetch so first page load has data if the network is quick.
 try:
     fetch_market()
 except Exception:
