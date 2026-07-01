@@ -1,27 +1,33 @@
 """
 ═══════════════════════════════════════════════════════════════════════
-XRPRadar — Iteration 2
-Version 4 — Header matched to the approved screenshot, on WHITE
+XRPRadar — Iteration 3
+Version 1 — Frame / Baseline Shell (black, exact Iteration-1 look)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
-Freshly written. The look is matched to the screenshot the owner approved;
-no code was copied from Iteration 1.
+Freshly written from scratch. No code copied from Iteration 1 — the look,
+fonts, sizes, and exact RGB palette are matched; the code is new.
 
-Layout (top to bottom), exactly as in the screenshot:
-  ROW 1  Breaking News bar   : ⚡ BREAKING NEWS (gold) | scrolling headline
-  ROW 2  Header              :
-           Left : blue rounded icon tile w/ satellite, "XRPRadar" (bold
-                  italic), "Signals Over Noise 24/7", "● 230 Sources Live"
-           Right: ● LIVE, green-bordered "203/230 FEEDS" pill, timestamp
-           Blue underline rule beneath the header
-  Footer, DEBUG button, Preflight DETAILS modal, floating Back-to-Top.
+This version rebuilds the Iteration-1 FRAME only:
+  • Breaking News bar (very top)
+  • Header: icon tile + title + tagline + Sources Live (left);
+            LIVE dot + FEEDS pill + date/time stamp (right)
+  • Footer: brand | version | updated | uptime + DEBUG button;
+            Not-Financial-Advice notice;
+            Feeds | Maintenance | Preflight + DETAILS button; copyright
+  • Preflight self-check (footer status + DETAILS modal)
+  • /debug and /ping routes
+  • Floating "Return to Site" button (for when a visitor opens a story
+    or extra window) + Back-to-Top behavior
 
-Color rule (as instructed):
-  • Keep every accent color and button — green, gold, blue, red, teal.
-  • Only fonts that were WHITE or GRAY are darkened to read on white.
-  • Accent colors are the exact screenshot neon values (no darkening).
-  • Page background is white.
+Exact Iteration-1 palette (RGB unchanged):
+  --bg#000  --s1#0a0a0a  --s2#111  --b#1a2030
+  --gr#48ff82 green  --rd#ff4060 red  --yl#ffcc00 gold
+  --bl#75bcff blue    --tq#00e5cc teal --or#ff9900 orange
+  --tx#8099b3 label   --br#cce0ff body  --mn 'Courier New'
+
+Permanently excluded (per standing instruction): ATH, CoinGecko, and any
+access-limited feeds. No data feeds or external calls in this version yet.
 ═══════════════════════════════════════════════════════════════════════
 """
 
@@ -32,12 +38,11 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION   = "4"
-APP_NAME      = "XRPRadar"
-TAGLINE       = "Signals Over Noise 24/7"
-SOURCES_TOTAL = 230          # shown in header; wired to live data in a later version
-COPYRIGHT     = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
-BOOT_TIME     = datetime.now(timezone.utc)
+APP_VERSION = "1"
+APP_NAME    = "XRPRadar"
+TAGLINE     = "Signals Over Noise 24/7"
+COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
+BOOT_TIME   = datetime.now(timezone.utc)
 
 app = Flask(__name__)
 
@@ -68,12 +73,12 @@ def run_preflight():
 # ─────────────────────────────────────────────────────────────────────
 def render_page():
     checks, passed, total, overall = run_preflight()
-    overall_color = "#1E7E34" if overall == "PASS" else "#C0392B"
+    overall_color = "#48ff82" if overall == "PASS" else "#ff4060"
     boot_str = BOOT_TIME.strftime("%Y-%m-%d %H:%M:%S UTC")
 
     modal_rows = ""
     for label, ok, detail in checks:
-        c = "#1E7E34" if ok else "#C0392B"
+        c = "#48ff82" if ok else "#ff4060"
         t = "PASS" if ok else "FAIL"
         modal_rows += (
             '<div class="pf-row">'
@@ -90,173 +95,168 @@ def render_page():
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{APP_NAME} \u2014 {TAGLINE}</title>
 <style>
-  /* ─── PALETTE ──────────────────────────────────────────────────
-     Accents identical to the screenshot. White/gray fonts darkened
-     for a white background. */
-  :root {{
-    --bg:#ffffff;                 /* page background (white)             */
-    --panel:#f7f9fb;              /* faint panel fill                    */
-    --line:#dbe3ec;              /* hairline border                     */
-
-    /* accents kept from the screenshot */
-    --green:#48ff82;             /* exact screenshot neon green          */
-    --green-soft:rgba(72,255,130,.12);
-    --gold:#ffcc00;              /* exact screenshot neon gold           */
-    --blue:#75bcff;              /* exact screenshot blue                */
-    --blue-tile1:#001a3a;        /* icon tile gradient (unchanged)        */
-    --blue-tile2:#0066cc;
-    --blue-tile3:#75bcff;
-    --orange:#ff9900;            /* exact screenshot orange              */
-
-    /* fonts that were white/gray — darkened */
-    --ink:#1a2a4a;               /* was white title / body text           */
-    --ink-soft:#5a6b7a;          /* was gray tagline / timestamp / labels */
-
+  /* ─── EXACT ITERATION-1 PALETTE (RGB unchanged) ─────────────── */
+  :root{{
+    --bg:#000; --s1:#0a0a0a; --s2:#111; --b:#1a2030;
+    --gr:#48ff82; --grd:rgba(72,255,130,.1);
+    --rd:#ff4060; --rdd:rgba(255,64,96,.1);
+    --yl:#ffcc00; --yld:rgba(255,204,0,.1);
+    --bl:#75bcff; --bld:rgba(117,188,255,.12);
+    --tq:#00e5cc; --tqd:rgba(0,229,204,.15);
+    --or:#ff9900; --tx:#8099b3; --br:#cce0ff;
     --mn:'Courier New',monospace;
   }}
-
-  * {{ box-sizing:border-box; }}
-  body {{
-    margin:0; background:var(--bg); color:var(--ink);
+  *{{ box-sizing:border-box; }}
+  body{{
+    background:var(--bg); color:var(--br);
     font-family:system-ui,sans-serif; font-size:15px;
-    min-height:100vh; -webkit-font-smoothing:antialiased;
+    min-height:100vh; -webkit-font-smoothing:antialiased; margin:0;
   }}
+  .w{{ max-width:2400px; margin:0 auto; padding:10px 28px; }}
 
-  /* ─── ROW 1: BREAKING NEWS BAR (very top) ────────────────────── */
-  #breaking {{
-    background:var(--panel);
-    border-bottom:2px solid rgba(255,204,0,.5);
-    padding:9px 0; display:flex; align-items:center; overflow:hidden;
+  /* ─── BREAKING NEWS BAR (very top) ──────────────────────────── */
+  #breaking{{
+    background:var(--s1); border-bottom:2px solid rgba(255,153,0,.4);
+    padding:8px 0; display:flex; align-items:center; overflow:hidden;
   }}
-  .bkinner {{ max-width:2400px; margin:0 auto; padding:0 28px; display:flex; align-items:center; width:100%; gap:16px; }}
-  .bklbl {{
-    color:var(--gold); font-weight:900; font-size:16px; font-family:var(--mn);
-    flex-shrink:0; padding-right:16px; border-right:2px solid rgba(255,204,0,.5);
-    text-transform:uppercase; letter-spacing:.08em; white-space:nowrap;
+  .bkinner{{ max-width:2400px; margin:0 auto; padding:0 28px; display:flex; align-items:center; width:100%; }}
+  .bklbl{{
+    color:var(--or); font-weight:900; font-size:16px; font-family:var(--mn);
+    flex-shrink:0; padding-right:14px; margin-right:14px;
+    border-right:2px solid rgba(255,153,0,.5);
+    text-transform:uppercase; letter-spacing:.08em;
   }}
-  .bkscroll {{ flex:1; overflow:hidden; height:24px; display:flex; align-items:center; }}
-  .bktext {{ font-size:15px; color:var(--ink-soft); font-family:system-ui; font-weight:500; white-space:nowrap; }}
+  .bkscroll{{ flex:1; overflow:hidden; height:26px; position:relative; display:flex; align-items:center; }}
+  .bktext{{
+    display:inline-block; animation:bkscroll 45s linear infinite; white-space:nowrap;
+    cursor:default; will-change:transform; padding-left:100%;
+    font-size:15px; color:var(--br); font-family:system-ui; font-weight:500; line-height:26px;
+  }}
+  .bkscroll:hover .bktext{{ animation-play-state:paused; }}
+  @keyframes bkscroll{{ 0%{{transform:translateX(0)}} 100%{{transform:translateX(-100%)}} }}
 
-  /* ─── ROW 2: HEADER ──────────────────────────────────────────── */
-  .hdr {{
-    max-width:2400px; margin:0 auto; padding:14px 28px 10px;
-    display:flex; align-items:flex-start; justify-content:space-between;
-    border-bottom:2px solid var(--blue); flex-wrap:wrap; gap:12px;
+  /* ─── HEADER ─────────────────────────────────────────────────── */
+  .hdr{{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:10px; padding-bottom:8px;
+    border-bottom:2px solid var(--bl); flex-wrap:wrap; gap:6px;
   }}
-  .logo {{ display:flex; align-items:center; gap:14px; }}
-  .icon {{
-    width:60px; height:60px; border-radius:12px;
-    background:linear-gradient(135deg,var(--blue-tile1),var(--blue-tile2),var(--blue-tile3));
-    display:flex; align-items:center; justify-content:center; font-size:34px;
-    box-shadow:0 2px 10px rgba(117,188,255,.4); flex-shrink:0;
+  .logo{{ display:flex; align-items:center; gap:10px; }}
+  .icon{{
+    width:60px; height:60px; border-radius:10px;
+    background:linear-gradient(135deg,#001a3a,#0066cc,#75bcff);
+    display:flex; align-items:center; justify-content:center; font-size:36px;
+    box-shadow:0 0 16px rgba(117,188,255,.4);
   }}
-  .title {{ font-size:26px; font-weight:800; color:var(--ink); font-style:italic; line-height:1.1; }}
-  .sub {{ font-size:14px; font-family:var(--mn); color:var(--ink-soft); margin-top:3px; letter-spacing:.5px; }}
-  .sub.sources {{ color:var(--green); font-weight:700; }}
-
-  .hright {{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding-top:4px; }}
-  .live-wrap {{ display:flex; align-items:center; gap:8px; }}
-  .dot {{
-    width:12px; height:12px; border-radius:50%; background:var(--green);
-    box-shadow:0 0 8px rgba(72,255,130,.6); display:inline-block; animation:blink 2s infinite;
+  .title{{ font-size:22px; font-weight:900; color:var(--br); font-style:italic; }}
+  .sub{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-top:2px; letter-spacing:1px; }}
+  .hright{{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
+  .dot{{
+    width:12px; height:12px; border-radius:50%; background:var(--gr);
+    box-shadow:0 0 10px var(--gr); display:inline-block; animation:blink 2s infinite;
   }}
-  @keyframes blink {{ 50% {{ opacity:.25; }} }}
-  .live-lbl {{ font-size:16px; font-weight:800; font-family:var(--mn); color:var(--ink); letter-spacing:1px; }}
-  .feeds-pill {{
-    padding:6px 16px; border-radius:20px; font-size:15px; font-family:var(--mn);
-    font-weight:700; letter-spacing:1px; color:var(--green);
-    background:var(--green-soft); border:1px solid rgba(72,255,130,.5);
-  }}
-  .stamp {{ font-family:var(--mn); font-size:14px; color:var(--ink-soft); }}
+  @keyframes blink{{ 50%{{opacity:.1}} }}
+  .run-lbl{{ font-size:15px; font-weight:800; font-family:var(--mn); color:var(--gr); letter-spacing:1px; }}
+  .pill{{ padding:5px 14px; border-radius:20px; font-size:13px; font-family:var(--mn); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }}
+  .plive{{ background:var(--grd); color:var(--gr); border:1px solid rgba(72,255,130,.4); }}
+  .upd{{ font-family:var(--mn); font-size:13px; color:var(--tx); }}
 
   /* ─── MAIN ───────────────────────────────────────────────────── */
-  main {{ max-width:1180px; margin:0 auto; padding:20px 28px 80px; min-height:52vh; }}
-  h1.page-title {{ font-size:22px; font-weight:800; font-style:italic; margin:4px 0; color:var(--ink); }}
-  .subtitle {{ color:var(--ink-soft); font-size:13px; font-family:var(--mn); letter-spacing:1px; margin-bottom:22px; }}
-  .note {{ border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:16px 20px; color:var(--ink-soft); font-size:14px; }}
+  main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:50vh; }}
+  h1.page-title{{ font-size:22px; font-weight:900; font-style:italic; margin:4px 0; color:var(--br); }}
+  .subtitle{{ color:var(--tx); font-size:13px; font-family:var(--mn); letter-spacing:1px; margin-bottom:22px; }}
+  .note{{ border:1px solid var(--b); border-radius:8px; background:var(--s1); padding:16px 20px; color:var(--tx); font-size:14px; }}
 
   /* ─── FOOTER ─────────────────────────────────────────────────── */
-  footer {{
-    border-top:2px solid var(--blue); background:var(--bg);
-    padding:16px 28px 14px; text-align:center;
-    color:var(--ink-soft); font-size:13px; font-family:var(--mn);
+  footer{{
+    border-top:2px solid var(--bl); background:var(--bg);
+    padding:16px 28px 16px; text-align:center;
+    color:var(--tx); font-size:13px; font-family:var(--mn);
   }}
-  footer .f-line {{ margin:5px 0; }}
-  footer .brand-em {{ color:var(--blue); font-weight:700; font-style:normal; }}
-  footer .val {{ color:var(--ink); font-weight:700; }}
-  .footer-btn {{ font-family:var(--mn); font-size:13px; font-weight:700; text-decoration:none; border-radius:3px; padding:1px 8px; cursor:pointer; margin-left:6px; }}
-  .debug-btn {{ color:var(--orange); border:1px solid var(--orange); background:#fff; }}
-  .debug-btn:hover {{ background:#fff7ec; }}
-  .details-btn {{ color:var(--blue); border:1px solid var(--blue); background:#fff; }}
-  .details-btn:hover {{ background:#eef4fb; }}
-  .notice {{ color:var(--gold); }}
-  .copyright {{ font-size:12px; color:var(--ink-soft); border-top:1px solid var(--line); padding-top:10px; margin-top:10px; }}
+  footer .f-line{{ margin:5px 0; }}
+  footer .brand-em{{ color:var(--bl); font-weight:700; font-style:normal; }}
+  footer .val{{ color:var(--br); font-weight:700; }}
+  .footer-btn{{ font-family:var(--mn); font-size:13px; font-weight:700; text-decoration:none; border-radius:3px; padding:1px 8px; cursor:pointer; margin-left:6px; }}
+  .debug-btn{{ color:var(--or); border:1px solid var(--or); background:transparent; }}
+  .debug-btn:hover{{ background:rgba(255,153,0,.12); }}
+  .details-btn{{ color:var(--bl); border:1px solid var(--bl); background:transparent; }}
+  .details-btn:hover{{ background:var(--bld); }}
+  .notice{{ color:var(--yl); }}
+  .copyright{{ font-size:12px; color:var(--tx); border-top:1px solid var(--b); padding-top:10px; margin-top:10px; }}
 
   /* ─── PREFLIGHT MODAL ────────────────────────────────────────── */
-  #pf-modal {{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center; padding:20px; }}
-  #pf-box {{ background:#fff; border:1px solid var(--blue); border-radius:10px; max-width:580px; width:100%; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,.2); }}
-  #pf-box .pf-head {{ padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; font-family:var(--mn); }}
-  #pf-box .pf-head .t {{ color:var(--blue); font-weight:800; font-size:13px; text-transform:uppercase; letter-spacing:1px; }}
-  #pf-box .pf-head .x {{ color:var(--blue); cursor:pointer; font-size:16px; border:1px solid var(--blue); width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:4px; }}
-  #pf-box .pf-body {{ padding:14px 16px; font-family:var(--mn); font-size:13px; }}
-  #pf-box .pf-overall {{ font-weight:800; color:{overall_color}; margin-bottom:10px; }}
-  .pf-row {{ display:grid; grid-template-columns:1fr auto; grid-template-areas:"label badge" "detail detail"; gap:2px 10px; padding:8px 0; border-bottom:1px solid var(--line); }}
-  .pf-row-label  {{ grid-area:label; font-weight:700; color:var(--ink); }}
-  .pf-row-badge  {{ grid-area:badge; font-weight:800; }}
-  .pf-row-detail {{ grid-area:detail; color:var(--ink-soft); font-size:12px; }}
+  #pf-modal{{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:9999; align-items:center; justify-content:center; padding:20px; }}
+  #pf-box{{ background:var(--s1); border:1px solid var(--bl); border-radius:10px; max-width:580px; width:100%; overflow:hidden; }}
+  #pf-box .pf-head{{ padding:12px 16px; background:var(--s2); border-bottom:1px solid var(--b); display:flex; justify-content:space-between; align-items:center; font-family:var(--mn); }}
+  #pf-box .pf-head .t{{ color:var(--bl); font-weight:800; font-size:13px; text-transform:uppercase; letter-spacing:1px; }}
+  #pf-box .pf-head .x{{ color:var(--bl); cursor:pointer; font-size:18px; font-weight:900; border:1px solid var(--bl); width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:4px; }}
+  #pf-box .pf-head .x:hover{{ background:var(--bl); color:#000; }}
+  #pf-box .pf-body{{ padding:14px 16px; font-family:var(--mn); font-size:13px; }}
+  #pf-box .pf-overall{{ font-weight:800; color:{overall_color}; margin-bottom:10px; }}
+  .pf-row{{ display:grid; grid-template-columns:1fr auto; grid-template-areas:"label badge" "detail detail"; gap:2px 10px; padding:8px 0; border-bottom:1px solid var(--b); }}
+  .pf-row-label{{ grid-area:label; font-weight:700; color:var(--br); }}
+  .pf-row-badge{{ grid-area:badge; font-weight:800; }}
+  .pf-row-detail{{ grid-area:detail; color:var(--tx); font-size:12px; }}
 
-  /* ─── FLOATING BACK-TO-TOP ───────────────────────────────────── */
-  #back-to-top {{ position:fixed; right:22px; bottom:22px; z-index:200; background:var(--blue); color:#fff; border:none; border-radius:50%; width:46px; height:46px; font-size:20px; font-weight:900; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.18); display:none; align-items:center; justify-content:center; line-height:1; }}
-  #back-to-top:hover {{ opacity:.88; }}
+  /* ─── FLOATING RETURN / BACK-TO-TOP BUTTON ───────────────────── */
+  #back-to-top{{
+    position:fixed; right:22px; bottom:22px; z-index:200;
+    background:var(--bl); color:#000; border:none; border-radius:50%;
+    width:46px; height:46px; font-size:20px; font-weight:900; cursor:pointer;
+    box-shadow:0 0 14px rgba(117,188,255,.5);
+    display:none; align-items:center; justify-content:center; line-height:1;
+  }}
+  #back-to-top:hover{{ background:#a6d4ff; }}
 </style>
 </head>
 <body id="top">
 
-  <!-- ═══ ROW 1: BREAKING NEWS BAR (very top, above header) ═══ -->
+  <!-- ═══ BREAKING NEWS BAR (very top) ═══ -->
   <div id="breaking">
     <div class="bkinner">
       <span class="bklbl">\u26A1 BREAKING NEWS</span>
       <div class="bkscroll">
-        <div class="bktext" id="bktext">News feed connects in a later version \u2014 bar shown in its Iteration-1 position at the very top.</div>
+        <div class="bktext" id="bktext">Monitoring XRP global news feeds \u2014 live headlines connect in a later version.</div>
       </div>
     </div>
   </div>
 
-  <!-- ═══ ROW 2: HEADER ═══ -->
-  <div class="hdr">
-    <div class="logo">
-      <div class="icon">\U0001F6F0\uFE0F</div>
-      <div>
-        <div class="title">{APP_NAME}</div>
-        <div class="sub">{TAGLINE}</div>
-        <div class="sub sources">\u25CF {SOURCES_TOTAL} Sources Live</div>
+  <div class="w">
+    <!-- ═══ HEADER ═══ -->
+    <div class="hdr">
+      <div class="logo">
+        <div class="icon">\U0001F6F0\uFE0F</div>
+        <div>
+          <div class="title">{APP_NAME}</div>
+          <div class="sub" style="font-size:13px;color:#ffffff;letter-spacing:1.5px">{TAGLINE}</div>
+          <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">\u25CF Frame Live</div>
+        </div>
       </div>
-    </div>
-    <div class="hright">
-      <div class="live-wrap">
+      <div class="hright">
         <span class="dot"></span>
-        <span class="live-lbl">LIVE</span>
+        <span class="run-lbl">LIVE</span>
+        <span class="pill plive" id="feedPill">SHELL OK</span>
+        <span class="upd" id="uts">{boot_str}</span>
       </div>
-      <span class="feeds-pill" id="feedPill">0/{SOURCES_TOTAL} FEEDS</span>
-      <span class="stamp" id="uts">{boot_str}</span>
     </div>
   </div>
 
   <!-- ═══ MAIN ═══ -->
   <main>
-    <h1 class="page-title">{APP_NAME} \u2014 Iteration 2</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; HEADER MATCHED TO SCREENSHOT (WHITE)</div>
+    <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; FRAME / BASELINE SHELL</div>
     <div class="note">
-      The Breaking News bar sits at the very top, above the header, exactly as
-      in the screenshot. The header shows the icon tile, title, tagline, sources
-      line, LIVE indicator, FEEDS pill, and date/time stamp. Accent colors are
-      kept; white and gray fonts were darkened to read on white. Data sections
-      arrive in later versions, two to three at a time, each verified first.
+      Iteration-1 frame on black, rebuilt fresh: Breaking News bar at the top,
+      header with icon, title, tagline, Sources line, LIVE indicator, FEEDS
+      pill, and date/time stamp; footer with DEBUG button and Preflight DETAILS;
+      and a floating Return-to-Site button. Data sections are added in later
+      versions, two to three at a time, each verified first. ATH, CoinGecko,
+      and access-limited feeds are permanently excluded.
     </div>
   </main>
 
-  <!-- ═══ FLOATING RETURN BUTTON ═══ -->
-  <button id="back-to-top" title="Back to top" aria-label="Back to top">&#8679;</button>
+  <!-- ═══ FLOATING RETURN / BACK-TO-TOP BUTTON ═══ -->
+  <button id="back-to-top" title="Return to top of site" aria-label="Return to site">&#8679;</button>
 
   <!-- ═══ FOOTER ═══ -->
   <footer>
@@ -289,13 +289,13 @@ def render_page():
       <div class="pf-body">
         <div class="pf-overall">OVERALL: {overall} &nbsp;({passed}/{total} checks passed)</div>
         {modal_rows}
-        <div style="margin-top:10px;color:var(--ink-soft);font-size:12px">Last run: {boot_str}</div>
+        <div style="margin-top:10px;color:var(--tx);font-size:12px">Last run: {boot_str}</div>
       </div>
     </div>
   </div>
 
   <script>
-    // Live uptime counter in the footer
+    // Live uptime counter (footer)
     (function () {{
       var bootMs = {int(BOOT_TIME.timestamp() * 1000)};
       var el = document.getElementById('ft-uptime');
@@ -313,7 +313,7 @@ def render_page():
     function closePFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'none'; }}
     document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') closePFModal(); }});
 
-    // Floating back-to-top
+    // Floating return / back-to-top
     (function () {{
       var btn = document.getElementById('back-to-top'); if (!btn) return;
       function toggle() {{ btn.style.display = (window.scrollY > 200) ? 'flex' : 'none'; }}
@@ -347,7 +347,7 @@ def debug():
     return jsonify({
         "app":           APP_NAME,
         "version":       APP_VERSION,
-        "iteration":     2,
+        "iteration":     3,
         "preflight":     overall,
         "checks_passed": f"{passed}/{total}",
         "checks": [
