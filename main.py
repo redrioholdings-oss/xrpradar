@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 9 — All icons unified to 30px
+Version 10 — All headers blue #03b1fc (trial)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "9"
+APP_VERSION = "10"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -379,7 +379,7 @@ def render_page():
     --yl:#ffcc00; --yld:rgba(255,204,0,.1);
     --bl:#75bcff; --bld:rgba(117,188,255,.12);
     --tq:#00e5cc; --tqd:rgba(0,229,204,.15);
-    --or:#ff9900; --tx:#8099b3; --br:#cce0ff;
+    --or:#ff9900; --tx:#8099b3; --br:#cce0ff; --hdr:#03b1fc;
     --mn:'Courier New',monospace;
   }}
   *{{ box-sizing:border-box; }}
@@ -480,7 +480,7 @@ def render_page():
   .eco-wrap{{ background:linear-gradient(135deg,#06060f,#0a0a18); border:1px solid rgba(117,188,255,.3); border-radius:12px; overflow:hidden; margin:10px 0; }}
   .eco-head{{ padding:16px 18px; background:rgba(117,188,255,.06); border-bottom:1px solid rgba(117,188,255,.2); display:flex; align-items:center; gap:14px; }}
   .eco-head .gicon{{ font-size:30px; filter:drop-shadow(0 0 10px rgba(117,188,255,.6)); }}
-  .eco-title{{ font-size:18px; font-weight:900; color:#fff; font-family:var(--mn); text-transform:uppercase; letter-spacing:2px; }}
+  .eco-title{{ font-size:18px; font-weight:900; color:var(--hdr); font-family:var(--mn); text-transform:uppercase; letter-spacing:2px; }}
   .eco-sub{{ font-size:14px; font-family:system-ui; color:var(--bl); margin-top:3px; }}
   .eco-grid{{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:14px 18px; }}
   .eco-card{{ border-radius:8px; padding:14px; position:relative; overflow:hidden; }}
@@ -585,7 +585,7 @@ def render_page():
       <!-- LEFT COLUMN: RSI + 52-Week -->
       <div class="col">
         <div class="acct" style="border-color:rgba(117,188,255,.25)">
-          <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4D0</span> RSI Signals</div>
+          <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4D0</span> RSI Signals</div>
           <div style="margin-bottom:14px">
             <div class="rsi-head">
               <span style="color:var(--tx)">1H RSI</span>
@@ -615,7 +615,7 @@ def render_page():
         </div>
 
         <div class="acct grow" style="border-color:rgba(255,204,0,.25)">
-          <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4C5</span> 52-Week Range</div>
+          <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C5</span> 52-Week Range</div>
           <div class="w52-row">
             <span>Low: <strong style="color:var(--rd)">{w52_low_s}</strong></span>
             <span style="color:var(--tx)">Current: <strong style="color:var(--br)">{w52_cur_s}</strong></span>
@@ -635,12 +635,12 @@ def render_page():
       <!-- RIGHT COLUMN: Support/Resistance + Time Machine -->
       <div class="col">
         <div class="acct" style="border-color:rgba(117,188,255,.25)">
-          <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F3AF</span> Support &amp; Resistance</div>
+          <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3AF</span> Support &amp; Resistance</div>
           {sr_html}
         </div>
 
         <div class="acct grow" style="border-color:rgba(72,255,130,.25)">
-          <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4C6</span> Price Time Machine</div>
+          <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C6</span> Price Time Machine</div>
           <div class="agrid2">
             <div class="abox">{tm_1y_html}</div>
             <div class="abox">{tm_1m_html}</div>
@@ -655,7 +655,7 @@ def render_page():
 
     <!-- SECTION 4: LIVE XRP/USD CHART -->
     <div class="acct" style="padding:10px;border-color:rgba(117,188,255,.2);margin:10px 0">
-      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4CA</span> Live XRP/USD Chart</div>
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4CA</span> Live XRP/USD Chart</div>
       <div style="height:440px;border-radius:8px;overflow:hidden;border:1px solid var(--b)">
         <div class="tradingview-widget-container" style="width:100%;height:100%">
           <div class="tradingview-widget-container__widget" style="width:100%;height:100%"></div>
@@ -669,7 +669,7 @@ def render_page():
     <!-- SECTION 5: ON-CHAIN INTELLIGENCE + WHALE ALERT FEED -->
     <div class="oc-grid">
       <div class="acct" style="border-color:rgba(0,229,204,.25)">
-        <div class="sec-title" style="color:var(--tq)"><span class="sic">\u26D3\uFE0F</span> On-Chain Intelligence</div>
+        <div class="sec-title" style="color:var(--hdr)"><span class="sic">\u26D3\uFE0F</span> On-Chain Intelligence</div>
         <div class="ocbox-grid">
           <div class="ocbox tq">
             <div class="oclbl">RLUSD Supply</div>
@@ -707,7 +707,7 @@ def render_page():
 
       <div class="panel" style="border-color:rgba(255,204,0,.25)">
         <div class="ph">
-          <span class="pt" style="color:var(--tq)"><span class="sic">\U0001F433</span> Whale Alert Feed</span>
+          <span class="pt" style="color:var(--hdr)"><span class="sic">\U0001F433</span> Whale Alert Feed</span>
           <span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="whale-ts">\u2014</span>
         </div>
         <div class="whale-feed" id="whale-feed">
@@ -734,7 +734,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; ICONS UNIFIED 30PX</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; BLUE HEADERS #03b1fc (TRIAL)</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
