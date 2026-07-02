@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 10 — All headers blue #03b1fc (trial)
+Version 12 — Section borders follow the color legend
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "10"
+APP_VERSION = "12"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -468,7 +468,7 @@ def render_page():
   .esc-sep{{ color:var(--tx); font-size:18px; font-family:var(--mn); }}
   .panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; overflow:hidden; }}
   .ph{{ padding:10px 14px; border-bottom:1px solid var(--b); display:flex; justify-content:space-between; align-items:center; background:var(--s2); }}
-  .pt{{ font-size:16px; text-transform:uppercase; letter-spacing:2px; font-family:var(--mn); font-weight:800; display:flex; align-items:center; gap:10px; }}
+  .pt{{ font-size:19px; text-transform:uppercase; letter-spacing:2px; font-family:var(--mn); font-weight:800; display:flex; align-items:center; gap:10px; }}
   .pt .sic{{ font-size:30px; }}
   .whale-feed{{ padding:8px 14px; max-height:240px; overflow-y:auto; }}
   .whale-item{{ padding:10px 0; border-bottom:1px solid var(--b); }}
@@ -477,7 +477,7 @@ def render_page():
   .whale-meta{{ font-size:13px; font-family:var(--mn); color:var(--tx); }}
 
   /* SECTION 6 — XRP Ecosystem */
-  .eco-wrap{{ background:linear-gradient(135deg,#06060f,#0a0a18); border:1px solid rgba(117,188,255,.3); border-radius:12px; overflow:hidden; margin:10px 0; }}
+  .eco-wrap{{ background:linear-gradient(135deg,#06060f,#0a0a18); border:1px solid rgba(72,255,130,.35); border-radius:12px; overflow:hidden; margin:10px 0; }}
   .eco-head{{ padding:16px 18px; background:rgba(117,188,255,.06); border-bottom:1px solid rgba(117,188,255,.2); display:flex; align-items:center; gap:14px; }}
   .eco-head .gicon{{ font-size:30px; filter:drop-shadow(0 0 10px rgba(117,188,255,.6)); }}
   .eco-title{{ font-size:18px; font-weight:900; color:var(--hdr); font-family:var(--mn); text-transform:uppercase; letter-spacing:2px; }}
@@ -584,7 +584,7 @@ def render_page():
     <div class="grid2">
       <!-- LEFT COLUMN: RSI + 52-Week -->
       <div class="col">
-        <div class="acct" style="border-color:rgba(117,188,255,.25)">
+        <div class="acct" style="border-color:rgba(3,177,252,.35)">
           <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4D0</span> RSI Signals</div>
           <div style="margin-bottom:14px">
             <div class="rsi-head">
@@ -614,7 +614,7 @@ def render_page():
           </div>
         </div>
 
-        <div class="acct grow" style="border-color:rgba(255,204,0,.25)">
+        <div class="acct grow" style="border-color:rgba(3,177,252,.35)">
           <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C5</span> 52-Week Range</div>
           <div class="w52-row">
             <span>Low: <strong style="color:var(--rd)">{w52_low_s}</strong></span>
@@ -634,12 +634,12 @@ def render_page():
 
       <!-- RIGHT COLUMN: Support/Resistance + Time Machine -->
       <div class="col">
-        <div class="acct" style="border-color:rgba(117,188,255,.25)">
+        <div class="acct" style="border-color:rgba(255,64,96,.35)">
           <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3AF</span> Support &amp; Resistance</div>
           {sr_html}
         </div>
 
-        <div class="acct grow" style="border-color:rgba(72,255,130,.25)">
+        <div class="acct grow" style="border-color:rgba(3,177,252,.35)">
           <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C6</span> Price Time Machine</div>
           <div class="agrid2">
             <div class="abox">{tm_1y_html}</div>
@@ -654,7 +654,7 @@ def render_page():
     </div>
 
     <!-- SECTION 4: LIVE XRP/USD CHART -->
-    <div class="acct" style="padding:10px;border-color:rgba(117,188,255,.2);margin:10px 0">
+    <div class="acct" style="padding:10px;border-color:rgba(3,177,252,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4CA</span> Live XRP/USD Chart</div>
       <div style="height:440px;border-radius:8px;overflow:hidden;border:1px solid var(--b)">
         <div class="tradingview-widget-container" style="width:100%;height:100%">
@@ -668,7 +668,7 @@ def render_page():
 
     <!-- SECTION 5: ON-CHAIN INTELLIGENCE + WHALE ALERT FEED -->
     <div class="oc-grid">
-      <div class="acct" style="border-color:rgba(0,229,204,.25)">
+      <div class="acct" style="border-color:rgba(0,229,204,.35)">
         <div class="sec-title" style="color:var(--hdr)"><span class="sic">\u26D3\uFE0F</span> On-Chain Intelligence</div>
         <div class="ocbox-grid">
           <div class="ocbox tq">
@@ -705,7 +705,7 @@ def render_page():
         </div>
       </div>
 
-      <div class="panel" style="border-color:rgba(255,204,0,.25)">
+      <div class="panel" style="border-color:rgba(255,204,0,.35)">
         <div class="ph">
           <span class="pt" style="color:var(--hdr)"><span class="sic">\U0001F433</span> Whale Alert Feed</span>
           <span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="whale-ts">\u2014</span>
@@ -734,7 +734,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; BLUE HEADERS #03b1fc (TRIAL)</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; LEGEND-CODED BORDERS</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
