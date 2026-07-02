@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 15 — Double spacing above/below header title
+Version 16 — Breaking News label blue, bolt 30px
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "15"
+APP_VERSION = "16"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -393,7 +393,8 @@ def render_page():
   /* BREAKING NEWS BAR */
   #breaking{{ background:var(--s1); border-bottom:2px solid rgba(255,153,0,.4); padding:8px 0; display:flex; align-items:center; overflow:hidden; }}
   .bkinner{{ max-width:2400px; margin:0 auto; padding:0 28px; display:flex; align-items:center; width:100%; }}
-  .bklbl{{ color:var(--or); font-weight:900; font-size:16px; font-family:var(--mn); flex-shrink:0; padding-right:14px; margin-right:14px; border-right:2px solid rgba(255,153,0,.5); text-transform:uppercase; letter-spacing:.08em; }}
+  .bklbl{{ color:var(--hdr); font-weight:900; font-size:16px; font-family:var(--mn); flex-shrink:0; padding-right:14px; margin-right:14px; border-right:2px solid rgba(3,177,252,.5); text-transform:uppercase; letter-spacing:.08em; display:inline-flex; align-items:center; gap:9px; }}
+  .bk-bolt{{ font-size:30px; }}
   .bkscroll{{ flex:1; overflow:hidden; height:26px; position:relative; display:flex; align-items:center; }}
   .bktext{{ display:inline-block; animation:bkscroll 45s linear infinite; white-space:nowrap; will-change:transform; padding-left:100%; font-size:15px; color:var(--br); font-family:system-ui; font-weight:500; line-height:26px; }}
   .bkscroll:hover .bktext{{ animation-play-state:paused; }}
@@ -554,7 +555,7 @@ def render_page():
   <!-- BREAKING NEWS BAR -->
   <div id="breaking">
     <div class="bkinner">
-      <span class="bklbl">\u26A1 BREAKING NEWS</span>
+      <span class="bklbl"><span class="bk-bolt">\u26A1</span>BREAKING NEWS</span>
       <div class="bkscroll">
         <div class="bktext" id="bktext">Monitoring XRP global news feeds \u2014 live headlines connect in a later version.</div>
       </div>
@@ -794,7 +795,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; HEADER SPACING DOUBLED</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; BREAKING LABEL BLUE</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
