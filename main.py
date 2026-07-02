@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 12 — Section borders follow the color legend
+Version 13 — 8th ecosystem card (Validators) = 2 rows of 4
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "12"
+APP_VERSION = "13"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -214,6 +214,10 @@ ECOSYSTEM_CARDS = [
      "bg": "rgba(0,229,204,.06)", "bd": "rgba(0,229,204,.3)",
      "desc": "Tools, standards, and programmability: Hooks (lightweight smart contracts), AMM, native tokens, and multi-purpose tokens \u2014 expanding what builders can ship on the ledger.",
      "stats": [("Smart Contracts", "Hooks"), ("Native AMM", "Live"), ("Tokens", "IOU + MPT")]},
+    {"ic": "\U0001F6E1\uFE0F", "name": "Validators", "role": "Consensus Layer", "color": "var(--yl)",
+     "bg": "rgba(255,204,0,.06)", "bd": "rgba(255,204,0,.3)",
+     "desc": "Independent validators worldwide run the consensus protocol, agreeing on ledger state every 3-5 seconds with no mining. A Unique Node List keeps the network decentralised, fast, and energy-efficient.",
+     "stats": [("Validators", "150+"), ("Consensus", "RPCA"), ("Energy", "Carbon-neutral")]},
 ]
 
 
@@ -722,7 +726,7 @@ def render_page():
         <span class="gicon">\U0001F310</span>
         <div>
           <div class="eco-title">XRP Ecosystem</div>
-          <div class="eco-sub">Seven interconnected layers powering the future of global finance</div>
+          <div class="eco-sub">Eight interconnected layers powering the future of global finance</div>
         </div>
       </div>
       <div class="eco-grid">
@@ -734,7 +738,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; LEGEND-CODED BORDERS</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; ECOSYSTEM 2x4</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
