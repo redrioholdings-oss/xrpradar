@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 17 — Breaking News underline blue, matched to header width
+Version 18 — Header over/under lines matched (same color + width)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "17"
+APP_VERSION = "18"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -401,7 +401,7 @@ def render_page():
   @keyframes bkscroll{{ 0%{{transform:translateX(0)}} 100%{{transform:translateX(-100%)}} }}
 
   /* HEADER */
-  .hdr{{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-top:36px; padding-bottom:40px; border-bottom:2px solid var(--bl); flex-wrap:wrap; gap:6px; }}
+  .hdr{{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-top:36px; padding-bottom:40px; border-bottom:2px solid var(--hdr); flex-wrap:wrap; gap:6px; }}
   .logo{{ display:flex; align-items:center; gap:12px; }}
   .icon{{ width:64px; height:64px; border-radius:10px; background:linear-gradient(135deg,#001a3a,#0066cc,#75bcff); display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 0 16px rgba(117,188,255,.4); }}
   .title{{ font-size:22px; font-weight:900; color:var(--br); font-style:italic; }}
@@ -795,7 +795,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; BREAKING UNDERLINE MATCHED</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; HEADER LINES MATCHED</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
