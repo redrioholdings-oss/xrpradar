@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 6 — Live XRP/USD Chart
+Version 7 — On-Chain Intelligence, Whale Alert, XRP Ecosystem
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "6"
+APP_VERSION = "7"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -175,6 +175,69 @@ def fng_bar_html(value):
             f'</div>')
 
 
+def next_escrow_release():
+    """Ripple releases 1B XRP from escrow on the 1st of each month (00:00 UTC)."""
+    now = datetime.now(timezone.utc)
+    if now.month == 12:
+        nxt = now.replace(year=now.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        nxt = now.replace(month=now.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    return nxt
+
+
+ECOSYSTEM_CARDS = [
+    {"ic": "\U0001F517", "name": "XRPL", "role": "The Foundation", "color": "var(--tq)",
+     "bg": "rgba(0,229,204,.06)", "bd": "rgba(0,229,204,.3)",
+     "desc": "Open-source, decentralised blockchain maintained by the independent XRPL Foundation. Consensus settles in 3-5 seconds. Native DEX, AMM pools, escrow, and payment channels built in at the protocol level.",
+     "stats": [("Total Accounts", "6.4M+"), ("Settlement", "3-5 seconds"), ("Tx Fee", "~$0.0002")]},
+    {"ic": "\U0001F3E2", "name": "Ripple Labs", "role": "The Company", "color": "var(--bl)",
+     "bg": "rgba(117,188,255,.06)", "bd": "rgba(117,188,255,.3)",
+     "desc": "Private San Francisco company that created XRP and builds enterprise blockchain solutions. NOT the same as XRPL. Revenue from ODL, software licensing, and XRP sales. Led by Brad Garlinghouse.",
+     "stats": [("Founded", "2012"), ("HQ", "San Francisco + Dubai"), ("SEC Case", "\u2705 Settled 2025")]},
+    {"ic": "\U0001F48E", "name": "XRP", "role": "The Asset", "color": "var(--gr)",
+     "bg": "rgba(72,255,130,.06)", "bd": "rgba(72,255,130,.3)",
+     "desc": "Native digital asset of the XRPL. Used as bridge currency in ODL, transaction gas, and wallet reserve. Fixed supply of 100 billion \u2014 no mining, no inflation. Burned slightly with every transaction.",
+     "stats": [("Total Supply", "100B XRP"), ("Circulating", "~62B XRP"), ("In Escrow", "~43B XRP")]},
+    {"ic": "\U0001F310", "name": "RippleNet", "role": "The Network", "color": "var(--or)",
+     "bg": "rgba(255,153,0,.06)", "bd": "rgba(255,153,0,.3)",
+     "desc": "Ripple's B2B payment network connecting 300+ financial institutions globally. Three tiers: Direct (messaging), Multi-hop (routing), and ODL (XRP bridge). Banks choose their level of XRP integration.",
+     "stats": [("Partners", "300+ institutions"), ("Countries", "55+"), ("Type", "Enterprise B2B")]},
+    {"ic": "\u26A1", "name": "ODL", "role": "On-Demand Liquidity", "color": "var(--rd)",
+     "bg": "rgba(255,64,96,.06)", "bd": "rgba(255,64,96,.3)",
+     "desc": "Instant cross-border settlement that converts fiat to XRP, moves it on the XRPL in seconds, then converts to the destination fiat \u2014 removing pre-funded accounts.",
+     "stats": [("Active Corridors", "8+"), ("Settlement", "3-5 seconds"), ("Savings vs SWIFT", "Up to 60%")]},
+    {"ic": "\U0001F4B5", "name": "RLUSD", "role": "The Stablecoin", "color": "var(--bl)",
+     "bg": "rgba(117,188,255,.06)", "bd": "rgba(117,188,255,.3)",
+     "desc": "Ripple's USD-pegged stablecoin launched December 2024. Runs natively on the XRPL and Ethereum, fully backed and regulated.",
+     "stats": [("Peg", "1:1 USD"), ("Regulator", "NYDFS"), ("Networks", "XRPL + ETH")]},
+    {"ic": "\U0001F6E0\uFE0F", "name": "XRPL Dev", "role": "Developer Layer", "color": "var(--tq)",
+     "bg": "rgba(0,229,204,.06)", "bd": "rgba(0,229,204,.3)",
+     "desc": "Tools, standards, and programmability: Hooks (lightweight smart contracts), AMM, native tokens, and multi-purpose tokens \u2014 expanding what builders can ship on the ledger.",
+     "stats": [("Smart Contracts", "Hooks"), ("Native AMM", "Live"), ("Tokens", "IOU + MPT")]},
+]
+
+
+def ecosystem_cards_html():
+    out = ""
+    for c in ECOSYSTEM_CARDS:
+        stats = "".join(
+            f'<div class="eco-stat"><span class="k">{k}</span>'
+            f'<span style="color:{c["color"]};font-weight:700">{v}</span></div>'
+            for k, v in c["stats"]
+        )
+        out += (
+            f'<div class="eco-card" style="background:{c["bg"]};border:1px solid {c["bd"]}">'
+            f'<div class="eco-bar" style="background:linear-gradient(90deg,{c["color"]},transparent)"></div>'
+            f'<div class="eco-ic">{c["ic"]}</div>'
+            f'<div class="eco-name">{c["name"]}</div>'
+            f'<div class="eco-role" style="color:{c["color"]}">{c["role"]}</div>'
+            f'<div class="eco-desc">{c["desc"]}</div>'
+            f'{stats}'
+            f'</div>'
+        )
+    return out
+
+
 # ─────────────────────────────────────────────────────────────────────
 # PREFLIGHT
 # ─────────────────────────────────────────────────────────────────────
@@ -284,6 +347,12 @@ def render_page():
     else:
         tm_narr = "Loading..."
 
+    # Escrow release date + ecosystem cards
+    esc = next_escrow_release()
+    esc_date_str = esc.strftime("%b %d, %Y")
+    esc_iso = esc.strftime("%Y-%m-%dT%H:%M:%SZ")
+    eco_html = ecosystem_cards_html()
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -384,6 +453,44 @@ def render_page():
   .tvs{{ margin-top:12px; padding:10px 12px; background:var(--s2); border-radius:6px; border:1px solid var(--b); }}
   .tvs-lbl{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:4px; text-transform:uppercase; letter-spacing:1px; }}
   .tvs-txt{{ font-size:14px; color:var(--br); line-height:1.6; }}
+
+  /* SECTION 5 — On-Chain Intelligence + Whale Alert Feed */
+  .oc-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0; align-items:stretch; }}
+  .ocbox-grid{{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }}
+  .ocbox{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:14px; text-align:center; }}
+  .ocbox.tq{{ border-color:rgba(0,229,204,.3); background:var(--tqd); }}
+  .ocbox.esc{{ border-color:rgba(72,255,130,.3); background:var(--grd); grid-column:span 2; }}
+  .oclbl{{ font-size:13px; text-transform:uppercase; letter-spacing:1.5px; font-family:var(--mn); color:var(--tx); margin-bottom:6px; }}
+  .ocval{{ font-size:18px; font-weight:900; font-family:var(--mn); color:var(--br); line-height:1; }}
+  .ocsub{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-top:5px; }}
+  .esc-row{{ display:flex; align-items:baseline; gap:10px; justify-content:center; margin:6px 0; }}
+  .esc-num{{ font-size:26px; font-weight:900; font-family:var(--mn); color:var(--gr); line-height:1; }}
+  .esc-sep{{ color:var(--tx); font-size:18px; font-family:var(--mn); }}
+  .panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; overflow:hidden; }}
+  .ph{{ padding:10px 14px; border-bottom:1px solid var(--b); display:flex; justify-content:space-between; align-items:center; background:var(--s2); }}
+  .pt{{ font-size:16px; text-transform:uppercase; letter-spacing:2px; font-family:var(--mn); font-weight:800; display:flex; align-items:center; gap:10px; }}
+  .pt .sic{{ font-size:30px; }}
+  .whale-feed{{ padding:8px 14px; max-height:240px; overflow-y:auto; }}
+  .whale-item{{ padding:10px 0; border-bottom:1px solid var(--b); }}
+  .whale-item:last-child{{ border-bottom:none; }}
+  .whale-hl{{ font-size:15px; font-weight:700; color:var(--yl); font-family:system-ui; line-height:1.4; margin-bottom:4px; }}
+  .whale-meta{{ font-size:13px; font-family:var(--mn); color:var(--tx); }}
+
+  /* SECTION 6 — XRP Ecosystem */
+  .eco-wrap{{ background:linear-gradient(135deg,#06060f,#0a0a18); border:1px solid rgba(117,188,255,.3); border-radius:12px; overflow:hidden; margin:10px 0; }}
+  .eco-head{{ padding:16px 18px; background:rgba(117,188,255,.06); border-bottom:1px solid rgba(117,188,255,.2); display:flex; align-items:center; gap:14px; }}
+  .eco-head .gicon{{ font-size:30px; filter:drop-shadow(0 0 10px rgba(117,188,255,.6)); }}
+  .eco-title{{ font-size:18px; font-weight:900; color:#fff; font-family:var(--mn); text-transform:uppercase; letter-spacing:2px; }}
+  .eco-sub{{ font-size:14px; font-family:system-ui; color:var(--bl); margin-top:3px; }}
+  .eco-grid{{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:14px 18px; }}
+  .eco-card{{ border-radius:8px; padding:14px; position:relative; overflow:hidden; }}
+  .eco-bar{{ position:absolute; top:0; left:0; right:0; height:2px; }}
+  .eco-ic{{ font-size:22px; margin-bottom:6px; }}
+  .eco-name{{ font-size:15px; font-weight:900; color:#fff; font-family:var(--mn); margin-bottom:4px; }}
+  .eco-role{{ font-size:13px; font-weight:700; font-family:var(--mn); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; }}
+  .eco-desc{{ font-size:13px; color:var(--tx); line-height:1.6; margin-bottom:10px; font-family:system-ui; }}
+  .eco-stat{{ display:flex; justify-content:space-between; font-size:13px; font-family:var(--mn); padding:2px 0; }}
+  .eco-stat .k{{ color:var(--tx); }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -558,12 +665,76 @@ def render_page():
         </div>
       </div>
     </div>
+
+    <!-- SECTION 5: ON-CHAIN INTELLIGENCE + WHALE ALERT FEED -->
+    <div class="oc-grid">
+      <div class="acct" style="border-color:rgba(0,229,204,.25)">
+        <div class="sec-title" style="color:var(--tq)"><span class="sic">\u26D3\uFE0F</span> On-Chain Intelligence</div>
+        <div class="ocbox-grid">
+          <div class="ocbox tq">
+            <div class="oclbl">RLUSD Supply</div>
+            <div class="ocval" style="color:var(--tq)">\u2014</div>
+            <div class="ocsub">Vol: \u2014</div>
+          </div>
+          <div class="ocbox">
+            <div class="oclbl">XRPL DEX Volume</div>
+            <div class="ocval" style="color:var(--bl)">\u2014</div>
+            <div class="ocsub">\u2014 trades 24h</div>
+          </div>
+          <div class="ocbox">
+            <div class="oclbl">Network Accounts</div>
+            <div class="ocval" style="color:var(--tq)">\u2014</div>
+            <div class="ocsub">New 24h: <span style="color:var(--gr)">\u2014</span></div>
+          </div>
+          <div class="ocbox">
+            <div class="oclbl">Exchange Flow</div>
+            <div class="ocval" style="font-size:16px">\u27A1\uFE0F NEUTRAL</div>
+            <div class="ocsub">No clear directional bias</div>
+          </div>
+          <div class="ocbox esc">
+            <div class="oclbl">\u23F3 Next Ripple Escrow Release</div>
+            <div class="esc-row">
+              <div><div class="esc-num" id="esc-days">--</div><div class="ocsub">days</div></div>
+              <div class="esc-sep">:</div>
+              <div><div class="esc-num" id="esc-hrs">--</div><div class="ocsub">hrs</div></div>
+              <div class="esc-sep">:</div>
+              <div><div class="esc-num" id="esc-min">--</div><div class="ocsub">min</div></div>
+            </div>
+            <div class="ocsub">1B XRP \u00B7 Next release: {esc_date_str}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="border-color:rgba(255,204,0,.25)">
+        <div class="ph">
+          <span class="pt" style="color:var(--yl)"><span class="sic">\U0001F433</span> Whale Alert Feed</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="whale-ts">\u2014</span>
+        </div>
+        <div class="whale-feed" id="whale-feed">
+          <div class="empty">Headlines connect when the news feed section is built.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 6: XRP ECOSYSTEM -->
+    <div class="eco-wrap">
+      <div class="eco-head">
+        <span class="gicon">\U0001F310</span>
+        <div>
+          <div class="eco-title">XRP Ecosystem</div>
+          <div class="eco-sub">Seven interconnected layers powering the future of global finance</div>
+        </div>
+      </div>
+      <div class="eco-grid">
+        {eco_html}
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; LIVE XRP/USD CHART</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; ON-CHAIN + ECOSYSTEM</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -628,6 +799,25 @@ def render_page():
     function openPFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'flex'; }}
     function closePFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'none'; }}
     document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') closePFModal(); }});
+
+    // Escrow countdown (to next 1st-of-month, 00:00 UTC)
+    (function () {{
+      var target = new Date("{esc_iso}").getTime();
+      function tickEsc() {{
+        var diff = target - Date.now();
+        if (diff < 0) diff = 0;
+        var d = Math.floor(diff / 86400000);
+        var h = Math.floor((diff % 86400000) / 3600000);
+        var m = Math.floor((diff % 3600000) / 60000);
+        var ds = document.getElementById('esc-days');
+        var hs = document.getElementById('esc-hrs');
+        var ms = document.getElementById('esc-min');
+        if (ds) ds.textContent = d;
+        if (hs) hs.textContent = ('0' + h).slice(-2);
+        if (ms) ms.textContent = ('0' + m).slice(-2);
+      }}
+      tickEsc(); setInterval(tickEsc, 1000 * 30);
+    }})();
 
     (function () {{
       var btn = document.getElementById('back-to-top'); if (!btn) return;
