@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 13 — 8th ecosystem card (Validators) = 2 rows of 4
+Version 14 — How the Layers Connect + Common Misconceptions
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "13"
+APP_VERSION = "14"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -496,6 +496,21 @@ def render_page():
   .eco-stat{{ display:flex; justify-content:space-between; font-size:13px; font-family:var(--mn); padding:2px 0; }}
   .eco-stat .k{{ color:var(--tx); }}
 
+  /* SECTION 6b — How the Layers Connect + Misconceptions (inside eco-wrap) */
+  .eco-sub-h{{ font-size:14px; font-weight:700; color:var(--hdr); font-family:var(--mn); text-transform:uppercase; letter-spacing:1.5px; margin:6px 0 10px; padding:0 18px; display:flex; align-items:center; gap:8px; }}
+  .flow{{ display:flex; align-items:center; justify-content:center; gap:0; overflow-x:auto; padding:6px 18px 18px; }}
+  .flow-node{{ display:flex; flex-direction:column; align-items:center; min-width:120px; text-align:center; padding:8px; }}
+  .flow-ic{{ font-size:30px; margin-bottom:8px; }}
+  .flow-name{{ font-size:15px; font-weight:700; font-family:var(--mn); }}
+  .flow-role{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-top:2px; }}
+  .flow-arrow{{ color:var(--bl); font-size:26px; padding:0 8px; flex-shrink:0; font-weight:300; }}
+  .myth-grid{{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:0 18px 18px; }}
+  .myth-card{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:14px; }}
+  .myth-lbl{{ font-size:13px; font-weight:700; color:var(--rd); font-family:var(--mn); margin-bottom:5px; }}
+  .myth-q{{ font-size:15px; color:var(--br); font-weight:700; margin-bottom:8px; }}
+  .real-lbl{{ font-size:13px; font-weight:700; color:var(--gr); font-family:var(--mn); margin-bottom:5px; }}
+  .real-txt{{ font-size:14px; color:var(--tx); line-height:1.55; font-family:system-ui; }}
+
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
   h1.page-title{{ font-size:22px; font-weight:900; font-style:italic; margin:4px 0; color:var(--br); }}
@@ -732,13 +747,54 @@ def render_page():
       <div class="eco-grid">
         {eco_html}
       </div>
+
+      <!-- How the Layers Connect -->
+      <div class="eco-sub-h">\u26D3\uFE0F How the Layers Connect</div>
+      <div class="flow">
+        <div class="flow-node"><div class="flow-ic">\U0001F517</div><div class="flow-name" style="color:var(--tq)">XRPL</div><div class="flow-role">Foundation</div></div>
+        <div class="flow-arrow">\u2192</div>
+        <div class="flow-node"><div class="flow-ic">\U0001F48E</div><div class="flow-name" style="color:var(--gr)">XRP</div><div class="flow-role">Native Asset</div></div>
+        <div class="flow-arrow">\u2192</div>
+        <div class="flow-node"><div class="flow-ic">\U0001F3E2</div><div class="flow-name" style="color:var(--bl)">Ripple Labs</div><div class="flow-role">Builder</div></div>
+        <div class="flow-arrow">\u2192</div>
+        <div class="flow-node"><div class="flow-ic">\U0001F310</div><div class="flow-name" style="color:var(--or)">RippleNet</div><div class="flow-role">Network</div></div>
+        <div class="flow-arrow">\u2192</div>
+        <div class="flow-node"><div class="flow-ic">\u26A1</div><div class="flow-name" style="color:var(--rd)">ODL</div><div class="flow-role">Liquidity</div></div>
+        <div class="flow-arrow">+</div>
+        <div class="flow-node"><div class="flow-ic">\U0001F4B5</div><div class="flow-name" style="color:var(--bl)">RLUSD</div><div class="flow-role">Stablecoin</div></div>
+        <div class="flow-arrow">\u2192</div>
+        <div class="flow-node"><div class="flow-ic">\U0001F6E0\uFE0F</div><div class="flow-name" style="color:var(--yl)">Ecosystem</div><div class="flow-role">Builders</div></div>
+      </div>
+
+      <!-- Common Misconceptions -->
+      <div class="eco-sub-h">\u26A0\uFE0F Common Misconceptions \u2014 Set the Record Straight</div>
+      <div class="myth-grid">
+        <div class="myth-card">
+          <div class="myth-lbl">\u274C MYTH</div>
+          <div class="myth-q">"Ripple controls XRP"</div>
+          <div class="real-lbl">\u2705 REALITY</div>
+          <div class="real-txt">XRP runs on the XRPL, which is decentralised and maintained by the independent XRPL Foundation. Ripple holds XRP but cannot create, destroy, or freeze it.</div>
+        </div>
+        <div class="myth-card">
+          <div class="myth-lbl">\u274C MYTH</div>
+          <div class="myth-q">"Ripple can print more XRP"</div>
+          <div class="real-lbl">\u2705 REALITY</div>
+          <div class="real-txt">XRP has a fixed maximum supply of 100 billion \u2014 hardcoded into the protocol. No mining, no inflation, no new XRP can ever be created. Supply only decreases as tiny amounts are burned per transaction.</div>
+        </div>
+        <div class="myth-card">
+          <div class="myth-lbl">\u274C MYTH</div>
+          <div class="myth-q">"XRP is a security"</div>
+          <div class="real-lbl">\u2705 REALITY</div>
+          <div class="real-txt">Judge Torres ruled in 2023 that XRP is NOT a security in programmatic sales. The SEC settled with Ripple in 2025. XRP now operates with full US regulatory clarity for the first time.</div>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; ECOSYSTEM 2x4</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; LAYERS CONNECT + MYTHS</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
