@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 4 — Status row refinements
+Version 5 — RSI, S&R, Time Machine, 52-Week Range
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "4"
+APP_VERSION = "5"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -49,9 +49,41 @@ app = Flask(__name__)
 MARKET = {
     "xrp_price": None, "xrp_chg": None,
     "fng": None, "fng_label": None,
-    "sources_active": 0, "sources_total": 2,
+    "sources_active": 0, "sources_total": 3,
     "updated": None,
+    # technicals (Binance klines)
+    "rsi_1h": None, "rsi_1d": None,
+    "w52_low": None, "w52_high": None,
+    "tm_1y": None, "tm_1m": None,
+    "sr_support": None, "sr_resistance": None,
 }
+
+
+def calc_rsi(closes, period=14):
+    if len(closes) < period + 1:
+        return None
+    deltas = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
+    gains  = [d if d > 0 else 0 for d in deltas]
+    losses = [-d if d < 0 else 0 for d in deltas]
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    for i in range(period, len(deltas)):
+        avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+        avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain / avg_loss
+    return round(100 - 100 / (1 + rs), 1)
+
+
+def _binance_klines(interval, limit):
+    r = requests.get(
+        f"https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval={interval}&limit={limit}",
+        headers={"User-Agent": "XRPRadar/5"}, timeout=6)
+    data = r.json()
+    if not isinstance(data, list):
+        return []
+    return data
 
 def fetch_market():
     active = 0
@@ -75,6 +107,35 @@ def fetch_market():
         active += 1
     except Exception:
         pass
+
+    # Binance klines → RSI (1h, 1d), 52-week range, time machine, S&R
+    try:
+        k1h = _binance_klines("1h", 200)
+        k1d = _binance_klines("1d", 365)
+        if k1h:
+            closes_1h = [float(c[4]) for c in k1h]
+            MARKET["rsi_1h"] = calc_rsi(closes_1h)
+        if k1d:
+            closes_1d = [float(c[4]) for c in k1d]
+            highs_1d  = [float(c[2]) for c in k1d]
+            lows_1d   = [float(c[3]) for c in k1d]
+            MARKET["rsi_1d"]  = calc_rsi(closes_1d)
+            MARKET["w52_low"]  = min(lows_1d)
+            MARKET["w52_high"] = max(highs_1d)
+            # Price Time Machine
+            if len(closes_1d) >= 2:
+                MARKET["tm_1y"] = closes_1d[0]                         # ~1 year ago
+            if len(closes_1d) >= 31:
+                MARKET["tm_1m"] = closes_1d[-31]                       # ~1 month ago
+            # Support & Resistance from last 90 days
+            window = k1d[-90:] if len(k1d) >= 90 else k1d
+            MARKET["sr_support"]    = min(float(c[3]) for c in window)
+            MARKET["sr_resistance"] = max(float(c[2]) for c in window)
+        if k1h or k1d:
+            active += 1
+    except Exception:
+        pass
+
     MARKET["sources_active"] = active
     MARKET["updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -162,6 +223,67 @@ def render_page():
     fng_label = MARKET["fng_label"] or ""
     fng_bar = fng_bar_html(MARKET["fng"])
 
+    # ── Section 3 values ──
+    def rsi_parts(v):
+        if v is None:
+            return "--", "--", "var(--tx)", 50
+        if v >= 70:
+            col, lbl = "#ff4060", "Overbought"
+        elif v <= 30:
+            col, lbl = "#48ff82", "Oversold"
+        else:
+            col, lbl = "#75bcff", "Neutral"
+        return f"{v:.1f}", lbl, col, max(0, min(100, v))
+
+    r1h_val, r1h_lbl, r1h_col, r1h_pct = rsi_parts(MARKET["rsi_1h"])
+    r1d_val, r1d_lbl, r1d_col, r1d_pct = rsi_parts(MARKET["rsi_1d"])
+
+    cur = MARKET["xrp_price"]
+    lo, hi = MARKET["w52_low"], MARKET["w52_high"]
+    if cur and lo and hi and hi > lo:
+        w52_pos = (cur - lo) / (hi - lo) * 100
+        w52_low_s  = f"${lo:.4f}"
+        w52_high_s = f"${hi:.4f}"
+        w52_cur_s  = f"${cur:.4f}"
+        w52_from_low  = f"+{(cur-lo)/lo*100:.1f}%"
+        w52_from_high = f"{(cur-hi)/hi*100:.1f}%"
+        w52_pos_s = f"{w52_pos:.0f}%"
+    else:
+        w52_pos = 50
+        w52_low_s = w52_high_s = w52_cur_s = "--"
+        w52_from_low = w52_from_high = w52_pos_s = "--"
+
+    sup, res = MARKET["sr_support"], MARKET["sr_resistance"]
+    if sup and res:
+        sr_html = (f'<div class="sr-line"><span style="color:var(--rd)">Resistance</span>'
+                   f'<span style="color:var(--rd);font-weight:700">${res:.4f}</span></div>'
+                   f'<div class="sr-line"><span style="color:var(--tx)">Current</span>'
+                   f'<span style="color:var(--br);font-weight:700">${cur:.4f}</span></div>'
+                   f'<div class="sr-line"><span style="color:var(--gr)">Support</span>'
+                   f'<span style="color:var(--gr);font-weight:700">${sup:.4f}</span></div>') if cur else \
+                  '<div class="empty">Calculating from 90-day price history...</div>'
+    else:
+        sr_html = '<div class="empty">Calculating from 90-day price history...</div>'
+
+    def tm_box(price_then, label):
+        if price_then and cur:
+            chg = (cur - price_then) / price_then * 100
+            col = "#48ff82" if chg >= 0 else "#ff4060"
+            arrow = "\u25B2" if chg >= 0 else "\u25BC"
+            return (f'<div class="albl">{label}</div>'
+                    f'<div class="aval">${price_then:.4f}</div>'
+                    f'<div class="asub" style="color:{col}">{arrow} {abs(chg):.1f}%</div>')
+        return f'<div class="albl">{label}</div><div class="aval">--</div><div class="asub">--</div>'
+
+    tm_1y_html = tm_box(MARKET["tm_1y"], "1 Year Ago")
+    tm_1m_html = tm_box(MARKET["tm_1m"], "1 Month Ago")
+    if MARKET["tm_1y"] and cur:
+        chg1y = (cur - MARKET["tm_1y"]) / MARKET["tm_1y"] * 100
+        updown = "up" if chg1y >= 0 else "down"
+        tm_narr = f"XRP is {updown} {abs(chg1y):.1f}% versus one year ago (${MARKET['tm_1y']:.4f} then vs ${cur:.4f} now)."
+    else:
+        tm_narr = "Loading..."
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -236,6 +358,33 @@ def render_page():
     font-family:var(--mn); font-weight:800; font-size:14px; color:#fff;
     text-shadow:0 1px 2px rgba(0,0,0,.7); box-shadow:0 0 6px rgba(0,0,0,.5); }}
 
+  /* SECTION 3 — technical panels (RSI, S&R, Time Machine, 52-Week) */
+  .grid2{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0; align-items:stretch; }}
+  .col{{ display:flex; flex-direction:column; gap:10px; }}
+  .acct{{ background:var(--s1); border:1px solid rgba(117,188,255,.25); border-radius:10px; padding:14px; }}
+  .acct.grow{{ flex:1; }}   /* lets 52-week + time machine match column height */
+  .sec-title{{ font-size:19px; text-transform:uppercase; letter-spacing:2px; font-family:var(--mn); color:#ffffff; margin-bottom:12px; font-weight:800; display:flex; align-items:center; gap:10px; }}
+  .sec-title .sic{{ font-size:30px; }}   /* header icon = same size as status-row icons */
+  .rsi-head{{ display:flex; justify-content:space-between; margin-bottom:6px; font-size:14px; font-family:var(--mn); }}
+  .rsi-track{{ height:11px; background:var(--s2); border-radius:6px; overflow:hidden; border:1px solid var(--b); position:relative; }}
+  .rsi-tick{{ position:absolute; top:0; bottom:0; width:1px; background:rgba(255,255,255,.12); }}
+  .rsi-fill{{ height:100%; border-radius:6px; transition:all .6s; }}
+  .rsi-scale{{ display:flex; justify-content:space-between; font-size:13px; font-family:var(--mn); color:var(--tx); margin-top:3px; }}
+  .w52-row{{ display:flex; justify-content:space-between; font-family:var(--mn); font-size:14px; }}
+  .w52-bar{{ height:15px; background:linear-gradient(90deg,var(--rd),var(--yl),var(--gr)); border-radius:7px; position:relative; border:1px solid var(--b); margin:10px 0; }}
+  .w52-needle{{ position:absolute; top:-4px; width:6px; height:23px; background:var(--br); border-radius:3px; border:2px solid var(--bg); transform:translateX(-50%); transition:left .6s; }}
+  .agrid2{{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }}
+  .abox{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:14px; text-align:center; }}
+  .albl{{ font-size:14px; text-transform:uppercase; letter-spacing:1.5px; font-family:var(--mn); color:var(--tx); margin-bottom:6px; }}
+  .aval{{ font-size:22px; font-weight:900; font-family:var(--mn); color:var(--br); line-height:1; }}
+  .asub{{ font-size:14px; font-family:var(--mn); color:var(--tx); margin-top:5px; }}
+  .sr-line{{ display:flex; justify-content:space-between; font-family:var(--mn); font-size:15px; padding:8px 0; border-bottom:1px solid var(--b); }}
+  .sr-line:last-child{{ border-bottom:none; }}
+  .empty{{ padding:16px; font-family:var(--mn); font-size:14px; color:var(--tx); text-align:center; }}
+  .tvs{{ margin-top:12px; padding:10px 12px; background:var(--s2); border-radius:6px; border:1px solid var(--b); }}
+  .tvs-lbl{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:4px; text-transform:uppercase; letter-spacing:1px; }}
+  .tvs-txt{{ font-size:14px; color:var(--br); line-height:1.6; }}
+
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
   h1.page-title{{ font-size:22px; font-weight:900; font-style:italic; margin:4px 0; color:var(--br); }}
@@ -308,7 +457,7 @@ def render_page():
     <!-- SECTION 2: STATUS ROW (3 compact rectangles) -->
     <div class="srow">
       <div class="si">
-        <span class="si-lbl"><span class="ic">\U0001F4B2</span> XRP / USD</span>
+        <span class="si-lbl"><span class="ic" style="color:var(--gr);font-weight:900">$</span> XRP / USD</span>
         <span>
           <span class="sv" id="st-price" style="color:{price_color};display:block">{price_str}</span>
           <span class="sv-sub" id="st-chg" style="color:{price_color};text-align:right;display:block">{chg_str}</span>
@@ -321,6 +470,79 @@ def render_page():
       <div class="si">
         <span class="si-lbl"><span class="ic">\U0001F630</span> Fear &amp; Greed</span>
         {fng_bar}
+      </div>
+    </div>
+
+    <!-- SECTION 3: RSI / Support-Resistance / Time Machine / 52-Week -->
+    <div class="grid2">
+      <!-- LEFT COLUMN: RSI + 52-Week -->
+      <div class="col">
+        <div class="acct" style="border-color:rgba(117,188,255,.25)">
+          <div class="sec-title" style="color:var(--bl)"><span class="sic">\U0001F4D0</span> RSI Signals</div>
+          <div style="margin-bottom:14px">
+            <div class="rsi-head">
+              <span style="color:var(--tx)">1H RSI</span>
+              <span style="font-weight:700;color:{r1h_col}">{r1h_val}</span>
+              <span style="color:{r1h_col}">{r1h_lbl}</span>
+            </div>
+            <div class="rsi-track">
+              <div class="rsi-tick" style="left:30%"></div>
+              <div class="rsi-tick" style="left:70%"></div>
+              <div class="rsi-fill" style="width:{r1h_pct}%;background:{r1h_col}"></div>
+            </div>
+            <div class="rsi-scale"><span>0 \u2014 Oversold</span><span>30</span><span>50</span><span>70</span><span>Overbought \u2014 100</span></div>
+          </div>
+          <div>
+            <div class="rsi-head">
+              <span style="color:var(--tx)">1D RSI</span>
+              <span style="font-weight:700;color:{r1d_col}">{r1d_val}</span>
+              <span style="color:{r1d_col}">{r1d_lbl}</span>
+            </div>
+            <div class="rsi-track">
+              <div class="rsi-tick" style="left:30%"></div>
+              <div class="rsi-tick" style="left:70%"></div>
+              <div class="rsi-fill" style="width:{r1d_pct}%;background:{r1d_col}"></div>
+            </div>
+            <div class="rsi-scale"><span>0 \u2014 Oversold</span><span>30</span><span>50</span><span>70</span><span>Overbought \u2014 100</span></div>
+          </div>
+        </div>
+
+        <div class="acct grow" style="border-color:rgba(255,204,0,.25)">
+          <div class="sec-title" style="color:var(--yl)"><span class="sic">\U0001F4C5</span> 52-Week Range</div>
+          <div class="w52-row">
+            <span>Low: <strong style="color:var(--rd)">{w52_low_s}</strong></span>
+            <span style="color:var(--tx)">Current: <strong style="color:var(--br)">{w52_cur_s}</strong></span>
+            <span>High: <strong style="color:var(--gr)">{w52_high_s}</strong></span>
+          </div>
+          <div class="w52-bar">
+            <div class="w52-needle" style="left:{w52_pos}%"></div>
+          </div>
+          <div class="w52-row">
+            <span style="color:var(--tx)">From low: <strong style="color:var(--gr)">{w52_from_low}</strong></span>
+            <span style="color:var(--tx)">Position: <strong style="color:var(--yl)">{w52_pos_s}</strong></span>
+            <span style="color:var(--tx)">From high: <strong style="color:var(--rd)">{w52_from_high}</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Support/Resistance + Time Machine -->
+      <div class="col">
+        <div class="acct" style="border-color:rgba(117,188,255,.25)">
+          <div class="sec-title" style="color:var(--bl)"><span class="sic">\U0001F3AF</span> Support &amp; Resistance</div>
+          {sr_html}
+        </div>
+
+        <div class="acct grow" style="border-color:rgba(72,255,130,.25)">
+          <div class="sec-title" style="color:var(--gr)"><span class="sic">\U0001F4C6</span> Price Time Machine</div>
+          <div class="agrid2">
+            <div class="abox">{tm_1y_html}</div>
+            <div class="abox">{tm_1m_html}</div>
+          </div>
+          <div class="tvs">
+            <div class="tvs-lbl">Today vs 1 Year Ago</div>
+            <div class="tvs-txt" id="pt-narrative">{tm_narr}</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
