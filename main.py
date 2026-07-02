@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 5 — RSI, S&R, Time Machine, 52-Week Range
+Version 6 — Live XRP/USD Chart
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "5"
+APP_VERSION = "6"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -545,12 +545,25 @@ def render_page():
         </div>
       </div>
     </div>
+
+    <!-- SECTION 4: LIVE XRP/USD CHART -->
+    <div class="acct" style="padding:10px;border-color:rgba(117,188,255,.2);margin:10px 0">
+      <div class="sec-title" style="color:var(--bl)"><span class="sic">\U0001F4CA</span> Live XRP/USD Chart</div>
+      <div style="height:440px;border-radius:8px;overflow:hidden;border:1px solid var(--b)">
+        <div class="tradingview-widget-container" style="width:100%;height:100%">
+          <div class="tradingview-widget-container__widget" style="width:100%;height:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+          {{"autosize":true,"symbol":"BITSTAMP:XRPUSD","interval":"60","timezone":"Etc/UTC","theme":"dark","style":"1","locale":"en","backgroundColor":"#000000","gridColor":"#0a0a0a","hide_top_toolbar":false,"allow_symbol_change":false,"save_image":false,"support_host":"https://www.tradingview.com"}}
+          </script>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; STATUS ROW REFINEMENTS</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; LIVE XRP/USD CHART</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
