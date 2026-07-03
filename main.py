@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 43 — Next Proprietary Briefing countdown teaser above This Week's Editions
+Version 44 — Sentiment Engine + Competitive Briefing
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "43"
+APP_VERSION = "44"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -63,6 +63,7 @@ MARKET = {
     "fng_history": [], "funding": None,
     "perf_1w": None, "perf_30d": None, "perf_90d": None, "perf_6m": None,
     "fx": {},
+    "competitors": {},
     "sources_active": 0, "sources_total": 3,
     "updated": None,
     # technicals (Binance klines)
@@ -189,6 +190,50 @@ def fetch_market():
     MARKET["updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
+COMPETITORS = [
+    {"id": "solana",   "symbol": "SOL", "emoji": "\u25CE", "binance": "SOLUSDT"},
+    {"id": "ethereum", "symbol": "ETH", "emoji": "\u27E0", "binance": "ETHUSDT"},
+    {"id": "cardano",  "symbol": "ADA", "emoji": "\u20B3", "binance": "ADAUSDT"},
+    {"id": "stellar",  "symbol": "XLM", "emoji": "\u2726", "binance": "XLMUSDT"},
+]
+COMPETITOR_EDGE = {
+    "SOL": "Payment rails vs. smart contract platform \u2014 XRP settles instantly for a near-zero fee.",
+    "ETH": "XRP settles far cheaper per transaction with faster finality \u2014 purpose-built for payments.",
+    "ADA": "XRP has live ODL corridors, bank partnerships and regulatory clarity vs. a research-first roadmap.",
+    "XLM": "XRP carries deeper liquidity, more active corridors and broader institutional adoption.",
+}
+
+def fetch_competitors():
+    hdr = {"User-Agent": "XRPRadar/4"}
+    ids = ",".join(c["id"] for c in COMPETITORS)
+    data = {}
+    try:
+        r = requests.get(f"https://api.coincap.io/v2/assets?ids={ids}", headers=hdr, timeout=8)
+        for d in r.json().get("data", []):
+            data[d.get("id")] = d
+    except Exception:
+        pass
+    for c in COMPETITORS:
+        entry = MARKET["competitors"].setdefault(c["id"], {})
+        d = data.get(c["id"])
+        if d:
+            try:
+                entry["price"] = float(d.get("priceUsd") or 0) or entry.get("price")
+                entry["change_24h"] = float(d.get("changePercent24Hr") or 0)
+                entry["mcap"] = float(d.get("marketCapUsd") or 0)
+            except Exception:
+                pass
+        try:
+            kr = requests.get(
+                f"https://api.binance.com/api/v3/klines?symbol={c['binance']}&interval=1d&limit=10",
+                headers=hdr, timeout=8)
+            closes = [float(x[4]) for x in kr.json()]
+            if len(closes) > 7 and closes[-8]:
+                entry["change_7d"] = (closes[-1] - closes[-8]) / closes[-8] * 100
+        except Exception:
+            pass
+
+
 def fetch_fx():
     hdr = {"User-Agent": "XRPRadar/4"}
     codes = ["EUR", "GBP", "JPY", "AUD", "CAD", "SGD", "INR", "BRL"]
@@ -216,6 +261,7 @@ def _bg_refresh():
             fetch_market()
             if n % 5 == 0:
                 fetch_fx()
+                fetch_competitors()
         except Exception:
             pass
         n += 1
@@ -472,6 +518,80 @@ def fetch_news():
                        if s["key"] not in weekly_keys][:20]
     NEWS["feeds_active"] = active
     NEWS["updated"] = now.strftime("%Y-%m-%d %H:%M:%S UTC")
+    _track_sentiment_history(pool)
+
+
+SENTIMENT_HISTORY = {}   # date_str -> {"bull","bear","neut","total","_keys"}
+SENTIMENT_HISTORY_MAX = 30
+
+def _track_sentiment_history(pool):
+    for s in pool:
+        try:
+            day = s["dt"].astimezone(timezone.utc).date().isoformat()
+        except Exception:
+            continue
+        bucket = SENTIMENT_HISTORY.setdefault(
+            day, {"bull": 0, "bear": 0, "neut": 0, "total": 0, "_keys": set()})
+        if s["key"] in bucket["_keys"]:
+            continue
+        bucket["_keys"].add(s["key"])
+        bucket["total"] += 1
+        if s["sentiment"] == "bullish":
+            bucket["bull"] += 1
+        elif s["sentiment"] == "bearish":
+            bucket["bear"] += 1
+        else:
+            bucket["neut"] += 1
+    if len(SENTIMENT_HISTORY) > SENTIMENT_HISTORY_MAX:
+        for old_day in sorted(SENTIMENT_HISTORY.keys())[:len(SENTIMENT_HISTORY) - SENTIMENT_HISTORY_MAX]:
+            del SENTIMENT_HISTORY[old_day]
+
+
+def news_velocity_24h():
+    """Stories per hour for the last 24h, oldest -> newest (24 buckets)."""
+    now = datetime.now(timezone.utc)
+    buckets = [0] * 24
+    for s in NEWS.get("pool", []):
+        try:
+            hrs_ago = (now - s["dt"]).total_seconds() / 3600
+            if 0 <= hrs_ago < 24:
+                buckets[23 - int(hrs_ago)] += 1
+        except Exception:
+            continue
+    return buckets
+
+
+def interest_score():
+    """XRP interest score (0-100), honestly derived from our own feed velocity
+    (Iteration-1 used this exact approach as its fallback when Google Trends was unavailable)."""
+    now = datetime.now(timezone.utc)
+    pool = NEWS.get("pool", [])
+    recent_6h = sum(1 for s in pool if (now - s["dt"]).total_seconds() < 21600)
+    score = min(recent_6h * 6 + min(len(pool), 20), 100)
+    if score > 70:
+        label = "\U0001F525 Trending"
+    elif score > 40:
+        label = "\U0001F4C8 Rising"
+    elif score > 15:
+        label = "\U0001F634 Quiet"
+    else:
+        label = "\U0001F4A4 Minimal"
+    return score, label
+
+
+def sentiment_source_table(n=15):
+    pool = NEWS.get("pool", [])
+    agg = {}
+    for s in pool:
+        e = agg.setdefault(s["source"], {"name": s["source"], "total": 0, "bull": 0, "bear": 0, "breaking": 0})
+        e["total"] += 1
+        if s["sentiment"] == "bullish":
+            e["bull"] += 1
+        if s["sentiment"] == "bearish":
+            e["bear"] += 1
+        if s.get("breaking"):
+            e["breaking"] += 1
+    return sorted(agg.values(), key=lambda x: x["total"], reverse=True)[:n]
 
 
 def _time_ago(dt):
@@ -982,6 +1102,90 @@ def regional_heatmap_html():
     return cards
 
 
+def velocity_chart_html():
+    buckets = news_velocity_24h()
+    mx = max(buckets) or 1
+    return "".join(
+        f'<div class="vel-bar" style="height:{max(6, v / mx * 100):.0f}%" title="{v} stories"></div>'
+        for v in buckets
+    )
+
+
+def sentiment_trend_html():
+    days = sorted(SENTIMENT_HISTORY.keys())
+    if not days:
+        return '<div class="empty">Sentiment history builds day by day as the server runs \u2014 check back soon.</div>'
+    mx = max(SENTIMENT_HISTORY[d]["total"] for d in days) or 1
+    bars = ""
+    for d in days:
+        b = SENTIMENT_HISTORY[d]
+        h = max(6, b["total"] / mx * 100)
+        if b["bull"] > b["bear"]:
+            col = "var(--gr)"
+        elif b["bear"] > b["bull"]:
+            col = "var(--rd)"
+        else:
+            col = "var(--tx)"
+        title = f'{d}: {b["bull"]} bull / {b["bear"]} bear / {b["neut"]} neutral'
+        bars += f'<div class="sdt-bar" style="height:{h:.0f}%;background:{col}" title="{title}"></div>'
+    return bars
+
+
+def sentiment_leaderboard_html():
+    rows = sentiment_source_table()
+    if not rows:
+        return '<tr><td colspan="6" class="empty">Feeds loading\u2026</td></tr>'
+    out = ""
+    for i, r in enumerate(rows, 1):
+        t = max(r["total"], 1)
+        bull_pct = r["bull"] / t * 100
+        bear_pct = r["bear"] / t * 100
+        out += (
+            f'<tr><td>{i}</td><td style="color:var(--br);font-weight:700">{html.escape(r["name"])}</td>'
+            f'<td style="text-align:center">{r["total"]}</td>'
+            f'<td style="text-align:center;color:var(--gr)">{r["bull"]}</td>'
+            f'<td style="text-align:center;color:var(--rd)">{r["bear"]}</td>'
+            f'<td><div class="sent-bar-mini"><span style="width:{bull_pct:.0f}%;background:var(--gr)"></span>'
+            f'<span style="width:{bear_pct:.0f}%;background:var(--rd)"></span></div></td>'
+            f'<td style="text-align:center;color:var(--yl)">{r["breaking"] or "\u2014"}</td></tr>'
+        )
+    return out
+
+
+def competitor_table_html():
+    xrp_price = MARKET.get("xrp_price")
+    xrp_chg = MARKET.get("xrp_chg")
+    xrp_7d = MARKET.get("perf_1w")
+    xrp_mcap = MARKET.get("mcap")
+
+    def _row(sym, emoji, price, chg24, chg7d, mcap, edge, is_self):
+        px = f"${price:.4f}" if price and price < 1 else (f"${price:,.2f}" if price else "\u2014")
+        c24 = f'{chg24:+.2f}%' if chg24 is not None else "\u2014"
+        c24col = "var(--gr)" if (chg24 or 0) >= 0 else "var(--rd)"
+        c7 = f'{chg7d:+.2f}%' if chg7d is not None else "\u2014"
+        c7col = "var(--gr)" if (chg7d or 0) >= 0 else "var(--rd)"
+        mc = _fmt_usd(mcap)
+        rowbg = "background:rgba(117,188,255,.06);border-left:3px solid var(--bl)" if is_self else ""
+        symcol = "var(--bl)" if is_self else "var(--br)"
+        edgecol = "var(--bl)" if is_self else "var(--tx)"
+        return (
+            f'<tr style="{rowbg}"><td><span style="margin-right:6px">{emoji}</span>'
+            f'<span style="font-weight:900;color:{symcol}">{sym}</span></td>'
+            f'<td style="text-align:right">{px}</td>'
+            f'<td style="text-align:right;color:{c24col}">{c24}</td>'
+            f'<td style="text-align:right;color:{c7col}">{c7}</td>'
+            f'<td style="text-align:right;color:var(--tx)">{mc}</td>'
+            f'<td style="color:{edgecol};max-width:260px">{edge}</td></tr>'
+        )
+
+    rows = _row("XRP", "\U0001FA99", xrp_price, xrp_chg, xrp_7d, xrp_mcap, "\U0001F3AF Tracking live", True)
+    for c in COMPETITORS:
+        e = MARKET["competitors"].get(c["id"], {})
+        rows += _row(c["symbol"], c["emoji"], e.get("price"), e.get("change_24h"), e.get("change_7d"),
+                     e.get("mcap"), COMPETITOR_EDGE.get(c["symbol"], ""), False)
+    return rows
+
+
 def _rank_counts(items):
     counts = {}
     for it in items:
@@ -1247,6 +1451,61 @@ def run_preflight():
 # ─────────────────────────────────────────────────────────────────────
 # PAGE
 # ─────────────────────────────────────────────────────────────────────
+ODL_CORRIDORS = [
+    {"from_c": "\U0001F1FA\U0001F1F8 USA", "to_c": "\U0001F1F2\U0001F1FD Mexico", "partner": "Bitso", "status": "ACTIVE",
+     "note": "Largest ODL corridor globally \u2014 high daily volume via Bitso."},
+    {"from_c": "\U0001F1FA\U0001F1F8 USA", "to_c": "\U0001F1F5\U0001F1ED Philippines", "partner": "Coins.ph", "status": "ACTIVE",
+     "note": "Major OFW remittance route serving millions of Filipino workers."},
+    {"from_c": "\U0001F1EA\U0001F1FA Europe", "to_c": "\U0001F1F2\U0001F1FD Mexico", "partner": "Bitso", "status": "ACTIVE",
+     "note": "Cross-Atlantic corridor expanding with MiCA regulatory clarity."},
+    {"from_c": "\U0001F1EF\U0001F1F5 Japan", "to_c": "\U0001F1F5\U0001F1ED Philippines", "partner": "SBI Remit", "status": "ACTIVE",
+     "note": "SBI Holdings' flagship ODL corridor \u2014 high volume."},
+    {"from_c": "\U0001F1E6\U0001F1FA Australia", "to_c": "\U0001F1F5\U0001F1ED Philippines", "partner": "FlashFX", "status": "ACTIVE",
+     "note": "AUD to PHP remittance \u2014 major OFW corridor."},
+    {"from_c": "\U0001F1EC\U0001F1E7 UK", "to_c": "\U0001F1F3\U0001F1EC Nigeria", "partner": "Ripple Partner", "status": "GROWING",
+     "note": "Africa expansion focus with Flutterwave integration."},
+    {"from_c": "\U0001F1FA\U0001F1F8 USA", "to_c": "\U0001F1EE\U0001F1F3 India", "partner": "Various", "status": "GROWING",
+     "note": "Largest remittance market globally \u2014 $100B+ annual flows."},
+    {"from_c": "\U0001F1F8\U0001F1EC Singapore", "to_c": "\U0001F30F SE Asia", "partner": "Various", "status": "GROWING",
+     "note": "Regional hub \u2014 Ripple's Singapore MPI license is active."},
+]
+
+ISO20022_ADOPTERS = [
+    {"name": "SWIFT gpi", "region": "Global", "note": "Fully ISO 20022 compliant since 2023."},
+    {"name": "TARGET2", "region": "EU", "note": "ECB's large-value payment system, migrated Nov 2022."},
+    {"name": "CHAPS", "region": "UK", "note": "Bank of England high-value payment system, migrated 2023."},
+    {"name": "Fedwire", "region": "USA", "note": "US Federal Reserve system, migration completed 2024."},
+    {"name": "CHIPS", "region": "USA", "note": "Clearing House Interbank Payments System, ISO 20022 compliant."},
+    {"name": "SIC", "region": "Switzerland", "note": "Swiss Interbank Clearing system, migrated 2023."},
+    {"name": "HVPS+", "region": "Canada", "note": "High Value Payment System Canada, completed 2023."},
+    {"name": "RITS", "region": "Australia", "note": "Reserve Bank Information Transfer System, migrated."},
+]
+
+
+def odl_corridors_html():
+    out = ""
+    for c in ODL_CORRIDORS:
+        cls = c["status"].lower()
+        out += (
+            f'<div class="odl-item"><span class="odl-route">{c["from_c"]} \u2192 {c["to_c"]}</span>'
+            f'<span class="odl-status {cls}">{c["status"]}</span>'
+            f'<span style="color:var(--tx)">via {html.escape(c["partner"])}</span>'
+            f'<span class="odl-note">{html.escape(c["note"])}</span></div>'
+        )
+    return out
+
+def iso20022_html():
+    out = ""
+    for a in ISO20022_ADOPTERS:
+        out += (
+            f'<div class="iso-item"><span class="odl-status live">LIVE</span>'
+            f'<span style="font-weight:700;color:var(--br)">{html.escape(a["name"])}</span>'
+            f'<span style="color:var(--tx)">{html.escape(a["region"])}</span>'
+            f'<span class="odl-note">{html.escape(a["note"])}</span></div>'
+        )
+    return out
+
+
 def render_page():
     checks, passed, total, overall = run_preflight()
     overall_color = "#48ff82" if overall == "PASS" else "#ff4060"
@@ -1509,6 +1768,17 @@ def render_page():
 
     # Regional News Activity Heatmap
     rh_html = regional_heatmap_html()
+
+    # Sentiment Engine
+    _isc_score, _isc_label = interest_score()
+    vel_html = velocity_chart_html()
+    sdt_html = sentiment_trend_html()
+    sent_lb_rows = sentiment_leaderboard_html()
+
+    # Competitive Briefing
+    comp_rows = competitor_table_html()
+    odl_html = odl_corridors_html()
+    iso_html = iso20022_html()
 
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
@@ -1932,6 +2202,27 @@ def render_page():
   .rh-num{{ font-size:30px; font-weight:900; font-family:var(--mn); line-height:1; }}
   .rh-lbl{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:5px; }}
   @media(max-width:900px){{ .rh-grid{{ grid-template-columns:repeat(2,1fr); }} }}
+
+  /* Sentiment Engine */
+  .sent-top{{ display:grid; grid-template-columns:200px 1fr; gap:10px; margin-bottom:14px; }}
+  .vel-chart{{ display:flex; align-items:flex-end; gap:2px; height:60px; margin-top:8px; }}
+  .vel-bar{{ flex:1; min-width:2px; background:var(--yl); border-radius:1px 1px 0 0; opacity:.85; }}
+  .sdt-chart{{ display:flex; align-items:flex-end; gap:2px; height:80px; }}
+  .sdt-bar{{ flex:1; min-width:3px; border-radius:2px 2px 0 0; }}
+  .sent-bar-mini{{ display:flex; height:8px; border-radius:4px; overflow:hidden; width:80px; background:var(--s2); }}
+  @media(max-width:900px){{ .sent-top{{ grid-template-columns:1fr; }} }}
+
+  /* Competitive Briefing */
+  .odl-item, .iso-item{{ background:var(--s2); border:1px solid var(--b); border-radius:6px; padding:9px 12px;
+    margin-bottom:6px; font-family:var(--mn); font-size:13px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
+  .odl-route{{ font-weight:700; color:var(--br); white-space:nowrap; }}
+  .odl-status{{ font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; letter-spacing:.5px; white-space:nowrap; }}
+  .odl-status.active{{ background:rgba(72,255,130,.15); color:var(--gr); }}
+  .odl-status.growing{{ background:rgba(255,204,0,.15); color:var(--yl); }}
+  .odl-status.live{{ background:rgba(0,229,204,.15); color:var(--tq); }}
+  .odl-note{{ color:var(--tx); font-size:12px; flex:1; min-width:140px; }}
+  .sw-grid{{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }}
+  @media(max-width:900px){{ .sw-grid{{ grid-template-columns:repeat(2,1fr); }} }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -2569,7 +2860,90 @@ def render_page():
       </div>
     </div>
 
-    <!-- SECTION 22: PRACTICAL TOOLS -->
+    <!-- SECTION 22: SENTIMENT ENGINE -->
+    <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--yl)"><span class="sic">\U0001F9E0</span> Sentiment Engine</div>
+
+      <div class="sent-top">
+        <div class="ud-panel" style="text-align:center">
+          <div class="fg-title" style="justify-content:center"><span style="font-size:18px">\U0001F4E1</span> XRP Interest Score</div>
+          <div class="sm-score" style="color:var(--yl)">{_isc_score}</div>
+          <div class="sm-label" style="color:var(--yl)">{_isc_label}</div>
+          <div class="sm-bar"><div class="sm-fill" style="width:{_isc_score}%"></div></div>
+          <div class="pt-note" style="margin-top:8px">Derived from live feed velocity</div>
+        </div>
+        <div class="ud-panel">
+          <div class="fg-title"><span style="font-size:18px">\U0001F4F0</span> News Velocity \u2014 Stories per Hour (24h)</div>
+          <div class="vel-chart">{vel_html}</div>
+          <div class="fg-axis"><span>24h ago</span><span>12h ago</span><span>now</span></div>
+        </div>
+      </div>
+
+      <div class="ud-panel" style="margin-bottom:14px">
+        <div class="fg-title"><span style="font-size:18px">\U0001F4C8</span> Sentiment Trend \u2014 Since Deploy (up to 30 days)</div>
+        <div class="sdt-chart">{sdt_html}</div>
+        <div class="fg-legend" style="margin-top:8px">
+          <span><span class="fg-key" style="background:var(--gr)"></span>Bullish day</span>
+          <span><span class="fg-key" style="background:var(--rd)"></span>Bearish day</span>
+          <span><span class="fg-key" style="background:var(--tx)"></span>Balanced day</span>
+        </div>
+      </div>
+
+      <div class="ud-panel">
+        <div class="fg-title"><span style="font-size:18px">\U0001F3C6</span> Source Leaderboard \u2014 Most Active (Today)</div>
+        <table class="pt-tbl">
+          <thead><tr><th>#</th><th>Source</th><th style="text-align:center">Stories</th>
+            <th style="text-align:center">Bull</th><th style="text-align:center">Bear</th>
+            <th>Sentiment</th><th style="text-align:center">Breaking</th></tr></thead>
+          <tbody>{sent_lb_rows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION 23: COMPETITIVE BRIEFING -->
+    <div class="acct" style="border-color:rgba(117,188,255,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--bl)"><span class="sic">\u2694\uFE0F</span> Competitive Briefing</div>
+
+      <div class="trk-tag" style="color:var(--tx)">XRP vs major competitors \u2014 live performance.</div>
+      <div style="overflow-x:auto;margin-bottom:14px">
+        <table class="pt-tbl">
+          <thead><tr><th>Asset</th><th style="text-align:right">Price</th><th style="text-align:right">24h %</th>
+            <th style="text-align:right">7d %</th><th style="text-align:right">Market Cap</th><th>XRP Edge</th></tr></thead>
+          <tbody>{comp_rows}</tbody>
+        </table>
+      </div>
+
+      <div class="pt-cols" style="margin-bottom:14px">
+        <div class="pt-col">
+          <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F310 Active ODL Corridors</div>
+          {odl_html}
+        </div>
+        <div class="pt-col">
+          <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F4CB ISO 20022 Adoption</div>
+          <div style="background:var(--s2);border:1px solid rgba(72,255,130,.25);border-radius:8px;padding:10px;margin-bottom:8px">
+            <div style="font-size:13px;color:var(--gr);line-height:1.7;font-family:system-ui">XRP and the XRPL natively support ISO 20022 data fields, positioning Ripple as infrastructure for the new global payment standard.</div>
+          </div>
+          {iso_html}
+          <div style="margin-top:8px;padding:6px 10px;background:var(--s2);border-radius:5px;border:1px solid var(--b);font-size:13px;font-family:var(--mn)">
+            Banks exploring ISO 20022 + Ripple: <span style="color:var(--yl);font-weight:700">200+</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\u26A1 XRP vs SWIFT \u2014 The Case for ODL</div>
+      <div class="sw-grid">
+        <div class="sb-box"><div class="sb-num" style="color:var(--rd)">$5T</div><div class="sb-lbl">SWIFT Daily Volume</div><div class="sb-sub">Traditional rails</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--rd)">1-5 days</div><div class="sb-lbl">SWIFT Settlement</div><div class="sb-sub">Avg. cross-border</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--rd)">2-10%</div><div class="sb-lbl">SWIFT Avg Cost</div><div class="sb-sub">Remittance fees</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">3-5 sec</div><div class="sb-lbl">XRPL Settlement</div><div class="sb-sub">Any corridor, 24/7</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">$0.0002</div><div class="sb-lbl">XRPL Cost</div><div class="sb-sub">Per transaction</div></div>
+      </div>
+      <div style="margin-top:8px;padding:10px 14px;background:rgba(72,255,130,.04);border:1px solid rgba(72,255,130,.2);border-radius:6px;font-size:13px;color:var(--br);line-height:1.7;font-family:system-ui">
+        XRPL settles in seconds for fractions of a cent, 24/7/365 \u2014 no correspondent banking chain, no cut-off times.
+      </div>
+    </div>
+
+    <!-- SECTION 24: PRACTICAL TOOLS -->
     <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F6E0\uFE0F</span> Practical Tools</div>
       <div class="pt-cols">
@@ -2707,7 +3081,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; BRIEFING COUNTDOWN TEASER</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; SENTIMENT + COMPETITIVE</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -3093,6 +3467,11 @@ except Exception:
 
 try:
     fetch_fx()
+except Exception:
+    pass
+
+try:
+    fetch_competitors()
 except Exception:
     pass
 
