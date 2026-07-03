@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 42 — Breaking News + Whale Alert Feed wired live; reusable home-base placeholder
+Version 43 — Next Proprietary Briefing countdown teaser above This Week's Editions
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "42"
+APP_VERSION = "43"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -646,14 +646,17 @@ def _brief_slot(now_ct):
     yd = (now_ct - timedelta(days=1)).date()
     return f"{yd.isoformat()}-PM", "PM"
 
-def _brief_next_run(now_ct):
+def _brief_next_run_dt(now_ct):
     h = now_ct.hour
     if h < 12:
-        nxt = now_ct.replace(hour=12, minute=0, second=0, microsecond=0)
+        return now_ct.replace(hour=12, minute=0, second=0, microsecond=0)
     elif h < 21:
-        nxt = now_ct.replace(hour=21, minute=0, second=0, microsecond=0)
+        return now_ct.replace(hour=21, minute=0, second=0, microsecond=0)
     else:
-        nxt = (now_ct + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+        return (now_ct + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+
+def _brief_next_run(now_ct):
+    nxt = _brief_next_run_dt(now_ct)
     try:
         return nxt.strftime("%b %d, %-I:%M %p CST")
     except ValueError:
@@ -1459,6 +1462,8 @@ def render_page():
     _now_ct = datetime.now(CENTRAL)
     _week_slots = brief_week_slots(_now_ct)
     _live_slot = BRIEF.get("slot_id")
+    _next_run_dt = _brief_next_run_dt(_now_ct)
+    brf_next_iso = _next_run_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     brf_strip_html = ""
     for sl in _week_slots:
         sid = sl["slot_id"]
@@ -1865,6 +1870,13 @@ def render_page():
   .brf-slot.pending{{ opacity:.45; }}
   .brf-slot.pending .brf-slot-ed{{ color:var(--tx); }}
   .brf-slot.active-view{{ outline:2px solid var(--br); outline-offset:1px; }}
+
+  /* Next Briefing countdown teaser — same footprint as Brief Home, white fill */
+  .brf-teaser{{ background:#f4f6fa; border:1px solid rgba(255,153,0,.3); border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }}
+  .brf-teaser-icon{{ font-size:26px; line-height:1; margin-bottom:4px; }}
+  .brf-teaser-line{{ font-size:14px; font-weight:800; font-family:var(--mn); color:#1a2a4a; }}
+  .brf-teaser-line span{{ color:var(--or); font-weight:900; }}
+  .brf-teaser-sub{{ font-size:12px; font-family:var(--mn); color:#5a6a85; margin-top:4px; }}
 
   /* World briefing clocks */
   .wc-row{{ display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; margin:14px 0; padding:12px;
@@ -2468,6 +2480,12 @@ def render_page():
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr);margin-bottom:10px"><span class="sic">\U0001F52E</span> XRP Intelligence Brief</div>
 
+      <div class="brf-teaser">
+        <div class="brf-teaser-icon">\U0001F52E</div>
+        <div class="brf-teaser-line">Next Proprietary Briefing in <span id="brf-countdown">\u2014</span></div>
+        <div class="brf-teaser-sub">See World Clocks Below.</div>
+      </div>
+
       <div class="brf-home">
         <div class="brf-home-t">\U0001F4CD This Week's Editions \u2014 New Briefs Post Here</div>
         <div class="brf-home-sub">Two new editions every day, always in this spot: AM at 12:00 PM CST, PM at 9:00 PM CST.</div>
@@ -2689,7 +2707,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; LIVE BREAKING + WHALE FEED</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; BRIEFING COUNTDOWN TEASER</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -2978,6 +2996,21 @@ def render_page():
       if (btn) btn.classList.add('active');
       _applyFeed();
     }}
+
+    // Next Briefing countdown (ticks live, hours/minutes)
+    (function () {{
+      var target = new Date("{brf_next_iso}").getTime();
+      var el = document.getElementById('brf-countdown');
+      function tickBrf() {{
+        if (!el) return;
+        var diff = target - Date.now();
+        if (diff < 0) diff = 0;
+        var h = Math.floor(diff / 3600000);
+        var m = Math.floor((diff % 3600000) / 60000);
+        el.textContent = h + 'h ' + ('0' + m).slice(-2) + 'm';
+      }}
+      tickBrf(); setInterval(tickBrf, 1000 * 15);
+    }})();
 
     // Escrow countdown (to next 1st-of-month, 00:00 UTC)
     (function () {{
