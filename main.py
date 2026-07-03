@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 38 — Unique Displays, Longitudinal Value Markers, Regional News Activity Heatmap
+Version 39 — Practical Tools (P&L calc, multi-currency, wallet checker, portfolio tracker, remittance calc)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -44,7 +44,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "38"
+APP_VERSION = "39"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -61,6 +61,7 @@ MARKET = {
     "mcap": None, "vol24": None, "rank": None, "h24": None, "l24": None, "xrpbtc": None,
     "fng_history": [], "funding": None,
     "perf_1w": None, "perf_30d": None, "perf_90d": None, "perf_6m": None,
+    "fx": {},
     "sources_active": 0, "sources_total": 3,
     "updated": None,
     # technicals (Binance klines)
@@ -187,12 +188,36 @@ def fetch_market():
     MARKET["updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
+def fetch_fx():
+    hdr = {"User-Agent": "XRPRadar/4"}
+    codes = ["EUR", "GBP", "JPY", "AUD", "CAD", "SGD", "INR", "BRL"]
+    try:
+        r = requests.get("https://api.exchangerate-api.com/v4/latest/USD", headers=hdr, timeout=8)
+        rates = r.json().get("rates", {})
+        if rates:
+            MARKET["fx"] = {c: float(rates[c]) for c in codes if c in rates}
+            return
+    except Exception:
+        pass
+    try:
+        r = requests.get("https://open.er-api.com/v6/latest/USD", headers=hdr, timeout=8)
+        rates = r.json().get("rates", {})
+        if rates:
+            MARKET["fx"] = {c: float(rates[c]) for c in codes if c in rates}
+    except Exception:
+        pass
+
+
 def _bg_refresh():
+    n = 0
     while True:
         try:
             fetch_market()
+            if n % 5 == 0:
+                fetch_fx()
         except Exception:
             pass
+        n += 1
         time.sleep(60)
 
 threading.Thread(target=_bg_refresh, daemon=True).start()
@@ -1397,6 +1422,21 @@ def render_page():
     # Regional News Activity Heatmap
     rh_html = regional_heatmap_html()
 
+    # Practical Tools — multi-currency conversion (XRP price x FX rate)
+    _fx = MARKET.get("fx") or {}
+    _xp = MARKET.get("xrp_price") or 0
+    def _fx_val(code, dec=4):
+        rate = _fx.get(code)
+        if rate is None or not _xp:
+            return "\u2014"
+        return f"{_xp * rate:,.{dec}f}"
+    fx_eur = _fx_val("EUR"); fx_gbp = _fx_val("GBP"); fx_jpy = _fx_val("JPY", 2)
+    fx_aud = _fx_val("AUD"); fx_cad = _fx_val("CAD"); fx_sgd = _fx_val("SGD")
+    fx_inr = _fx_val("INR", 2); fx_brl = _fx_val("BRL")
+    fx_usd_disp = f"{_xp:.4f}" if _xp else "\u2014"
+    fx_ts = MARKET.get("updated") or "\u2014"
+    xrp_price_js = _xp or 0
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -1719,12 +1759,12 @@ def render_page():
   .wc-city{{ font-size:12px; font-weight:700; color:var(--br); margin-bottom:6px; white-space:nowrap; }}
   .wc-clock{{ position:relative; width:54px; height:54px; border-radius:50%; margin:0 auto 6px; border:2px solid #4a5878;
     background:radial-gradient(circle,rgba(128,153,179,.16),rgba(128,153,179,.04)); }}
-  .wc-clock.wc-day{{ border-color:var(--yl); background:radial-gradient(circle,rgba(255,204,0,.28),rgba(255,204,0,.07)); }}
+  .wc-clock.wc-day{{ border-color:var(--or); background:radial-gradient(circle,rgba(255,153,0,.28),rgba(255,153,0,.07)); }}
   .wc-hand{{ position:absolute; left:50%; bottom:50%; transform-origin:bottom center; transform:rotate(0deg); background:var(--br); border-radius:2px; }}
   .wc-hr{{ width:3px; height:14px; margin-left:-1.5px; }}
   .wc-min{{ width:2px; height:20px; margin-left:-1px; }}
   .wc-sec{{ width:1px; height:21px; margin-left:-.5px; background:var(--rd); }}
-  .wc-clock.wc-day .wc-hr, .wc-clock.wc-day .wc-min{{ background:#2a2000; }}
+  .wc-clock.wc-day .wc-hr, .wc-clock.wc-day .wc-min{{ background:#3a2200; }}
   .wc-center{{ position:absolute; left:50%; top:50%; width:5px; height:5px; border-radius:50%; background:var(--rd); transform:translate(-50%,-50%); }}
   .wc-off{{ font-size:12px; font-weight:700; color:var(--hdr); margin-bottom:2px; }}
   .wc-b{{ font-size:11px; color:var(--tx); line-height:1.5; white-space:nowrap; }}
@@ -1766,6 +1806,43 @@ def render_page():
   .rh-num{{ font-size:30px; font-weight:900; font-family:var(--mn); line-height:1; }}
   .rh-lbl{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:5px; }}
   @media(max-width:900px){{ .rh-grid{{ grid-template-columns:repeat(2,1fr); }} }}
+
+  /* Practical Tools */
+  .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start; }}
+  .pt-col{{ display:flex; flex-direction:column; gap:10px; }}
+  .pt-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; overflow:hidden; }}
+  .pt-head{{ padding:10px 14px; background:var(--s2); border-bottom:1px solid var(--b); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; }}
+  .pt-title{{ font-size:14px; font-weight:800; font-family:var(--mn); letter-spacing:1.2px; }}
+  .pt-body{{ padding:14px; display:flex; flex-direction:column; gap:10px; }}
+  .pt-lbl{{ font-size:12px; font-family:var(--mn); color:var(--tx); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }}
+  .pt-row2{{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }}
+  .pt-input, .pt-select{{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); color:var(--br);
+    padding:8px 10px; border-radius:5px; font-size:14px; font-family:var(--mn); outline:none; }}
+  .pt-input::placeholder{{ color:var(--tx); }}
+  .pt-use-live{{ color:var(--tq); cursor:pointer; margin-left:6px; font-size:12px; }}
+  .pt-results{{ background:var(--s2); border:1px solid var(--b); border-radius:6px; padding:10px; font-family:var(--mn); font-size:13px; display:none; }}
+  .pt-res-row{{ display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.05); }}
+  .pt-res-row:last-child{{ border-bottom:none; }}
+  .pt-note{{ font-size:12px; font-family:var(--mn); color:var(--tx); }}
+  .pt-btn{{ background:rgba(117,188,255,.1); border:1px solid var(--bl); color:var(--bl); padding:8px 14px; border-radius:5px;
+    cursor:pointer; font-family:var(--mn); font-size:13px; font-weight:700; text-transform:uppercase; white-space:nowrap; }}
+  .pt-btn:hover{{ background:var(--bl); color:#000; }}
+  .pt-btn-gr{{ background:rgba(72,255,130,.1); border:1px solid var(--gr); color:var(--gr); padding:6px 10px; border-radius:4px;
+    cursor:pointer; font-family:var(--mn); font-size:13px; font-weight:700; }}
+  .pt-btn-gr:hover{{ background:var(--gr); color:#000; }}
+  .fx-grid{{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:12px; }}
+  .fx-box{{ background:var(--s2); border:1px solid var(--b); border-radius:6px; padding:8px; text-align:center; }}
+  .fx-box.hi{{ border-color:var(--bl); }}
+  .fx-lbl{{ font-size:11px; font-family:var(--mn); color:var(--tx); text-transform:uppercase; letter-spacing:1px; }}
+  .fx-val{{ font-size:18px; font-weight:900; font-family:var(--mn); margin-top:4px; color:var(--br); }}
+  .pt-tbl{{ width:100%; border-collapse:collapse; font-family:var(--mn); font-size:13px; margin-bottom:6px; }}
+  .pt-tbl th{{ padding:4px 6px; text-align:right; color:var(--tx); font-size:12px; border-bottom:1px solid var(--b); }}
+  .pt-tbl th:first-child{{ text-align:left; }}
+  .pt-tbl td{{ padding:5px 6px; text-align:right; border-bottom:1px solid rgba(255,255,255,.03); }}
+  .pt-tbl td:first-child{{ text-align:left; color:var(--br); font-weight:700; }}
+  .pt-x{{ cursor:pointer; color:var(--rd); font-weight:900; }}
+  .rm-fee-box{{ border-radius:6px; padding:10px; text-align:center; }}
+  @media(max-width:900px){{ .pt-cols{{ grid-template-columns:1fr; }} .fx-grid{{ grid-template-columns:repeat(3,1fr); }} }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -2346,12 +2423,146 @@ def render_page():
         {rh_html}
       </div>
     </div>
+
+    <!-- SECTION 22: PRACTICAL TOOLS -->
+    <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F6E0\uFE0F</span> Practical Tools</div>
+      <div class="pt-cols">
+        <div class="pt-col">
+          <!-- P&L Calculator -->
+          <div class="pt-panel" style="border-color:rgba(0,229,204,.25)">
+            <div class="pt-head"><span class="pt-title" style="color:var(--tq)">\U0001F4B0 XRP P&amp;L Calculator</span></div>
+            <div class="pt-body">
+              <div class="pt-row2">
+                <div><div class="pt-lbl">Buy Price (USD)</div>
+                  <input id="pl-buy" class="pt-input" type="number" step="0.0001" placeholder="e.g. 0.50" oninput="calcPL()"></div>
+                <div><div class="pt-lbl">Quantity (XRP)</div>
+                  <input id="pl-qty" class="pt-input" type="number" step="1" placeholder="e.g. 10000" oninput="calcPL()"></div>
+              </div>
+              <div>
+                <div class="pt-lbl">Sell / Target Price (USD)
+                  <span class="pt-use-live" onclick="document.getElementById('pl-sell').value=currentXRPPrice.toFixed(4);calcPL()">[use live price]</span>
+                </div>
+                <input id="pl-sell" class="pt-input" type="number" step="0.0001" placeholder="e.g. 2.00" oninput="calcPL()">
+              </div>
+              <div id="pl-results" class="pt-results">
+                <div class="pt-res-row"><span class="sm-k">Cost Basis</span><span class="sm-v" id="pl-cost">\u2014</span></div>
+                <div class="pt-res-row"><span class="sm-k">Current / Target Value</span><span class="sm-v" id="pl-value">\u2014</span></div>
+                <div class="pt-res-row"><span class="sm-k">P&amp;L (USD)</span><span id="pl-usd" style="font-weight:700;font-size:16px">\u2014</span></div>
+                <div class="pt-res-row"><span class="sm-k">P&amp;L (%)</span><span id="pl-pct" style="font-weight:700;font-size:18px">\u2014</span></div>
+              </div>
+              <div class="pt-note">\u26A0\uFE0F Not financial advice. For informational purposes only.</div>
+            </div>
+          </div>
+
+          <!-- Multi-Currency -->
+          <div class="pt-panel" style="border-color:rgba(0,229,204,.2)">
+            <div class="pt-head"><span class="pt-title" style="color:var(--tq)">\U0001F4B1 XRP Price \u2014 Multi-Currency</span><span class="pt-note">{fx_ts}</span></div>
+            <div class="fx-grid">
+              <div class="fx-box hi"><div class="fx-lbl">USD \U0001F1FA\U0001F1F8</div><div class="fx-val">${fx_usd_disp}</div></div>
+              <div class="fx-box"><div class="fx-lbl">EUR \U0001F1EA\U0001F1FA</div><div class="fx-val">\u20AC{fx_eur}</div></div>
+              <div class="fx-box"><div class="fx-lbl">GBP \U0001F1EC\U0001F1E7</div><div class="fx-val">\u00A3{fx_gbp}</div></div>
+              <div class="fx-box"><div class="fx-lbl">JPY \U0001F1EF\U0001F1F5</div><div class="fx-val" style="font-size:16px">\u00A5{fx_jpy}</div></div>
+              <div class="fx-box"><div class="fx-lbl">AUD \U0001F1E6\U0001F1FA</div><div class="fx-val">A${fx_aud}</div></div>
+              <div class="fx-box"><div class="fx-lbl">CAD \U0001F1E8\U0001F1E6</div><div class="fx-val">C${fx_cad}</div></div>
+              <div class="fx-box"><div class="fx-lbl">SGD \U0001F1F8\U0001F1EC</div><div class="fx-val">S${fx_sgd}</div></div>
+              <div class="fx-box"><div class="fx-lbl">INR \U0001F1EE\U0001F1F3</div><div class="fx-val" style="font-size:16px">\u20B9{fx_inr}</div></div>
+              <div class="fx-box"><div class="fx-lbl">BRL \U0001F1E7\U0001F1F7</div><div class="fx-val">R${fx_brl}</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-col">
+          <!-- Wallet Checker -->
+          <div class="pt-panel" style="border-color:rgba(117,188,255,.25)">
+            <div class="pt-head"><span class="pt-title" style="color:var(--bl)">\U0001F50D XRPL Wallet Checker</span></div>
+            <div class="pt-body">
+              <div class="pt-lbl">Enter XRPL Address</div>
+              <div style="display:flex;gap:6px">
+                <input id="wallet-addr" class="pt-input" type="text" placeholder="r..." onkeydown="if(event.key==='Enter')checkWallet()">
+                <button class="pt-btn" onclick="checkWallet()">CHECK</button>
+              </div>
+              <div id="wallet-result" style="font-family:var(--mn);font-size:13px;margin-top:8px">
+                <div style="color:var(--tx)">Enter any XRPL address to see live balance and USD value.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Portfolio Tracker -->
+          <div class="pt-panel" style="border-color:rgba(72,255,130,.2)">
+            <div class="pt-head"><span class="pt-title" style="color:var(--gr)">\U0001F4C8 Portfolio Tracker</span><span class="pt-note">Session only</span></div>
+            <div class="pt-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px">
+                <input id="pt-label" class="pt-input" type="text" placeholder="Label (e.g. Wallet 1)">
+                <input id="pt-amount" class="pt-input" type="number" placeholder="XRP amount">
+                <input id="pt-cost" class="pt-input" type="number" placeholder="Avg buy price">
+                <button class="pt-btn-gr" onclick="addPortfolioEntry()">+ ADD</button>
+              </div>
+              <div id="portfolio-table"><div style="font-size:13px;font-family:var(--mn);color:var(--tx)">No entries yet. Add a position above.</div></div>
+              <div id="portfolio-totals" class="pt-results">
+                <div class="pt-res-row"><span class="sm-k">Total XRP</span><span class="sm-v" id="pt-total-xrp">\u2014</span></div>
+                <div class="pt-res-row"><span class="sm-k">Total Value</span><span class="sm-v" id="pt-total-val">\u2014</span></div>
+                <div class="pt-res-row"><span class="sm-k">Total P&amp;L</span><span id="pt-total-pl" style="font-weight:700;font-size:14px">\u2014</span></div>
+              </div>
+              <div class="pt-note">\u26A0\uFE0F Session only \u2014 entries clear on page refresh. Not financial advice.</div>
+            </div>
+          </div>
+
+          <!-- Remittance Calculator -->
+          <div class="pt-panel" style="border-color:rgba(0,229,204,.25)">
+            <div class="pt-head"><span class="pt-title" style="color:var(--tq)">\U0001F4B8 Remittance Calculator</span><span class="pt-note">SWIFT vs XRP</span></div>
+            <div class="pt-body">
+              <div class="pt-row2">
+                <div><div class="pt-lbl">Send Amount (USD)</div>
+                  <input id="rm-amount" class="pt-input" type="number" placeholder="e.g. 1000" oninput="calcRemittance()"></div>
+                <div><div class="pt-lbl">Corridor</div>
+                  <select id="rm-corridor" class="pt-select" onchange="calcRemittance()">
+                    <option value="6.0">\U0001F1FA\U0001F1F8\u2192\U0001F1F2\U0001F1FD USA to Mexico (6%)</option>
+                    <option value="7.5">\U0001F1FA\U0001F1F8\u2192\U0001F1F5\U0001F1ED USA to Philippines (7.5%)</option>
+                    <option value="8.0">\U0001F1EC\U0001F1E7\u2192\U0001F1F3\U0001F1EC UK to Nigeria (8%)</option>
+                    <option value="5.5">\U0001F1EF\U0001F1F5\u2192\U0001F1F5\U0001F1ED Japan to Philippines (5.5%)</option>
+                    <option value="6.5">\U0001F1E6\U0001F1FA\u2192\U0001F1F5\U0001F1ED Australia to Philippines (6.5%)</option>
+                    <option value="9.0">\U0001F1FA\U0001F1F8\u2192\U0001F1EE\U0001F1F3 USA to India (9%)</option>
+                    <option value="7.0">\U0001F1EA\U0001F1FA\u2192\U0001F1F2\U0001F1FD Europe to Mexico (7%)</option>
+                    <option value="5.0">\U0001F1F8\U0001F1EC\u2192\U0001F30F Singapore to SE Asia (5%)</option>
+                  </select>
+                </div>
+              </div>
+              <div id="rm-results" style="display:none">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <div class="rm-fee-box" style="background:rgba(255,64,96,.08);border:1px solid rgba(255,64,96,.3)">
+                    <div class="pt-lbl" style="color:var(--rd)">SWIFT / Traditional</div>
+                    <div style="font-size:22px;font-weight:900;font-family:var(--mn);color:var(--rd)" id="rm-swift-fee">\u2014</div>
+                    <div class="pt-note">fee lost</div>
+                    <div style="font-size:13px;font-family:var(--mn);color:var(--br);margin-top:6px;font-weight:700" id="rm-swift-recv">\u2014 received</div>
+                    <div class="pt-note">\u23F1 1-5 business days</div>
+                  </div>
+                  <div class="rm-fee-box" style="background:rgba(72,255,130,.08);border:1px solid rgba(72,255,130,.3)">
+                    <div class="pt-lbl" style="color:var(--gr)">XRP / XRPL ODL</div>
+                    <div style="font-size:22px;font-weight:900;font-family:var(--mn);color:var(--gr)">$0.0002</div>
+                    <div class="pt-note">fee lost</div>
+                    <div style="font-size:13px;font-family:var(--mn);color:var(--br);margin-top:6px;font-weight:700" id="rm-xrp-recv">\u2014 received</div>
+                    <div class="pt-note">\u26A1 3-5 seconds</div>
+                  </div>
+                </div>
+                <div style="background:rgba(0,229,204,.08);border:1px solid rgba(0,229,204,.3);border-radius:6px;padding:10px;text-align:center;margin-top:8px">
+                  <div class="pt-lbl" style="color:var(--tq)">XRP Saves You</div>
+                  <div style="font-size:28px;font-weight:900;font-family:var(--mn);color:var(--tq)" id="rm-savings">\u2014</div>
+                  <div class="pt-note" id="rm-xrp-needed">\u2014 XRP needed \u00B7 at live price</div>
+                </div>
+              </div>
+              <div class="pt-note">\u26A0\uFE0F Traditional fees are averages. Actual rates vary by provider.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; UNIQUE DISPLAYS + LONGITUDINAL + HEATMAP</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; PRACTICAL TOOLS</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -2417,7 +2628,127 @@ def render_page():
     function closePFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'none'; }}
     document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') closePFModal(); }});
 
-    // World briefing clocks — live analog hands, yellow (day) / gray (night)
+    // Practical Tools — client-side calculators (never block the page load)
+    var currentXRPPrice = {xrp_price_js};
+
+    function calcPL() {{
+      var buy = parseFloat((document.getElementById('pl-buy') || {{}}).value || 0);
+      var qty = parseFloat((document.getElementById('pl-qty') || {{}}).value || 0);
+      var sell = parseFloat((document.getElementById('pl-sell') || {{}}).value || 0);
+      var res = document.getElementById('pl-results');
+      if (!buy || !qty || !sell || !res) return;
+      var cost = buy * qty, value = sell * qty, plUSD = value - cost;
+      var plPct = ((sell - buy) / buy) * 100;
+      var isPos = plUSD >= 0, col = isPos ? 'var(--gr)' : 'var(--rd)', sign = isPos ? '+' : '';
+      res.style.display = 'block';
+      document.getElementById('pl-cost').textContent = '$' + cost.toLocaleString('en-US', {{minimumFractionDigits:2,maximumFractionDigits:2}});
+      document.getElementById('pl-value').textContent = '$' + value.toLocaleString('en-US', {{minimumFractionDigits:2,maximumFractionDigits:2}});
+      var u = document.getElementById('pl-usd');
+      u.textContent = sign + '$' + Math.abs(plUSD).toLocaleString('en-US', {{minimumFractionDigits:2,maximumFractionDigits:2}});
+      u.style.color = col;
+      var p = document.getElementById('pl-pct');
+      p.textContent = sign + plPct.toFixed(2) + '%';
+      p.style.color = col;
+    }}
+
+    async function checkWallet() {{
+      var addr = ((document.getElementById('wallet-addr') || {{}}).value || '').trim();
+      var res = document.getElementById('wallet-result');
+      if (!addr || addr.charAt(0) !== 'r' || addr.length < 20) {{
+        if (res) res.innerHTML = '<div style="color:var(--rd)">\u26A0\uFE0F Enter a valid XRPL address (starts with r, 25-34 chars)</div>';
+        return;
+      }}
+      if (res) res.innerHTML = '<div style="color:var(--tx)">\U0001F50D Fetching wallet data...</div>';
+      try {{
+        var resp = await fetch('https://api.xrpscan.com/api/v1/account/' + addr);
+        if (!resp.ok) throw new Error('Not found');
+        var data = await resp.json();
+        var bal = parseFloat(data.xrpBalance || data.balance || 0);
+        var usd = bal * currentXRPPrice;
+        var tag = (data.accountName && data.accountName.name) || '';
+        var txCnt = data.txCount || '--';
+        res.innerHTML =
+          '<div style="background:var(--s2);border:1px solid rgba(117,188,255,.3);border-radius:6px;padding:10px">' +
+          (tag ? '<div style="font-size:13px;color:var(--yl);font-weight:700;margin-bottom:6px;font-family:var(--mn)">\U0001F3F7\uFE0F ' + tag + '</div>' : '') +
+          '<div style="font-size:26px;font-weight:900;font-family:var(--mn);color:var(--bl);margin-bottom:4px">' +
+          bal.toLocaleString(undefined, {{minimumFractionDigits:2,maximumFractionDigits:6}}) + ' XRP</div>' +
+          '<div style="font-size:16px;font-weight:700;font-family:var(--mn);color:var(--gr);margin-bottom:6px">\u2248 $' +
+          usd.toLocaleString(undefined, {{minimumFractionDigits:2,maximumFractionDigits:2}}) + ' USD</div>' +
+          '<div style="font-size:12px;color:var(--tx);font-family:var(--mn)">Tx count: ' + txCnt + '</div></div>';
+      }} catch (e) {{
+        res.innerHTML = '<div style="color:var(--rd)">\u26A0\uFE0F Could not fetch this address. Check it and try again.</div>';
+      }}
+    }}
+
+    var portfolioEntries = [];
+    function addPortfolioEntry() {{
+      var label = ((document.getElementById('pt-label') || {{}}).value || '').trim() || ('Entry ' + (portfolioEntries.length + 1));
+      var amount = parseFloat((document.getElementById('pt-amount') || {{}}).value || 0);
+      var cost = parseFloat((document.getElementById('pt-cost') || {{}}).value || 0);
+      if (!amount || amount <= 0) {{ alert('Enter a valid XRP amount'); return; }}
+      portfolioEntries.push({{label: label, amount: amount, cost: cost, id: Date.now()}});
+      ['pt-label', 'pt-amount', 'pt-cost'].forEach(function(id) {{
+        var el = document.getElementById(id); if (el) el.value = '';
+      }});
+      renderPortfolio();
+    }}
+    function removePortfolioEntry(id) {{
+      portfolioEntries = portfolioEntries.filter(function(e) {{ return e.id !== id; }});
+      renderPortfolio();
+    }}
+    function renderPortfolio() {{
+      var tableEl = document.getElementById('portfolio-table');
+      var totalsEl = document.getElementById('portfolio-totals');
+      if (!tableEl) return;
+      if (!portfolioEntries.length) {{
+        tableEl.innerHTML = '<div style="font-size:13px;font-family:var(--mn);color:var(--tx)">No entries yet. Add a position above.</div>';
+        if (totalsEl) totalsEl.style.display = 'none';
+        return;
+      }}
+      var totalXRP = 0, totalVal = 0, totalCost = 0;
+      var rows = '';
+      for (var i = 0; i < portfolioEntries.length; i++) {{
+        var e = portfolioEntries[i];
+        var val = e.amount * currentXRPPrice, cost = e.cost * e.amount, pl = val - cost;
+        var pct = e.cost > 0 ? ((currentXRPPrice - e.cost) / e.cost * 100) : 0;
+        var col = pl >= 0 ? 'var(--gr)' : 'var(--rd)', sign = pl >= 0 ? '+' : '';
+        totalXRP += e.amount; totalVal += val; totalCost += cost;
+        rows += '<tr><td>' + e.label + '</td><td>' + e.amount.toLocaleString() + '</td>' +
+          '<td>$' + e.cost.toFixed(4) + '</td>' +
+          '<td style="color:var(--bl);font-weight:700">$' + val.toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}}) + '</td>' +
+          '<td style="color:' + col + ';font-weight:700">' + sign + '$' + Math.abs(pl).toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}}) + '</td>' +
+          '<td style="color:' + col + '">' + sign + pct.toFixed(1) + '%</td>' +
+          '<td><span class="pt-x" onclick="removePortfolioEntry(' + e.id + ')">\u2715</span></td></tr>';
+      }}
+      tableEl.innerHTML = '<table class="pt-tbl"><thead><tr><th>Label</th><th>XRP</th><th>Buy $</th><th>Value</th><th>P&amp;L</th><th>%</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+      var totalPL = totalVal - totalCost;
+      var tCol = totalPL >= 0 ? 'var(--gr)' : 'var(--rd)', tSign = totalPL >= 0 ? '+' : '';
+      document.getElementById('pt-total-xrp').textContent = totalXRP.toLocaleString();
+      document.getElementById('pt-total-val').textContent = '$' + totalVal.toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}});
+      var tplEl = document.getElementById('pt-total-pl');
+      tplEl.textContent = tSign + '$' + Math.abs(totalPL).toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}});
+      tplEl.style.color = tCol;
+      if (totalsEl) totalsEl.style.display = 'block';
+    }}
+
+    function calcRemittance() {{
+      var amount = parseFloat((document.getElementById('rm-amount') || {{}}).value || 0);
+      var corridor = parseFloat((document.getElementById('rm-corridor') || {{}}).value || 6.0);
+      var res = document.getElementById('rm-results');
+      if (!amount || amount <= 0 || !res) return;
+      var swiftFee = amount * (corridor / 100), swiftRecv = amount - swiftFee;
+      var xrpFee = 0.0002, xrpRecv = amount - xrpFee, savings = swiftFee - xrpFee;
+      var xrpNeeded = currentXRPPrice > 0 ? (amount / currentXRPPrice).toFixed(2) : '--';
+      var fmt = function(v) {{ return '$' + v.toLocaleString('en-US', {{minimumFractionDigits:2,maximumFractionDigits:2}}); }};
+      document.getElementById('rm-swift-fee').textContent = fmt(swiftFee);
+      document.getElementById('rm-swift-recv').textContent = fmt(swiftRecv) + ' received';
+      document.getElementById('rm-xrp-recv').textContent = fmt(xrpRecv) + ' received';
+      document.getElementById('rm-savings').textContent = fmt(savings);
+      document.getElementById('rm-xrp-needed').textContent = xrpNeeded + ' XRP needed \u00B7 at live price';
+      res.style.display = 'block';
+    }}
+
+    // World briefing clocks — live analog hands, orange (day) / gray (night)
     function wcTick() {{
       var now = new Date();
       var clocks = document.querySelectorAll('.wc-clock');
@@ -2565,6 +2896,11 @@ def debug():
 
 try:
     fetch_market()
+except Exception:
+    pass
+
+try:
+    fetch_fx()
 except Exception:
     pass
 
