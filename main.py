@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 19 — Breaking underline truly matches header width (border inset fix)
+Version 22 — Monitor and Partnership Tracker as two separate sections
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "19"
+APP_VERSION = "22"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -243,6 +243,90 @@ def ecosystem_cards_html():
 
 
 # ─────────────────────────────────────────────────────────────────────
+# MAINSTREAM INTEGRATION + INSTITUTIONAL PARTNERSHIPS (static reference)
+# ─────────────────────────────────────────────────────────────────────
+STATUS_COLORS = {
+    "CONFIRMED": "var(--gr)",
+    "LIVE":      "var(--gr)",
+    "EXPLORING": "var(--bl)",
+    "RUMORED":   "var(--yl)",
+    "PILOT":     "var(--or)",
+    "COMPETING": "var(--rd)",
+}
+STATUS_TINT = {
+    "CONFIRMED": "rgba(72,255,130,.35)",
+    "LIVE":      "rgba(72,255,130,.35)",
+    "EXPLORING": "rgba(117,188,255,.35)",
+    "RUMORED":   "rgba(255,204,0,.35)",
+    "PILOT":     "rgba(255,153,0,.35)",
+    "COMPETING": "rgba(255,64,96,.35)",
+}
+STATUS_EMOJI = {
+    "CONFIRMED": "\u2705",
+    "LIVE":      "\u2705",
+    "EXPLORING": "\U0001F50D",
+    "RUMORED":   "\U0001F4AC",
+    "PILOT":     "\U0001F9EA",
+    "COMPETING": "\u2694\uFE0F",
+}
+
+# Institutional Partnership Tracker — 20 institutions (screenshot order) = 5 rows of 4
+# (name, type, flag, status, detail, source)
+INSTITUTIONS = [
+    ("Bank of America", "Bank", "\U0001F1FA\U0001F1F8", "RUMORED", "Multiple reports suggest BofA exploring Ripple ODL for cross-border settlement. Not officially confirmed.", "Industry reports 2025-2026"),
+    ("JPMorgan Chase", "Bank", "\U0001F1FA\U0001F1F8", "EXPLORING", "JPM Coin runs on a private blockchain but JPMorgan has engaged with ISO 20022 standards compatible with XRPL. Watching closely.", "Bloomberg 2025"),
+    ("SBI Holdings", "Bank", "\U0001F1EF\U0001F1F5", "CONFIRMED", "SBI Ripple Asia \u2014 joint venture fully operational. SBI VC Trade, SBI Remit, and MoneyTap all run on Ripple technology.", "SBI Holdings IR 2024"),
+    ("Santander", "Bank", "\U0001F1EA\U0001F1F8", "CONFIRMED", "One Pay FX powered by Ripple since 2018. Expanded to multiple markets. One of the earliest major bank adopters.", "Santander Press Release"),
+    ("Standard Chartered", "Bank", "\U0001F1EC\U0001F1E7", "CONFIRMED", "SC Ventures partnership with Ripple for cross-border payments in Asia-Pacific corridors.", "Standard Chartered 2023"),
+    ("PNC Bank", "Bank", "\U0001F1FA\U0001F1F8", "CONFIRMED", "PNC joined RippleNet for cross-border payment capabilities. One of the largest US banks on the network.", "Ripple Press Release"),
+    ("Ita\u00FA Unibanco", "Bank", "\U0001F1E7\U0001F1F7", "CONFIRMED", "Brazil's largest private bank partnered with Ripple for international transfers via RippleNet.", "Ripple Blog 2023"),
+    ("Axis Bank", "Bank", "\U0001F1EE\U0001F1F3", "CONFIRMED", "Axis Bank uses RippleNet for inbound remittances into India. Major corridor from Gulf states.", "Ripple Partner Network"),
+    ("Tranglo", "Payments", "\U0001F1F8\U0001F1EC", "CONFIRMED", "Ripple acquired 40% stake in Tranglo. Powers ODL across SE Asia including Philippines, Malaysia, Indonesia.", "Ripple Acquisition 2021"),
+    ("Coins.ph", "Payments", "\U0001F1F5\U0001F1ED", "CONFIRMED", "Philippines-based wallet using ODL for the US-Philippines corridor. Millions of OFW remittances monthly.", "Ripple ODL Partner"),
+    ("Bitso", "Exchange", "\U0001F1F2\U0001F1FD", "CONFIRMED", "Mexico's largest crypto exchange. Primary ODL partner for the USA-Mexico corridor \u2014 the largest ODL corridor globally.", "Bitso/Ripple 2021"),
+    ("Western Union", "Payments", "\U0001F1FA\U0001F1F8", "EXPLORING", "WU tested Ripple technology in 2018 pilots. No full deployment but ongoing ISO 20022 alignment is notable.", "WU Annual Report 2023"),
+    ("MoneyGram", "Payments", "\U0001F1FA\U0001F1F8", "EXPLORING", "Former deep Ripple partner (2019-2021). Regulatory pressure caused pause. Re-engagement rumored post-SEC settlement.", "Industry reports 2025"),
+    ("Modulr", "Fintech", "\U0001F1EC\U0001F1E7", "CONFIRMED", "UK fintech using RippleNet for European payment infrastructure. Backed by PayPal Ventures.", "Ripple Partner 2023"),
+    ("Bank of Bhutan", "Central Bank", "\U0001F1E7\U0001F1F9", "CONFIRMED", "National digital currency (Druk) built on XRPL. First sovereign digital currency on the XRP Ledger.", "Royal Monetary Authority 2023"),
+    ("SWIFT", "Network", "\U0001F310", "COMPETING", "SWIFT gpi is ISO 20022 compliant \u2014 same standard as XRPL. Direct competitive overlap. SWIFT Connect explores DLT bridges.", "SWIFT 2024"),
+    ("Nasdaq", "Exchange", "\U0001F1FA\U0001F1F8", "EXPLORING", "Nasdaq applied for XRP ETF custody services. Potential listing venue for spot XRP ETF products.", "SEC Filings 2025"),
+    ("Fidelity", "Asset Manager", "\U0001F1FA\U0001F1F8", "EXPLORING", "Fidelity Digital Assets expanding custody. XRP support rumored post-SEC settlement clarity.", "Industry reports 2026"),
+    ("BlackRock", "Asset Manager", "\U0001F1FA\U0001F1F8", "EXPLORING", "BlackRock BUIDL fund uses blockchain infrastructure. XRP Ledger compatibility being evaluated.", "BlackRock Digital 2025"),
+    ("Ripple \u00D7 BIS", "Research", "\U0001F310", "CONFIRMED", "Bank for International Settlements Project Nexus exploring XRPL for multi-CBDC settlements between central banks.", "BIS Innovation Hub 2024"),
+]
+
+# Sovereign / CBDC projects (kept for a future dedicated section; not rendered here)
+PARTNERSHIPS = [
+    ("Bhutan", "\U0001F1E7\U0001F1F9", "Druk Digital", "LIVE", "National digital currency on XRPL. Royal Monetary Authority partnership."),
+    ("Palau", "\U0001F1F5\U0001F1FC", "Palau Stablecoin", "LIVE", "PSC, a USD-backed digital currency on XRPL for government payments."),
+    ("Montenegro", "\U0001F1F2\U0001F1EA", "Digital Euro Pilot", "PILOT", "Central Bank of Montenegro piloting digital euro infrastructure on XRPL."),
+    ("Hong Kong", "\U0001F1ED\U0001F1F0", "HKD CBDC", "PILOT", "HKMA participating in Project mBridge. Ripple in discussion for the XRPL settlement layer."),
+    ("Colombia", "\U0001F1E8\U0001F1F4", "Banco de la Rep\u00FAblica", "EXPLORING", "Colombia's central bank exploring XRPL for digital peso settlement infrastructure."),
+    ("Georgia", "\U0001F1EC\U0001F1EA", "Digital GEL", "EXPLORING", "National Bank of Georgia exploring Ripple technology for a national digital currency."),
+]
+
+def institution_cards_html():
+    out = ""
+    for name, kind, flag, status, detail, source in INSTITUTIONS:
+        col   = STATUS_COLORS.get(status, "var(--tx)")
+        tint  = STATUS_TINT.get(status, "var(--b)")
+        emoji = STATUS_EMOJI.get(status, "")
+        out += (
+            f'<div class="trk-card" style="border:1px solid {tint}">'
+            f'<div class="trk-top">'
+            f'<span class="trk-status">{flag} {emoji} <span style="color:{col}">{status}</span></span>'
+            f'<span class="trk-type">{kind}</span>'
+            f'</div>'
+            f'<div class="trk-name">{name}</div>'
+            f'<div class="trk-detail">{detail}</div>'
+            f'<div class="trk-src">{source}</div>'
+            f'</div>'
+        )
+    return out
+
+
+
+# ─────────────────────────────────────────────────────────────────────
 # PREFLIGHT
 # ─────────────────────────────────────────────────────────────────────
 def run_preflight():
@@ -356,6 +440,7 @@ def render_page():
     esc_date_str = esc.strftime("%b %d, %Y")
     esc_iso = esc.strftime("%Y-%m-%dT%H:%M:%SZ")
     eco_html = ecosystem_cards_html()
+    inst_html = institution_cards_html()
 
     modal_rows = ""
     for label, ok, detail in checks:
@@ -512,6 +597,20 @@ def render_page():
   .myth-q{{ font-size:15px; color:var(--br); font-weight:700; margin-bottom:8px; }}
   .real-lbl{{ font-size:13px; font-weight:700; color:var(--gr); font-family:var(--mn); margin-bottom:5px; }}
   .real-txt{{ font-size:14px; color:var(--tx); line-height:1.55; font-family:system-ui; }}
+
+  /* SECTION 7 — Mainstream Integration + Institutional Partnership trackers */
+  .trk-tag{{ font-size:14px; font-style:italic; color:var(--yl); font-family:system-ui; margin:2px 0 12px; line-height:1.5; }}
+  .trk-legend{{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }}
+  .trk-chip{{ padding:6px 12px; border-radius:4px; font-size:13px; font-weight:700; font-family:var(--mn); letter-spacing:.5px; border:1px solid; }}
+  .trk-grid{{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }}
+  .trk-card{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; }}
+  .trk-top{{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }}
+  .trk-status{{ font-size:13px; font-weight:800; font-family:var(--mn); letter-spacing:1px; display:flex; align-items:center; gap:6px; }}
+  .trk-type{{ font-size:13px; color:var(--tx); font-family:var(--mn); white-space:nowrap; }}
+  .trk-name{{ font-size:16px; font-weight:800; color:var(--br); font-family:var(--mn); margin-bottom:6px; }}
+  .trk-detail{{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui; margin-bottom:8px;
+    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }}
+  .trk-src{{ font-size:12px; font-style:italic; color:var(--tx); font-family:var(--mn); margin-top:auto; }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -793,12 +892,33 @@ def render_page():
         </div>
       </div>
     </div>
+
+    <!-- SECTION 7: MAINSTREAM INTEGRATION MONITOR (title + tagline + legend key) -->
+    <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001FA9A</span> Mainstream Integration Monitor</div>
+      <div class="trk-tag">XRP is no longer knocking on the door of traditional finance \u2014 it's building new springboards for growth and utilization.</div>
+      <div class="trk-legend">
+        <span class="trk-chip" style="color:var(--gr);border-color:rgba(72,255,130,.4);background:rgba(72,255,130,.12)">\u2705 CONFIRMED</span>
+        <span class="trk-chip" style="color:var(--bl);border-color:rgba(117,188,255,.4);background:rgba(117,188,255,.12)">\U0001F50D EXPLORING</span>
+        <span class="trk-chip" style="color:var(--yl);border-color:rgba(255,204,0,.4);background:rgba(255,204,0,.12)">\U0001F4AC RUMORED</span>
+        <span class="trk-chip" style="color:var(--or);border-color:rgba(255,153,0,.4);background:rgba(255,153,0,.12)">\U0001F9EA PILOT</span>
+        <span class="trk-chip" style="color:var(--rd);border-color:rgba(255,64,96,.4);background:rgba(255,64,96,.12)">\u2694\uFE0F COMPETING</span>
+      </div>
+    </div>
+
+    <!-- SECTION 8: INSTITUTIONAL PARTNERSHIP TRACKER (separate section: 20 institutions, 5 rows of 4) -->
+    <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3DB\uFE0F</span> Institutional Partnership Tracker</div>
+      <div class="trk-grid">
+        {inst_html}
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; UNDERLINE WIDTH FIX</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; MONITOR + TRACKER (SEPARATE)</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
