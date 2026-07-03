@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 49 — Global XRP Enterprise & Partnership Ledger (growing, never-delete)
+Version 50 — Advanced Metrics (tech specs, use cases, A/D line, correlation, order book, liquidity)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "49"
+APP_VERSION = "50"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -64,6 +64,9 @@ MARKET = {
     "perf_1w": None, "perf_30d": None, "perf_90d": None, "perf_6m": None,
     "fx": {},
     "competitors": {},
+    "ad_7d_delta": None, "ad_30d_delta": None,
+    "corr_btc": None, "corr_eth": None,
+    "ob_bids": [], "ob_asks": [], "ob_bid_total": None, "ob_ask_total": None,
     "sources_active": 0, "sources_total": 3,
     "updated": None,
     # technicals (Binance klines)
@@ -181,6 +184,18 @@ def fetch_market():
             MARKET["perf_30d"] = _perf(30)
             MARKET["perf_90d"] = _perf(90)
             MARKET["perf_6m"]  = _perf(180)
+            # Chaikin Accumulation/Distribution Line (pure price/volume TA indicator)
+            ad = 0.0
+            ad_series = []
+            for c in k1d:
+                h, l, cl, v = float(c[2]), float(c[3]), float(c[4]), float(c[5])
+                mfm = ((cl - l) - (h - cl)) / (h - l) if h != l else 0.0
+                ad += mfm * v
+                ad_series.append(ad)
+            if len(ad_series) >= 8:
+                MARKET["ad_7d_delta"] = ad_series[-1] - ad_series[-8]
+            if len(ad_series) >= 31:
+                MARKET["ad_30d_delta"] = ad_series[-1] - ad_series[-31]
         if k1h or k1d:
             active += 1
     except Exception:
@@ -317,6 +332,57 @@ def fetch_competitors():
             pass
 
 
+def _pearson(x, y):
+    n = min(len(x), len(y))
+    if n < 5:
+        return None
+    x, y = x[-n:], y[-n:]
+    mx, my = sum(x) / n, sum(y) / n
+    cov = sum((x[i] - mx) * (y[i] - my) for i in range(n))
+    vx = sum((v - mx) ** 2 for v in x)
+    vy = sum((v - my) ** 2 for v in y)
+    if vx == 0 or vy == 0:
+        return None
+    return cov / ((vx * vy) ** 0.5)
+
+def _pct_returns(closes):
+    return [(closes[i] - closes[i - 1]) / closes[i - 1] for i in range(1, len(closes)) if closes[i - 1]]
+
+def fetch_correlation():
+    hdr = {"User-Agent": "XRPRadar/4"}
+    def _closes(symbol):
+        try:
+            r = requests.get(f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=1d&limit=31",
+                              headers=hdr, timeout=8)
+            return [float(c[4]) for c in r.json()]
+        except Exception:
+            return []
+    xrp_c = _closes("XRPUSDT")
+    btc_c = _closes("BTCUSDT")
+    eth_c = _closes("ETHUSDT")
+    xrp_r, btc_r, eth_r = _pct_returns(xrp_c), _pct_returns(btc_c), _pct_returns(eth_c)
+    if xrp_r and btc_r:
+        MARKET["corr_btc"] = _pearson(xrp_r, btc_r)
+    if xrp_r and eth_r:
+        MARKET["corr_eth"] = _pearson(xrp_r, eth_r)
+
+
+def fetch_orderbook():
+    hdr = {"User-Agent": "XRPRadar/4"}
+    try:
+        r = requests.get("https://api.binance.com/api/v3/depth?symbol=XRPUSDT&limit=10", headers=hdr, timeout=8)
+        d = r.json()
+        bids = [(float(p), float(q)) for p, q in d.get("bids", [])][:8]
+        asks = [(float(p), float(q)) for p, q in d.get("asks", [])][:8]
+        if bids and asks:
+            MARKET["ob_bids"] = bids
+            MARKET["ob_asks"] = asks
+            MARKET["ob_bid_total"] = sum(p * q for p, q in bids)
+            MARKET["ob_ask_total"] = sum(p * q for p, q in asks)
+    except Exception:
+        pass
+
+
 def fetch_fx():
     hdr = {"User-Agent": "XRPRadar/4"}
     codes = ["EUR", "GBP", "JPY", "AUD", "CAD", "SGD", "INR", "BRL"]
@@ -345,6 +411,9 @@ def _bg_refresh():
             if n % 5 == 0:
                 fetch_fx()
                 fetch_competitors()
+                fetch_correlation()
+            if n % 2 == 0:
+                fetch_orderbook()
         except Exception:
             pass
         n += 1
@@ -683,6 +752,91 @@ def partnership_ledger_html(limit=30):
 
 SENTIMENT_HISTORY = {}   # date_str -> {"bull","bear","neut","total","_keys"}
 SENTIMENT_HISTORY_MAX = 30
+
+def tech_specs_html():
+    out = ""
+    for metric, xrpl, eth, sol, btc in TECH_SPECS:
+        out += (
+            f'<tr><td style="padding:6px;color:var(--br)">{metric}</td>'
+            f'<td style="text-align:center;padding:6px;color:var(--gr);font-weight:700">{xrpl}</td>'
+            f'<td style="text-align:center;padding:6px;color:var(--tx)">{eth}</td>'
+            f'<td style="text-align:center;padding:6px;color:var(--tx)">{sol}</td>'
+            f'<td style="text-align:center;padding:6px;color:var(--tx)">{btc}</td></tr>'
+        )
+    return out
+
+def use_case_html():
+    out = ""
+    for icon, title, col, detail in USE_CASES:
+        out += (
+            f'<div class="uc-card" style="border-left-color:{col}">'
+            f'<div class="uc-title" style="color:{col}">{icon} {title}</div>'
+            f'<div class="uc-detail">{detail}</div></div>'
+        )
+    return out
+
+def ad_line_html():
+    d7 = MARKET.get("ad_7d_delta")
+    d30 = MARKET.get("ad_30d_delta")
+    def _sig(delta):
+        if delta is None:
+            return "\u2014", "var(--tx)"
+        return ("\U0001F7E2 Accumulation", "var(--gr)") if delta > 0 else ("\U0001F534 Distribution", "var(--rd)")
+    s7, c7 = _sig(d7)
+    s30, c30 = _sig(d30)
+    return s7, c7, s30, c30
+
+def correlation_html():
+    def _row(label, val):
+        if val is None:
+            return f'<div class="corr-row"><span>{label}</span><span style="color:var(--tx)">\u2014</span></div>'
+        col = "var(--gr)" if val >= 0 else "var(--rd)"
+        sign = "+" if val >= 0 else ""
+        lbl = "positive" if val >= 0 else "inverse"
+        return (f'<div class="corr-row"><span>{label}</span>'
+                f'<span style="color:{col}">{sign}{val:.2f} <small style="color:var(--tx)">({lbl})</small></span></div>')
+    return _row("XRP vs BTC", MARKET.get("corr_btc")) + _row("XRP vs ETH", MARKET.get("corr_eth"))
+
+def orderbook_html():
+    bids = MARKET.get("ob_bids") or []
+    asks = MARKET.get("ob_asks") or []
+    if not bids or not asks:
+        return ('<div class="home-base"><div class="home-base-icon">\U0001F4CA</div>'
+                '<div class="home-base-title">Loading Order Book</div>'
+                '<div class="home-base-sub">Live bid/ask depth from Binance populates on deploy.</div></div>', "", "\u2014", "\u2014")
+    all_sizes = [q for _, q in bids] + [q for _, q in asks]
+    mx = max(all_sizes) or 1
+    bid_rows = "".join(
+        f'<div class="ob-row"><span class="ob-price gr">${p:.4f}</span>'
+        f'<div class="ob-bar-wrap"><div class="ob-bar gr" style="width:{q/mx*100:.0f}%"></div></div>'
+        f'<span class="ob-qty">{q:,.0f}</span></div>' for p, q in bids)
+    ask_rows = "".join(
+        f'<div class="ob-row"><span class="ob-price rd">${p:.4f}</span>'
+        f'<div class="ob-bar-wrap"><div class="ob-bar rd" style="width:{q/mx*100:.0f}%"></div></div>'
+        f'<span class="ob-qty">{q:,.0f}</span></div>' for p, q in asks)
+    bid_total = _fmt_usd(MARKET.get("ob_bid_total"))
+    ask_total = _fmt_usd(MARKET.get("ob_ask_total"))
+    return bid_rows, ask_rows, bid_total, ask_total
+
+def liquidity_map_html():
+    bids = MARKET.get("ob_bids") or []
+    asks = MARKET.get("ob_asks") or []
+    if not bids or not asks:
+        return '<div class="empty">Liquidity data populates on deploy.</div>'
+    bid_val = sum(p * q for p, q in bids)
+    ask_val = sum(p * q for p, q in asks)
+    total = bid_val + ask_val
+    bid_pct = round(bid_val / total * 100) if total else 50
+    ask_pct = 100 - bid_pct
+    skew = "Buy-side heavier" if bid_pct > 55 else ("Sell-side heavier" if ask_pct > 55 else "Balanced")
+    return (
+        f'<div class="liq-bar"><div class="liq-fill" style="width:{bid_pct}%"></div></div>'
+        f'<div class="liq-labels"><span style="color:var(--gr)">{bid_pct}% bids</span>'
+        f'<span style="color:var(--rd)">{ask_pct}% asks</span></div>'
+        f'<div class="liq-skew">{skew}</div>'
+        f'<div class="liq-note">Top 8 levels each side \u00B7 Binance XRP/USDT</div>'
+    )
+
 
 def _track_sentiment_history(pool):
     for s in pool:
@@ -1644,6 +1798,37 @@ def run_preflight():
 # ─────────────────────────────────────────────────────────────────────
 # PAGE
 # ─────────────────────────────────────────────────────────────────────
+TECH_SPECS = [
+    ("Max TPS", "1,500", "~30", "65,000", "7"),
+    ("Settlement", "3-5 sec", "12 sec", "0.4 sec", "60 min"),
+    ("Tx Fee", "$0.0002", "$1-50", "$0.001", "$1-20"),
+    ("Energy Use", "0.0079 kWh", "0.03 kWh", "0.00051 kWh", "1,173 kWh"),
+    ("Consensus", "FBC", "PoS", "PoH+PoS", "PoW"),
+    ("ISO 20022", "\u2705 Native", "\u274C No", "\u274C No", "\u274C No"),
+    ("Supply Cap", "100B fixed", "Unlimited", "Fixed", "21M"),
+]
+
+USE_CASES = [
+    ("\u26A1", "Cross-Border Payments (ODL)", "var(--gr)",
+     "Banks use XRP as bridge currency to eliminate pre-funded nostro accounts. Saves up to 60% vs SWIFT. Active in 8+ corridors."),
+    ("\U0001F4B5", "RLUSD Stablecoin Settlement", "var(--bl)",
+     "NYDFS-regulated USD stablecoin on XRPL. Enables stable-value settlement while XRP handles liquidity bridge function."),
+    ("\U0001F3DB\uFE0F", "Central Bank Digital Currency", "var(--yl)",
+     "Bhutan (live), Montenegro (pilot), Palau (live), Colombia, Hong Kong exploring XRPL as CBDC settlement layer."),
+    ("\U0001F3A8", "NFT Marketplace (XLS-20)", "var(--tq)",
+     "Native NFT standard on XRPL. Low-fee minting ($0.0002), instant settlement. Multiple marketplaces active."),
+    ("\U0001F4C8", "Tokenized Real-World Assets", "var(--or)",
+     "Sologenic tokenizes stocks/ETFs on XRPL. Institutional-grade settlement infrastructure for the RWA market."),
+    ("\u2697\uFE0F", "DeFi & AMM Protocols", "var(--rd)",
+     "Native AMM live on XRPL mainnet. DEX built into protocol level. No smart contract risk \u2014 settlement at protocol layer."),
+    ("\U0001F517", "ISO 20022 Payment Rails", "var(--gr)",
+     "XRPL natively supports ISO 20022 data fields \u2014 the same standard SWIFT, Fedwire, CHAPS and TARGET2 are migrating to."),
+    ("\U0001F310", "Micropayments & Streaming", "var(--bl)",
+     "XRP enables sub-cent micropayments at $0.0002/tx \u2014 streaming money, API monetization, IoT payments."),
+    ("\U0001F916", "AI Agent Payments", "var(--tq)",
+     "Ripple integrating XRP/XRPL for AI agent-to-agent payments \u2014 instant, programmable, low-cost settlement."),
+]
+
 ENTERPRISE_CATEGORY_LABELS = {
     "A": "\U0001F680 ODL/XRP Live", "B": "\U0001F3DB\uFE0F Global Banks", "C": "\U0001F6E0\uFE0F Tech/Custody",
     "D": "\U0001F30D Regional", "E": "\U0001F7E1 ETF/Treasury",
@@ -2257,6 +2442,32 @@ def render_page():
     for e in PARTNERSHIP_LEDGER:
         pl_by_cat[e["cat"]] = pl_by_cat.get(e["cat"], 0) + 1
 
+    # Advanced Metrics
+    ts_html = tech_specs_html()
+    uc_html = use_case_html()
+    ad_s7, ad_c7, ad_s30, ad_c30 = ad_line_html()
+    corr_html = correlation_html()
+    ob_bid_html, ob_ask_html, ob_bid_total, ob_ask_total = orderbook_html()
+    ob_has_data = bool(MARKET.get("ob_bids") and MARKET.get("ob_asks"))
+    if ob_has_data:
+        ob_body_html = (
+            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'
+            f'<div><div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:6px;text-align:center">\U0001F7E2 BUY WALLS (BIDS)</div>'
+            f'{ob_bid_html}'
+            f'<div style="margin-top:8px;padding:6px;background:rgba(72,255,130,.1);border:1px solid rgba(72,255,130,.2);border-radius:4px;text-align:center">'
+            f'<span style="font-size:12px;color:var(--tx)">Total Bid Depth: </span>'
+            f'<span style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn)">{ob_bid_total}</span></div></div>'
+            f'<div><div style="font-size:13px;font-weight:700;color:var(--rd);font-family:var(--mn);margin-bottom:6px;text-align:center">\U0001F534 SELL WALLS (ASKS)</div>'
+            f'{ob_ask_html}'
+            f'<div style="margin-top:8px;padding:6px;background:rgba(255,64,96,.1);border:1px solid rgba(255,64,96,.2);border-radius:4px;text-align:center">'
+            f'<span style="font-size:12px;color:var(--tx)">Total Ask Depth: </span>'
+            f'<span style="font-size:14px;font-weight:700;color:var(--rd);font-family:var(--mn)">{ob_ask_total}</span></div></div>'
+            f'</div>'
+        )
+    else:
+        ob_body_html = ob_bid_html  # home-base placeholder
+    liq_html = liquidity_map_html()
+
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
     _xp = MARKET.get("xrp_price") or 0
@@ -2786,6 +2997,35 @@ def render_page():
   .pl-name a:hover{{ text-decoration:underline; }}
   .pl-meta{{ font-size:12px; color:var(--tx); line-height:1.5; font-family:system-ui; }}
   .pl-counter{{ font-size:26px; font-weight:900; font-family:var(--mn); color:var(--yl); }}
+
+  /* Advanced Metrics */
+  .am-grid2{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }}
+  .am-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px; }}
+  .am-title{{ font-size:15px; font-weight:800; font-family:var(--mn); margin-bottom:4px; display:flex; align-items:center; gap:8px; }}
+  .am-sub{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-bottom:12px; }}
+  .uc-list{{ display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; }}
+  .uc-card{{ padding:9px 11px; background:var(--s2); border-radius:6px; border-left:3px solid; }}
+  .uc-title{{ font-size:13px; font-weight:700; font-family:var(--mn); margin-bottom:2px; }}
+  .uc-detail{{ font-size:12px; color:var(--tx); line-height:1.5; font-family:system-ui; }}
+  .abox{{ padding:10px; background:var(--s2); border-radius:6px; border-left:3px solid var(--b); }}
+  .abox-lbl{{ font-size:11px; color:var(--tx); font-family:var(--mn); text-transform:uppercase; letter-spacing:.5px; }}
+  .abox-val{{ font-size:18px; font-weight:800; font-family:var(--mn); margin-top:4px; }}
+  .corr-row{{ display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:var(--s2);
+    border-radius:6px; border:1px solid var(--b); font-family:var(--mn); font-size:14px; font-weight:700; margin-bottom:8px; color:var(--br); }}
+  .ob-row{{ display:grid; grid-template-columns:70px 1fr 60px; align-items:center; gap:8px; font-family:var(--mn); font-size:12px; padding:2px 0; }}
+  .ob-price.gr{{ color:var(--gr); }}
+  .ob-price.rd{{ color:var(--rd); }}
+  .ob-bar-wrap{{ height:8px; background:var(--s2); border-radius:2px; overflow:hidden; }}
+  .ob-bar{{ height:100%; }}
+  .ob-bar.gr{{ background:rgba(72,255,130,.5); }}
+  .ob-bar.rd{{ background:rgba(255,64,96,.5); }}
+  .ob-qty{{ color:var(--tx); text-align:right; }}
+  .liq-bar{{ height:22px; border-radius:6px; overflow:hidden; background:rgba(255,64,96,.35); margin-bottom:6px; }}
+  .liq-fill{{ height:100%; background:rgba(72,255,130,.55); }}
+  .liq-labels{{ display:flex; justify-content:space-between; font-size:13px; font-family:var(--mn); font-weight:700; margin-bottom:6px; }}
+  .liq-skew{{ font-size:14px; font-weight:800; color:var(--br); font-family:var(--mn); margin-bottom:4px; }}
+  .liq-note{{ font-size:11px; color:var(--tx); font-family:var(--mn); }}
+  @media(max-width:900px){{ .am-grid2{{ grid-template-columns:1fr; }} }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -3618,7 +3858,65 @@ def render_page():
       </div>
     </div>
 
-    <!-- SECTION 27: PRACTICAL TOOLS -->
+    <!-- SECTION 27: ADVANCED METRICS -->
+    <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F52C</span> Advanced Metrics</div>
+      <div class="trk-tag" style="color:var(--tx)">Technical indicators, order book depth, and reference specs \u2014 all computed from live, verifiable market data.</div>
+
+      <div class="am-grid2" style="margin-bottom:10px">
+        <div class="am-panel">
+          <div class="am-title" style="color:var(--tq)">\u2699\uFE0F XRPL Technical Specs</div>
+          <div class="am-sub">How XRPL compares on the metrics that matter for payments</div>
+          <table class="pt-tbl">
+            <thead><tr><th>Metric</th><th style="text-align:center;color:var(--gr)">XRPL</th>
+              <th style="text-align:center;color:var(--bl)">ETH</th><th style="text-align:center;color:var(--or)">SOL</th>
+              <th style="text-align:center;color:var(--tx)">BTC</th></tr></thead>
+            <tbody>{ts_html}</tbody>
+          </table>
+        </div>
+        <div class="am-panel">
+          <div class="am-title" style="color:var(--or)">\U0001F4DA XRP Use Case Library</div>
+          <div class="am-sub">Where XRP and XRPL are actually being used today</div>
+          <div class="uc-list">{uc_html}</div>
+        </div>
+      </div>
+
+      <div class="am-grid2" style="margin-bottom:10px">
+        <div class="am-panel">
+          <div class="am-title" style="color:var(--tq)">\U0001F4E6 Accumulation / Distribution</div>
+          <div class="am-sub">Chaikin A/D Line \u2014 computed from price, volume, and daily range (no wallet tracking involved)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="abox" style="border-left-color:var(--tq)"><div class="abox-lbl">7-Day Signal</div>
+              <div class="abox-val" style="color:{ad_c7}">{ad_s7}</div></div>
+            <div class="abox" style="border-left-color:var(--bl)"><div class="abox-lbl">30-Day Signal</div>
+              <div class="abox-val" style="color:{ad_c30}">{ad_s30}</div></div>
+          </div>
+        </div>
+        <div class="am-panel">
+          <div class="am-title" style="color:var(--tq)">\U0001F522 XRP Correlation Matrix</div>
+          <div class="am-sub">30-day return correlation (Pearson) \u2014 how closely XRP tracks each asset</div>
+          {corr_html}
+          <div style="margin-top:4px;font-size:11px;color:var(--tx);font-family:var(--mn)">
+            +1.0 = moves identically \u00B7 0 = unrelated \u00B7 -1.0 = moves opposite
+          </div>
+        </div>
+      </div>
+
+      <div class="am-grid2">
+        <div class="am-panel" style="grid-column:1/3">
+          <div class="am-title" style="color:var(--gr)">\U0001F4CA XRP Order Book Depth</div>
+          <div class="am-sub">Live bid/ask walls on Binance XRP/USDT \u2014 top 8 levels each side</div>
+          {ob_body_html}
+        </div>
+      </div>
+      <div class="am-panel" style="margin-top:10px">
+        <div class="am-title" style="color:var(--tq)">\U0001F4A7 Liquidity Map</div>
+        <div class="am-sub">Bid vs. ask value in the visible order book</div>
+        {liq_html}
+      </div>
+    </div>
+
+    <!-- SECTION 28: PRACTICAL TOOLS -->
     <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F6E0\uFE0F</span> Practical Tools</div>
       <div class="pt-cols">
@@ -3756,7 +4054,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; ENTERPRISE LEDGER</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; ADVANCED METRICS</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -4202,6 +4500,16 @@ except Exception:
 
 try:
     fetch_github_dev()
+except Exception:
+    pass
+
+try:
+    fetch_correlation()
+except Exception:
+    pass
+
+try:
+    fetch_orderbook()
 except Exception:
     pass
 
