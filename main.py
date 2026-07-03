@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 34 — XRPRadar Leaderboard (top sources, active regions, live intelligence)
+Version 35 — XRP Intelligence Brief (twice daily, AM 12pm & PM 9pm CST)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -27,11 +27,16 @@ ATH, CoinGecko, and access-limited feeds remain permanently excluded.
 import os
 import time
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import html
 import re
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
+try:
+    from zoneinfo import ZoneInfo
+    CENTRAL = ZoneInfo("America/Chicago")
+except Exception:
+    CENTRAL = timezone(timedelta(hours=-6))  # CST fallback
 
 import requests
 from flask import Flask, Response, jsonify
@@ -39,7 +44,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "34"
+APP_VERSION = "35"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -178,6 +183,18 @@ def _bg_news():
         time.sleep(300)
 
 threading.Thread(target=_bg_news, daemon=True).start()
+
+def _bg_brief():
+    while True:
+        try:
+            slot_id, _ = _brief_slot(datetime.now(CENTRAL))
+            if BRIEF["slot_id"] != slot_id:
+                generate_brief()
+        except Exception:
+            pass
+        time.sleep(60)
+
+threading.Thread(target=_bg_brief, daemon=True).start()
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -551,6 +568,139 @@ def signal_stats():
     bear = sum(1 for s in pool if s["sentiment"] == "bearish")
     neut = total - bull - bear
     return total, bull, bear, neut
+
+# ─────────────────────────────────────────────────────────────────────
+# XRP INTELLIGENCE BRIEF — twice daily (AM 12:00 PM CST, PM 9:00 PM CST)
+# News-derived; each edition is generated at its slot and cached until the next.
+# ─────────────────────────────────────────────────────────────────────
+BRIEF = {"slot_id": None, "edition": None, "generated": None, "next_run": None, "sections": {}}
+
+_BRIEF_THEMES = {
+    "Spot ETF": ["etf", "spot etf"],
+    "SEC / Legal": ["sec", "lawsuit", "court", "ruling", "settlement", "appeal"],
+    "RLUSD / Stablecoin": ["rlusd", "stablecoin"],
+    "Bank Partnerships": ["partnership", "bank", "santander", "sbi", "custody"],
+    "XRPL Tech": ["xrpl", "ledger", "amm", "evm", "amendment", "upgrade"],
+    "Whale Flows": ["whale", "million xrp", "billion xrp", "transfer"],
+    "CBDC / Sovereign": ["cbdc", "central bank", "sovereign", "digital currency"],
+}
+
+def _brief_slot(now_ct):
+    d = now_ct.date()
+    h = now_ct.hour
+    if h >= 21:
+        return f"{d.isoformat()}-PM", "PM"
+    if h >= 12:
+        return f"{d.isoformat()}-AM", "AM"
+    yd = (now_ct - timedelta(days=1)).date()
+    return f"{yd.isoformat()}-PM", "PM"
+
+def _brief_next_run(now_ct):
+    h = now_ct.hour
+    if h < 12:
+        nxt = now_ct.replace(hour=12, minute=0, second=0, microsecond=0)
+    elif h < 21:
+        nxt = now_ct.replace(hour=21, minute=0, second=0, microsecond=0)
+    else:
+        nxt = (now_ct + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+    try:
+        return nxt.strftime("%b %d, %-I:%M %p CST")
+    except ValueError:
+        return nxt.strftime("%b %d, %I:%M %p CST")
+
+def _brief_sections(pool):
+    total = len(pool)
+    if not total:
+        msg = "Awaiting the news feed \u2014 this edition publishes once stories are in."
+        return {k: msg for k in ["pulse", "connections", "domino", "regional", "watchlist", "tradfi"]}
+    bull = sum(1 for s in pool if s["sentiment"] == "bullish")
+    bear = sum(1 for s in pool if s["sentiment"] == "bearish")
+    lean = "bullish" if bull > bear else "bearish" if bear > bull else "balanced"
+    chg = MARKET.get("xrp_chg")
+    dir_txt = ("up" if (chg or 0) >= 0 else "down") + (f" {abs(chg):.2f}% over 24h" if chg is not None else "")
+    fng = MARKET.get("fng")
+    fng_txt = (f"Fear & Greed reads {fng} ({MARKET.get('fng_label', '')})" if fng is not None
+               else "Fear & Greed is unavailable")
+
+    pulse = (f"The tape carries {total} XRP stor{'y' if total == 1 else 'ies'} this edition, leaning {lean} "
+             f"({bull} bullish, {bear} bearish). {fng_txt}; XRP is {dir_txt}.")
+
+    theme_hits = []
+    for name, kws in _BRIEF_THEMES.items():
+        stories = [s for s in pool if any(k in (s["title"] + " " + s.get("summary", "")).lower() for k in kws)]
+        if stories:
+            srcs = len({s["source"] for s in stories})
+            theme_hits.append((name, len(stories), srcs))
+    theme_hits.sort(key=lambda t: (t[1], t[2]), reverse=True)
+    if theme_hits:
+        parts = [f"{n} ({c} stor{'y' if c == 1 else 'ies'} across {sc} outlet{'s' if sc != 1 else ''})"
+                 for n, c, sc in theme_hits[:3]]
+        connections = "The dominant thread is " + parts[0]
+        if len(parts) > 1:
+            connections += ", followed by " + " and ".join(parts[1:])
+        connections += ". Cross-outlet convergence suggests the narrative is broadening, not isolated."
+    else:
+        connections = "Coverage is fragmented with no single dominant thread this edition."
+
+    if theme_hits:
+        lead = theme_hits[0][0]
+        if lean == "bullish":
+            domino = (f"If {lead} momentum holds, expect follow-through buying and secondary coverage from lagging "
+                      f"outlets; watch for confirmation in price and volume.")
+        elif lean == "bearish":
+            domino = (f"With sentiment tilting bearish around {lead}, near-term downside headlines could compound; "
+                      f"a single positive catalyst would be needed to reverse the tone.")
+        else:
+            domino = (f"{lead} is driving the cycle but sentiment is balanced \u2014 the next major headline likely "
+                      f"sets direction; until then, expect a range-bound reaction.")
+    else:
+        domino = "No clear catalyst chain this edition; the market is between stories and likely to drift."
+
+    reg_rows = _rank_counts([s["region"] for s in pool if s.get("region")])
+    if reg_rows:
+        parts = []
+        for reg, cnt in reg_rows[:3]:
+            rs = [s for s in pool if s.get("region") == reg]
+            b = sum(1 for s in rs if s["sentiment"] == "bullish")
+            r = sum(1 for s in rs if s["sentiment"] == "bearish")
+            sig = "bullish" if b > r else "bearish" if r > b else "neutral"
+            parts.append(f"{REGION_FLAGS.get(reg, '')} {reg} ({cnt}, {sig})")
+        regional = "Regional activity concentrates in " + ", ".join(parts) + ". Other regions are quiet."
+    else:
+        regional = "No regional flashpoints \u2014 coverage is US and global-centric this edition."
+
+    watch = sorted(pool, key=lambda s: s["influence"], reverse=True)[:4]
+    if watch:
+        items = "; ".join(f"({i}) {html.escape(s['title'])} \u2014 {html.escape(s['source'])}"
+                          for i, s in enumerate(watch, 1))
+        watchlist = "Highest-signal stories to watch: " + items + "."
+    else:
+        watchlist = "No standout stories to flag this edition."
+
+    tradfi_kw = {"etf", "bank", "custody", "sec", "institutional", "nasdaq", "blackrock", "fidelity", "swift", "settlement"}
+    tf = [s for s in pool if any(k in (s["title"] + " " + s.get("summary", "")).lower() for k in tradfi_kw)]
+    if tf:
+        tradfi = (f"{len(tf)} stor{'y' if len(tf) == 1 else 'ies'} touch traditional-finance integration "
+                  f"(ETFs, banks, regulators, settlement rails). Institutional plumbing remains the structural story "
+                  f"beneath the daily price noise.")
+    else:
+        tradfi = "Quiet on traditional-finance integration this edition; watch for ETF and banking headlines next cycle."
+
+    return {"pulse": pulse, "connections": connections, "domino": domino,
+            "regional": regional, "watchlist": watchlist, "tradfi": tradfi}
+
+def generate_brief():
+    now_ct = datetime.now(CENTRAL)
+    slot_id, edition = _brief_slot(now_ct)
+    BRIEF["slot_id"] = slot_id
+    BRIEF["edition"] = edition
+    try:
+        BRIEF["generated"] = now_ct.strftime("%b %d, %Y \u00B7 %-I:%M %p CST")
+    except ValueError:
+        BRIEF["generated"] = now_ct.strftime("%b %d, %Y \u00B7 %I:%M %p CST")
+    BRIEF["next_run"] = _brief_next_run(now_ct)
+    BRIEF["sections"] = _brief_sections(NEWS.get("pool", []))
+
 
 def signal_score():
     """Composite 0-100, rescaled from the 4 components we have real data for:
@@ -1028,6 +1178,23 @@ def render_page():
     lb_sources = lb_sources_html()
     lb_regions = lb_regions_html()
 
+    # XRP Intelligence Brief
+    if not BRIEF.get("sections"):
+        try:
+            generate_brief()
+        except Exception:
+            pass
+    _bs = BRIEF.get("sections", {})
+    brf_edition = BRIEF.get("edition") or "\u2014"
+    brf_gen = BRIEF.get("generated") or "\u2014"
+    brf_next = BRIEF.get("next_run") or "\u2014"
+    brf_pulse = _bs.get("pulse", "\u2014")
+    brf_conn = _bs.get("connections", "\u2014")
+    brf_domino = _bs.get("domino", "\u2014")
+    brf_regional = _bs.get("regional", "\u2014")
+    brf_watch = _bs.get("watchlist", "\u2014")
+    brf_tradfi = _bs.get("tradfi", "\u2014")
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -1328,6 +1495,20 @@ def render_page():
   .lb-mini-row{{ display:flex; justify-content:space-between; font-size:13px; font-family:var(--mn); padding:3px 0; }}
   .lb-mini-row span:first-child{{ color:var(--tx); }}
   @media(max-width:900px){{ .lb-grid{{ grid-template-columns:1fr; }} }}
+
+  /* XRP Intelligence Brief */
+  .brf-head{{ display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:14px; }}
+  .brf-sub{{ font-size:13px; color:var(--or); font-family:var(--mn); margin-top:3px; }}
+  .brf-meta{{ text-align:right; font-family:var(--mn); }}
+  .brf-badge{{ display:inline-block; font-size:13px; font-weight:800; letter-spacing:1px; padding:3px 12px; border-radius:5px;
+    background:rgba(255,153,0,.12); color:var(--or); border:1px solid rgba(255,153,0,.45); }}
+  .brf-when{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:5px; }}
+  .brf-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
+  .brf-block{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:13px 15px; border-left:3px solid var(--or); }}
+  .brf-t{{ font-size:13px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--hdr); text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:8px; }}
+  .brf-x{{ font-size:14px; color:var(--br); line-height:1.6; font-family:system-ui; }}
+  .brf-note{{ font-size:12px; color:var(--tx); font-family:var(--mn); opacity:.7; margin-top:12px; }}
+  @media(max-width:900px){{ .brf-grid{{ grid-template-columns:1fr; }} }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -1831,12 +2012,36 @@ def render_page():
         </div>
       </div>
     </div>
+
+    <!-- SECTION 17: XRP INTELLIGENCE BRIEF (twice daily — AM 12:00 PM CST, PM 9:00 PM CST) -->
+    <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
+      <div class="brf-head">
+        <div>
+          <div class="sec-title" style="color:var(--hdr);margin:0"><span class="sic">\U0001F52E</span> XRP Intelligence Brief</div>
+          <div class="brf-sub">Twice-daily news-derived analysis \u00B7 AM 12:00 PM CST \u00B7 PM 9:00 PM CST</div>
+        </div>
+        <div class="brf-meta">
+          <span class="brf-badge">{brf_edition} EDITION</span>
+          <div class="brf-when">Published {brf_gen}</div>
+          <div class="brf-when">Next edition {brf_next}</div>
+        </div>
+      </div>
+      <div class="brf-grid">
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F4CA</span> Market Pulse</div><div class="brf-x">{brf_pulse}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F517</span> Story Connections</div><div class="brf-x">{brf_conn}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F3B2</span> Domino Effect</div><div class="brf-x">{brf_domino}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F30D</span> Regional Flashpoints</div><div class="brf-x">{brf_regional}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F441\uFE0F</span> Watchlist</div><div class="brf-x">{brf_watch}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F3DB\uFE0F</span> TradFi Integration Outlook</div><div class="brf-x">{brf_tradfi}</div></div>
+      </div>
+      <div class="brf-note">\u26A0\uFE0F Informational only \u2014 not financial advice. Editions publish at 12:00 PM and 9:00 PM CST and are derived from the live news feed.</div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; XRPRADAR LEADERBOARD</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; XRP INTELLIGENCE BRIEF</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -2025,6 +2230,11 @@ except Exception:
 
 try:
     fetch_news()
+except Exception:
+    pass
+
+try:
+    generate_brief()
 except Exception:
     pass
 
