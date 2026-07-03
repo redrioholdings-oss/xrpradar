@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 39 — Practical Tools (P&L calc, multi-currency, wallet checker, portfolio tracker, remittance calc)
+Version 40 — Practical Tools: equal-height columns
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -44,7 +44,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "39"
+APP_VERSION = "40"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -1808,8 +1808,11 @@ def render_page():
   @media(max-width:900px){{ .rh-grid{{ grid-template-columns:repeat(2,1fr); }} }}
 
   /* Practical Tools */
-  .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start; }}
-  .pt-col{{ display:flex; flex-direction:column; gap:10px; }}
+  .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
+  .pt-col{{ display:flex; flex-direction:column; gap:10px; height:100%; }}
+  .pt-col > .pt-panel:last-child{{ flex:1; display:flex; flex-direction:column; }}
+  .pt-col > .pt-panel:last-child > .pt-body{{ flex:1; }}
+  .pt-col > .pt-panel:last-child > .fx-grid{{ flex:1; align-content:center; }}
   .pt-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; overflow:hidden; }}
   .pt-head{{ padding:10px 14px; background:var(--s2); border-bottom:1px solid var(--b); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; }}
   .pt-title{{ font-size:14px; font-weight:800; font-family:var(--mn); letter-spacing:1.2px; }}
@@ -2562,7 +2565,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; PRACTICAL TOOLS</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; PRACTICAL TOOLS EVEN COLUMNS</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
