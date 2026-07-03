@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 40 — Practical Tools: equal-height columns
+Version 41 — Brief Home: designated 'This Week's Editions' area on the Intelligence Brief
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -29,6 +29,7 @@ import time
 import threading
 from datetime import datetime, timezone, timedelta
 import html
+import json
 import re
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
@@ -44,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "40"
+APP_VERSION = "41"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -622,6 +623,8 @@ def signal_stats():
 # News-derived; each edition is generated at its slot and cached until the next.
 # ─────────────────────────────────────────────────────────────────────
 BRIEF = {"slot_id": None, "edition": None, "generated": None, "next_run": None, "sections": {}}
+BRIEF_ARCHIVE = {}   # slot_id -> {"edition","generated","sections"} — this week's editions live here
+BRIEF_ARCHIVE_MAX = 14   # 7 days x 2 editions/day
 
 _BRIEF_THEMES = {
     "Spot ETF": ["etf", "spot etf"],
@@ -748,6 +751,33 @@ def generate_brief():
         BRIEF["generated"] = now_ct.strftime("%b %d, %Y \u00B7 %I:%M %p CST")
     BRIEF["next_run"] = _brief_next_run(now_ct)
     BRIEF["sections"] = _brief_sections(NEWS.get("pool", []))
+
+    BRIEF_ARCHIVE[slot_id] = {
+        "edition": BRIEF["edition"],
+        "generated": BRIEF["generated"],
+        "sections": dict(BRIEF["sections"]),
+    }
+    if len(BRIEF_ARCHIVE) > BRIEF_ARCHIVE_MAX:
+        for old_key in sorted(BRIEF_ARCHIVE.keys())[:len(BRIEF_ARCHIVE) - BRIEF_ARCHIVE_MAX]:
+            del BRIEF_ARCHIVE[old_key]
+
+
+def brief_week_slots(now_ct, n=BRIEF_ARCHIVE_MAX):
+    """This week's 14 edition slots (7 days x AM/PM), most recent first."""
+    cur_id, cur_edition = _brief_slot(now_ct)
+    y, m, d, _ = cur_id.split("-")
+    cur_date = datetime(int(y), int(m), int(d)).date()
+    slots = []
+    dd, ed = cur_date, cur_edition
+    for _ in range(n):
+        slot_id = f"{dd.isoformat()}-{ed}"
+        slots.append({"slot_id": slot_id, "date": dd, "edition": ed})
+        if ed == "PM":
+            ed = "AM"
+        else:
+            ed = "PM"
+            dd = dd - timedelta(days=1)
+    return slots
 
 
 # ── World briefing clocks: UTC + 7 major crypto-trading cities ──
@@ -1396,6 +1426,30 @@ def render_page():
     brf_tradfi = _bs.get("tradfi", "\u2014")
     wc_html = world_clocks_html()
 
+    # Brief Home — designated schedule strip (this week's 14 editions)
+    _now_ct = datetime.now(CENTRAL)
+    _week_slots = brief_week_slots(_now_ct)
+    _live_slot = BRIEF.get("slot_id")
+    brf_strip_html = ""
+    for sl in _week_slots:
+        sid = sl["slot_id"]
+        is_live = (sid == _live_slot)
+        has_data = sid in BRIEF_ARCHIVE
+        cls = "live" if is_live else ("ready" if has_data else "pending")
+        click = f' onclick="showBrief(\'{sid}\')"' if has_data else ""
+        day_lbl = sl["date"].strftime("%a %-d") if hasattr(sl["date"], "strftime") else str(sl["date"])
+        tag = " \u25CF" if is_live else ""
+        brf_strip_html += (
+            f'<div class="brf-slot {cls}" data-slot="{sid}"{click}>'
+            f'<div class="brf-slot-day">{day_lbl}</div>'
+            f'<div class="brf-slot-ed">{sl["edition"]}{tag}</div>'
+            f'</div>'
+        )
+    try:
+        _archive_json = json.dumps(BRIEF_ARCHIVE).replace("</", "<\\/")
+    except Exception:
+        _archive_json = "{}"
+
     # Unique Displays — Smart Money Score + F&G history
     sm = smart_money()
     sm_score = sm["score"]
@@ -1751,6 +1805,24 @@ def render_page():
   .brf-x{{ font-size:14px; color:var(--br); line-height:1.6; font-family:system-ui; }}
   .brf-note{{ font-size:12px; color:var(--tx); font-family:var(--mn); opacity:.7; margin-top:12px; }}
   @media(max-width:900px){{ .brf-grid{{ grid-template-columns:1fr; }} }}
+
+  /* Brief Home — designated schedule strip */
+  .brf-home{{ background:var(--s2); border:1px solid rgba(255,153,0,.3); border-radius:8px; padding:12px 14px; margin-bottom:14px; }}
+  .brf-home-t{{ font-size:13px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--or); text-transform:uppercase; margin-bottom:3px; display:flex; align-items:center; gap:8px; }}
+  .brf-home-sub{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-bottom:10px; }}
+  .brf-strip{{ display:flex; flex-wrap:wrap; gap:6px; }}
+  .brf-slot{{ flex:1 1 60px; min-width:58px; text-align:center; padding:7px 4px; border-radius:6px; font-family:var(--mn);
+    border:1px solid var(--b); background:var(--s1); cursor:default; }}
+  .brf-slot-day{{ font-size:11px; color:var(--tx); }}
+  .brf-slot-ed{{ font-size:12px; font-weight:800; margin-top:2px; }}
+  .brf-slot.ready{{ cursor:pointer; border-color:rgba(0,229,204,.4); background:rgba(0,229,204,.06); }}
+  .brf-slot.ready:hover{{ border-color:var(--tq); background:rgba(0,229,204,.14); }}
+  .brf-slot.ready .brf-slot-ed{{ color:var(--tq); }}
+  .brf-slot.live{{ border-color:var(--or); background:rgba(255,153,0,.14); box-shadow:0 0 0 1px var(--or) inset; }}
+  .brf-slot.live .brf-slot-ed{{ color:var(--or); }}
+  .brf-slot.pending{{ opacity:.45; }}
+  .brf-slot.pending .brf-slot-ed{{ color:var(--tx); }}
+  .brf-slot.active-view{{ outline:2px solid var(--br); outline-offset:1px; }}
 
   /* World briefing clocks */
   .wc-row{{ display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; margin:14px 0; padding:12px;
@@ -2352,27 +2424,37 @@ def render_page():
 
     <!-- SECTION 17: XRP INTELLIGENCE BRIEF (twice daily — AM 12:00 PM CST, PM 9:00 PM CST) -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr);margin-bottom:10px"><span class="sic">\U0001F52E</span> XRP Intelligence Brief</div>
+
+      <div class="brf-home">
+        <div class="brf-home-t">\U0001F4CD This Week's Editions \u2014 New Briefs Post Here</div>
+        <div class="brf-home-sub">Two new editions every day, always in this spot: AM at 12:00 PM CST, PM at 9:00 PM CST.</div>
+        <div class="brf-strip" id="brf-strip">
+          {brf_strip_html}
+        </div>
+      </div>
+
       <div class="brf-head">
         <div>
-          <div class="sec-title" style="color:var(--hdr);margin:0"><span class="sic">\U0001F52E</span> XRP Intelligence Brief</div>
-          <div class="brf-sub">Twice-daily news-derived analysis \u00B7 AM 12:00 PM CST \u00B7 PM 9:00 PM CST</div>
+          <div class="brf-sub" id="brf-archive-note" style="display:none;color:var(--or)">\U0001F4C1 Viewing an earlier edition \u2014 <span class="pt-use-live" onclick="showBrief('{_live_slot}')">Back to Live</span></div>
         </div>
         <div class="brf-meta">
-          <span class="brf-badge">{brf_edition} EDITION</span>
-          <div class="brf-when">Published {brf_gen}</div>
-          <div class="brf-when">Next edition {brf_next}</div>
+          <span class="brf-badge" id="brf-edition-badge">{brf_edition} EDITION</span>
+          <div class="brf-when" id="brf-generated-line">Published {brf_gen}</div>
+          <div class="brf-when" id="brf-next-line">Next edition {brf_next}</div>
         </div>
       </div>
       <div class="brf-grid">
-        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F4CA</span> Market Pulse</div><div class="brf-x">{brf_pulse}</div></div>
-        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F517</span> Story Connections</div><div class="brf-x">{brf_conn}</div></div>
-        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F3B2</span> Domino Effect</div><div class="brf-x">{brf_domino}</div></div>
-        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F30D</span> Regional Flashpoints</div><div class="brf-x">{brf_regional}</div></div>
-        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F441\uFE0F</span> Watchlist</div><div class="brf-x">{brf_watch}</div></div>
-        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F3DB\uFE0F</span> TradFi Integration Outlook</div><div class="brf-x">{brf_tradfi}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F4CA</span> Market Pulse</div><div class="brf-x" id="brf-pulse">{brf_pulse}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F517</span> Story Connections</div><div class="brf-x" id="brf-connections">{brf_conn}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F3B2</span> Domino Effect</div><div class="brf-x" id="brf-domino">{brf_domino}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F30D</span> Regional Flashpoints</div><div class="brf-x" id="brf-regional">{brf_regional}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F441\uFE0F</span> Watchlist</div><div class="brf-x" id="brf-watchlist">{brf_watch}</div></div>
+        <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F3DB\uFE0F</span> TradFi Integration Outlook</div><div class="brf-x" id="brf-tradfi">{brf_tradfi}</div></div>
       </div>
       <div class="brf-note">\u26A0\uFE0F Informational only \u2014 not financial advice. Editions publish at 12:00 PM and 9:00 PM CST and are derived from the live news feed.</div>
     </div>
+    <script type="application/json" id="brief-archive-data">{_archive_json}</script>
 
     <!-- SECTION 18: WORLD BRIEFING CLOCKS -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
@@ -2565,7 +2647,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; PRACTICAL TOOLS EVEN COLUMNS</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; BRIEF HOME</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -2630,6 +2712,38 @@ def render_page():
     function openPFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'flex'; }}
     function closePFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'none'; }}
     document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') closePFModal(); }});
+
+    // XRP Intelligence Brief — This Week's Editions (client-side swap, never reloads)
+    var briefLiveSlot = {json.dumps(_live_slot)};
+    var briefArchive = {{}};
+    try {{
+      var _bd = document.getElementById('brief-archive-data');
+      briefArchive = _bd ? JSON.parse(_bd.textContent) : {{}};
+    }} catch (e) {{ briefArchive = {{}}; }}
+
+    function showBrief(slotId) {{
+      var d = briefArchive[slotId];
+      if (!d) return;
+      var badge = document.getElementById('brf-edition-badge');
+      if (badge) badge.textContent = d.edition + ' EDITION';
+      var gen = document.getElementById('brf-generated-line');
+      if (gen) gen.textContent = 'Published ' + d.generated;
+      var ids = {{pulse:'brf-pulse', connections:'brf-connections', domino:'brf-domino',
+                  regional:'brf-regional', watchlist:'brf-watchlist', tradfi:'brf-tradfi'}};
+      for (var key in ids) {{
+        var el = document.getElementById(ids[key]);
+        if (el && d.sections && d.sections[key] !== undefined) el.innerHTML = d.sections[key];
+      }}
+      var isLive = (slotId === briefLiveSlot);
+      var note = document.getElementById('brf-archive-note');
+      var nextLine = document.getElementById('brf-next-line');
+      if (note) note.style.display = isLive ? 'none' : 'block';
+      if (nextLine) nextLine.style.display = isLive ? 'block' : 'none';
+      var slots = document.querySelectorAll('.brf-slot');
+      for (var i = 0; i < slots.length; i++) {{
+        slots[i].classList.toggle('active-view', slots[i].getAttribute('data-slot') === slotId);
+      }}
+    }}
 
     // Practical Tools — client-side calculators (never block the page load)
     var currentXRPPrice = {xrp_price_js};
