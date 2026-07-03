@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 33 — Analytics Lab (news-derived, exclusions adapted)
+Version 34 — XRPRadar Leaderboard (top sources, active regions, live intelligence)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -39,7 +39,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "33"
+APP_VERSION = "34"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -552,6 +552,81 @@ def signal_stats():
     neut = total - bull - bear
     return total, bull, bear, neut
 
+def signal_score():
+    """Composite 0-100, rescaled from the 4 components we have real data for:
+    Price Momentum (15), RSI (12), Sentiment (15), Fear & Greed (5) = 47 max."""
+    chg = MARKET.get("xrp_chg")
+    rsi = MARKET.get("rsi_1d")
+    fng = MARKET.get("fng")
+    total, bull, bear, _ = signal_stats()
+
+    if chg is None:   pm = 5
+    elif chg > 5:     pm = 15
+    elif chg > 2:     pm = 12
+    elif chg > 0:     pm = 8
+    elif chg > -2:    pm = 5
+    elif chg > -5:    pm = 3
+    else:             pm = 0
+
+    if not rsi:              rv = 8
+    elif 30 <= rsi <= 40:    rv = 12
+    elif 40 < rsi <= 50:     rv = 10
+    elif 50 < rsi <= 60:     rv = 8
+    elif 60 < rsi <= 70:     rv = 6
+    elif rsi > 70:           rv = 3
+    else:                    rv = 5
+
+    ratio = (bull / total) if total else 0
+    if not total:        se = 7
+    elif ratio > 0.5:    se = 15
+    elif ratio > 0.35:   se = 11
+    elif ratio > 0.25:   se = 7
+    elif ratio > 0.15:   se = 4
+    else:                se = 1
+
+    if fng is None:   fg = 2
+    elif fng <= 20:   fg = 5
+    elif fng <= 40:   fg = 4
+    elif fng <= 60:   fg = 2
+    elif fng <= 80:   fg = 1
+    else:             fg = 0
+
+    score = round((pm + rv + se + fg) / 47 * 100)
+    if   score >= 75: label, col = "STRONG",   "var(--gr)"
+    elif score >= 60: label, col = "BULLISH",  "var(--gr)"
+    elif score >= 45: label, col = "NEUTRAL",  "var(--yl)"
+    elif score >= 30: label, col = "CAUTIOUS", "var(--or)"
+    else:             label, col = "BEARISH",  "var(--rd)"
+    return {"score": score, "label": label, "color": col}
+
+def _rank_counts(items):
+    counts = {}
+    for it in items:
+        counts[it] = counts.get(it, 0) + 1
+    return sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+
+def lb_sources_html(n=6):
+    rows = _rank_counts([s["source"] for s in NEWS.get("pool", [])])[:n]
+    if not rows:
+        return '<div class="lb-empty">Feeds loading\u2026</div>'
+    out = ""
+    for i, (src, cnt) in enumerate(rows, 1):
+        out += (f'<div class="lb-row"><span class="lb-rank">{i}</span>'
+                f'<span class="lb-name">{html.escape(src)}</span>'
+                f'<span class="lb-cnt">{cnt}</span></div>')
+    return out
+
+def lb_regions_html(n=8):
+    rows = _rank_counts([s["region"] for s in NEWS.get("pool", []) if s.get("region")])[:n]
+    if not rows:
+        return '<div class="lb-empty">Feeds loading\u2026</div>'
+    out = ""
+    for i, (reg, cnt) in enumerate(rows, 1):
+        out += (f'<div class="lb-row"><span class="lb-rank">{i}</span>'
+                f'<span class="lb-name">{REGION_FLAGS.get(reg, "")} {reg}</span>'
+                f'<span class="lb-cnt">{cnt}</span></div>')
+    return out
+
 def regional_discourse_html():
     pool = NEWS.get("pool", [])
     sig_col = {"bullish": "var(--gr)", "bearish": "var(--rd)", "neutral": "var(--yl)", "quiet": "var(--tx)"}
@@ -945,6 +1020,14 @@ def render_page():
     al_fng = f'{MARKET["fng"]} \u2014 {MARKET["fng_label"]}' if MARKET.get("fng") is not None else "\u2014"
     al_foreign = sum(1 for s in NEWS.get("pool", []) if s.get("foreign"))
 
+    # XRPRadar Leaderboard
+    lb_ss = signal_score()
+    lb_score = lb_ss["score"]
+    lb_label = lb_ss["label"]
+    lb_color = lb_ss["color"]
+    lb_sources = lb_sources_html()
+    lb_regions = lb_regions_html()
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -1226,6 +1309,25 @@ def render_page():
   .bk{{ color:var(--tx); }}
   .bv{{ font-weight:700; color:var(--br); text-align:right; }}
   @media(max-width:900px){{ .lab3{{ grid-template-columns:1fr; }} }}
+
+  /* XRPRadar Leaderboard */
+  .lb-grid{{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }}
+  .lb-panel{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:14px 16px; }}
+  .lb-t{{ font-size:13px; font-weight:800; font-family:var(--mn); letter-spacing:1.5px; margin-bottom:10px; text-transform:uppercase; }}
+  .lb-row{{ display:flex; align-items:center; gap:12px; padding:7px 0; font-family:var(--mn); font-size:14px; border-bottom:1px solid rgba(26,32,48,.35); }}
+  .lb-row:last-child{{ border-bottom:none; }}
+  .lb-rank{{ color:var(--hdr); font-weight:900; width:18px; text-align:center; }}
+  .lb-name{{ color:var(--br); flex:1; }}
+  .lb-cnt{{ color:var(--tx); font-weight:700; }}
+  .lb-empty{{ color:var(--tx); font-family:var(--mn); font-size:13px; padding:6px 0; }}
+  .lb-score{{ text-align:center; padding:6px 0 10px; }}
+  .lb-score-num{{ font-size:46px; font-weight:900; font-family:var(--mn); line-height:1; }}
+  .lb-score-cap{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:4px; }}
+  .lb-score-lbl{{ font-size:15px; font-weight:800; font-family:var(--mn); margin-top:6px; letter-spacing:1px; }}
+  .lb-mini{{ border-top:1px solid var(--b); padding-top:8px; margin-top:4px; }}
+  .lb-mini-row{{ display:flex; justify-content:space-between; font-size:13px; font-family:var(--mn); padding:3px 0; }}
+  .lb-mini-row span:first-child{{ color:var(--tx); }}
+  @media(max-width:900px){{ .lb-grid{{ grid-template-columns:1fr; }} }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -1700,12 +1802,41 @@ def render_page():
         <div class="sb-box"><div class="sb-num" style="color:{sb_net_col}">{sb_net_str}</div><div class="sb-lbl">Net Sentiment</div><div class="sb-sub">bull \u2212 bear</div></div>
       </div>
     </div>
+
+    <!-- SECTION 16: XRPRADAR LEADERBOARD -->
+    <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3C6</span> XRPRadar Leaderboard</div>
+      <div class="trk-tag">Top sources, most active regions, and live intelligence \u2014 the XRPRadar rankings.</div>
+      <div class="lb-grid">
+        <div class="lb-panel">
+          <div class="lb-t" style="color:var(--yl)">\U0001F4E1 Top Sources Today</div>
+          {lb_sources}
+        </div>
+        <div class="lb-panel">
+          <div class="lb-t" style="color:var(--bl)">\U0001F5FA\uFE0F Most Active Regions</div>
+          {lb_regions}
+        </div>
+        <div class="lb-panel">
+          <div class="lb-t" style="color:var(--gr)">\U0001F525 Live Intelligence</div>
+          <div class="lb-score">
+            <div class="lb-score-num" style="color:{lb_color}">{lb_score}</div>
+            <div class="lb-score-cap">Signal Score / 100</div>
+            <div class="lb-score-lbl" style="color:{lb_color}">{lb_label}</div>
+          </div>
+          <div class="lb-mini">
+            <div class="lb-mini-row"><span>Feeds Active</span><span style="color:var(--gr)">{sb_feeds}</span></div>
+            <div class="lb-mini-row"><span>Stories Today</span><span style="color:var(--bl)">{sb_total}</span></div>
+            <div class="lb-mini-row"><span>Bullish Share</span><span style="color:var(--yl)">{sb_bull_pct}%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; ANALYTICS LAB</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; XRPRADAR LEADERBOARD</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
