@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 26 — Top 20 XRP Stories (Current + Most Influential of the Week)
+Version 27 — Cross-section de-dup + distinct Top 20 header icon
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -37,7 +37,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "26"
+APP_VERSION = "27"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -298,7 +298,7 @@ def fetch_news():
                 if dt.tzinfo is None:
                     dt = dt.replace(tzinfo=timezone.utc)
                 pool.append({
-                    "title": title, "link": e["link"] or "#", "source": name, "dt": dt,
+                    "key": key, "title": title, "link": e["link"] or "#", "source": name, "dt": dt,
                     "sentiment": _sentiment(text), "influence": _influence(text, name),
                 })
                 got = True
@@ -307,10 +307,14 @@ def fetch_news():
         except Exception:
             continue
 
-    NEWS["current"] = sorted(pool, key=lambda s: s["dt"], reverse=True)[:20]
+    # Influential = the week's 20 most influential (takes priority so it always fills to 20)
     week_ago = now.timestamp() - 7 * 86400
     weekly_pool = [s for s in pool if s["dt"].timestamp() >= week_ago]
     NEWS["weekly"] = sorted(weekly_pool, key=lambda s: (s["influence"], s["dt"].timestamp()), reverse=True)[:20]
+    weekly_keys = {s["key"] for s in NEWS["weekly"]}
+    # Current = the 20 most recent, EXCLUDING anything already in Influential (no overlap)
+    NEWS["current"] = [s for s in sorted(pool, key=lambda s: s["dt"], reverse=True)
+                       if s["key"] not in weekly_keys][:20]
     NEWS["feeds_active"] = active
     NEWS["updated"] = now.strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -1155,7 +1159,7 @@ def render_page():
 
     <!-- SECTION 10: TOP 20 XRP STORIES (two subsections) -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4CB</span> Top 20 XRP Stories</div>
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3C6</span> Top 20 XRP Stories</div>
       <div class="eco-sub-h" style="padding:0"><span style="font-size:20px">\U0001F4F0</span> Top 20 Current Stories</div>
       <div class="story-list">
         {stories_current}
@@ -1170,7 +1174,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; TOP 20 XRP STORIES</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; STORY DE-DUP + ICON</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
