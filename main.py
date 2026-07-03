@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 47 — Fix: SEC Timeline overflow (stacked full-width, not half-column)
+Version 48 — MiCA intro + fixed row layout (fills full width, no more empty column)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "47"
+APP_VERSION = "48"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -1717,10 +1717,12 @@ def mica_calendar_html():
         icon = "\u2705" if done else "\u25CB"
         col = "var(--gr)" if done else "var(--tx)"
         out += (
-            f'<div class="mica-row"><span style="color:{col};font-size:15px">{icon}</span>'
+            f'<div class="mica-row">'
+            f'<span class="mica-icon" style="color:{col}">{icon}</span>'
             f'<span class="mica-date">{html.escape(date)}</span>'
             f'<span class="mica-event" style="color:{col}">{html.escape(event)}</span>'
-            f'<span class="mica-detail">{html.escape(detail)}</span></div>'
+            f'<span class="mica-detail">{html.escape(detail)}</span>'
+            f'</div>'
         )
     return out
 
@@ -2553,11 +2555,13 @@ def render_page():
   .cg-flag{{ font-size:18px; }}
   .cg-name{{ font-size:12px; font-weight:700; color:var(--br); font-family:var(--mn); }}
   .cg-note{{ font-size:11px; color:var(--tx); line-height:1.5; font-family:system-ui; margin-top:6px; }}
-  .mica-row{{ display:flex; align-items:baseline; gap:10px; padding:8px 0; border-bottom:1px solid rgba(26,32,48,.4); font-family:var(--mn); flex-wrap:wrap; }}
+  .mica-row{{ display:flex; align-items:center; gap:12px; padding:9px 4px; border-bottom:1px solid rgba(26,32,48,.4); font-family:var(--mn); }}
   .mica-row:last-child{{ border-bottom:none; }}
-  .mica-date{{ font-size:12px; color:var(--tx); min-width:70px; }}
-  .mica-event{{ font-size:13px; font-weight:700; }}
-  .mica-detail{{ font-size:12px; color:var(--tx); flex-basis:100%; font-family:system-ui; }}
+  .mica-icon{{ font-size:15px; flex:0 0 18px; text-align:center; }}
+  .mica-date{{ font-size:12px; color:var(--tx); flex:0 0 78px; }}
+  .mica-event{{ font-size:13px; font-weight:700; flex:0 0 190px; }}
+  .mica-detail{{ font-size:12px; color:var(--tx); flex:1; font-family:system-ui; line-height:1.5; }}
+  @media(max-width:700px){{ .mica-row{{ flex-wrap:wrap; }} .mica-event{{ flex-basis:100%; order:1; }} .mica-detail{{ flex-basis:100%; order:2; }} }}
   @media(max-width:900px){{ .cg-grid{{ grid-template-columns:repeat(2,1fr); }} }}
 
   /* Practical Tools */
@@ -3343,6 +3347,11 @@ def render_page():
       <div class="tl-wrap" style="margin-bottom:16px"><div class="tl-line"></div><div class="tl-track">{sec_tl_html}</div></div>
 
       <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F1EA\U0001F1FA MiCA Implementation</div>
+      <div style="font-size:13px;color:var(--tx);line-height:1.7;font-family:system-ui;margin-bottom:10px;max-width:820px">
+        MiCA (Markets in Crypto-Assets) is the EU's comprehensive crypto regulatory framework \u2014 the closest thing Europe has to
+        a single rulebook for digital assets. It gives XRP formal status as a crypto-asset, not a security, across all 27
+        member states. Here's how the rollout has progressed:
+      </div>
       <div class="ud-panel" style="margin-bottom:16px">{mica_html}</div>
 
       <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F3E6 Central Bank / CBDC Projects on XRPL</div>
@@ -3489,7 +3498,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; SEC TIMELINE FIX</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; MICA INTRO + LAYOUT FIX</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
