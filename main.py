@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 25 — XRP x Traditional Finance Integration Timeline
+Version 26 — Top 20 XRP Stories (Current + Most Influential of the Week)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -28,6 +28,8 @@ import os
 import time
 import threading
 from datetime import datetime, timezone
+import xml.etree.ElementTree as ET
+from email.utils import parsedate_to_datetime
 
 import requests
 from flask import Flask, Response, jsonify
@@ -35,7 +37,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "25"
+APP_VERSION = "26"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -150,6 +152,16 @@ def _bg_refresh():
 
 threading.Thread(target=_bg_refresh, daemon=True).start()
 
+def _bg_news():
+    while True:
+        try:
+            fetch_news()
+        except Exception:
+            pass
+        time.sleep(300)
+
+threading.Thread(target=_bg_news, daemon=True).start()
+
 
 # ─────────────────────────────────────────────────────────────────────
 # FEAR & GREED — horizontal color-coded line + tinted ball with number
@@ -173,6 +185,161 @@ def fng_bar_html(value):
             f'<div class="fng-bar"></div>'
             f'<div class="fng-ball" style="left:{v}%;background:{col}">{v}</div>'
             f'</div>')
+
+
+# ─────────────────────────────────────────────────────────────────────
+# NEWS FEED (RSS/Atom via stdlib ElementTree — no feedparser dependency)
+# ─────────────────────────────────────────────────────────────────────
+NEWS_FEEDS = [
+    ("CoinDesk",       "https://www.coindesk.com/arc/outboundfeeds/rss/"),
+    ("Cointelegraph",  "https://cointelegraph.com/rss"),
+    ("Decrypt",        "https://decrypt.co/feed"),
+    ("The Daily Hodl", "https://dailyhodl.com/feed/"),
+    ("U.Today",        "https://u.today/rss"),
+    ("CryptoSlate",    "https://cryptoslate.com/feed/"),
+    ("Bitcoinist",     "https://bitcoinist.com/feed/"),
+    ("NewsBTC",        "https://www.newsbtc.com/feed/"),
+    ("CryptoPotato",   "https://cryptopotato.com/feed/"),
+    ("AMBCrypto",      "https://ambcrypto.com/feed/"),
+]
+
+NEWS = {"current": [], "weekly": [], "feeds_active": 0, "feeds_total": len(NEWS_FEEDS), "updated": None}
+
+_BULLISH = {"surge","surges","rally","rallies","soar","soars","jump","jumps","gain","gains",
+            "bullish","approved","approval","win","wins","victory","adoption","partnership",
+            "breakout","launch","launches","integration","etf","upgrade","record","high","boost"}
+_BEARISH = {"crash","crashes","plunge","plunges","plummet","drop","drops","fall","falls","dump",
+            "bearish","lawsuit","warning","hack","hacked","selloff","decline","declines","fud",
+            "dip","fine","sued","delay","rejected","ban","risk","fear"}
+_IMPORTANT = {"sec","etf","ruling","settlement","partnership","ripple","swift","billion",
+              "approved","launch","lawsuit","court","bank","institutional","cbdc","blackrock",
+              "nasdaq","fidelity","tokenization","rlusd","custody"}
+_SOURCE_WEIGHT = {"CoinDesk":5,"Cointelegraph":5,"Decrypt":4,"The Daily Hodl":3,"U.Today":3,
+                  "CryptoSlate":3,"Bitcoinist":2,"NewsBTC":2,"CryptoPotato":2,"AMBCrypto":2}
+
+
+def _ln(tag):
+    return tag.split('}')[-1] if '}' in tag else tag
+
+def _parse_feed(content):
+    root = ET.fromstring(content)
+    out = []
+    for node in root.iter():
+        if _ln(node.tag) in ("item", "entry"):
+            title = link = date_str = summary = ""
+            for ch in node:
+                c = _ln(ch.tag)
+                if c == "title":
+                    title = (ch.text or "").strip()
+                elif c == "link":
+                    if ch.text and ch.text.strip():
+                        link = ch.text.strip()
+                    elif ch.get("href"):
+                        link = ch.get("href")
+                elif c in ("pubDate", "published", "updated", "date") and not date_str:
+                    date_str = (ch.text or "").strip()
+                elif c in ("description", "summary", "content") and not summary:
+                    summary = (ch.text or "")
+            out.append({"title": title, "link": link, "date_str": date_str, "summary": summary})
+    return out
+
+def _parse_date(s):
+    if not s:
+        return None
+    try:
+        return parsedate_to_datetime(s)
+    except Exception:
+        pass
+    for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(s, fmt)
+        except Exception:
+            pass
+    return None
+
+def _sentiment(text):
+    t = text.lower()
+    b = sum(1 for w in _BULLISH if w in t)
+    r = sum(1 for w in _BEARISH if w in t)
+    if b > r:
+        return "bullish"
+    if r > b:
+        return "bearish"
+    return "neutral"
+
+def _influence(text, source):
+    kw = sum(1 for w in _IMPORTANT if w in text.lower())
+    return _SOURCE_WEIGHT.get(source, 1) * 2 + kw * 3
+
+def fetch_news():
+    now = datetime.now(timezone.utc)
+    active = 0
+    seen = set()
+    pool = []
+    for name, url in NEWS_FEEDS:
+        try:
+            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0 XRPRadar/26"}, timeout=6)
+            if r.status_code != 200:
+                continue
+            got = False
+            for e in _parse_feed(r.content):
+                title = e["title"]
+                if not title:
+                    continue
+                text = title + " " + e["summary"]
+                low = text.lower()
+                if "xrp" not in low and "ripple" not in low:
+                    continue
+                key = title.lower()[:80]
+                if key in seen:
+                    continue
+                seen.add(key)
+                dt = _parse_date(e["date_str"]) or now
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                pool.append({
+                    "title": title, "link": e["link"] or "#", "source": name, "dt": dt,
+                    "sentiment": _sentiment(text), "influence": _influence(text, name),
+                })
+                got = True
+            if got:
+                active += 1
+        except Exception:
+            continue
+
+    NEWS["current"] = sorted(pool, key=lambda s: s["dt"], reverse=True)[:20]
+    week_ago = now.timestamp() - 7 * 86400
+    weekly_pool = [s for s in pool if s["dt"].timestamp() >= week_ago]
+    NEWS["weekly"] = sorted(weekly_pool, key=lambda s: (s["influence"], s["dt"].timestamp()), reverse=True)[:20]
+    NEWS["feeds_active"] = active
+    NEWS["updated"] = now.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+def _time_ago(dt):
+    secs = (datetime.now(timezone.utc) - dt).total_seconds()
+    if secs < 3600:
+        return f"{int(secs // 60)}m ago"
+    if secs < 86400:
+        return f"{int(secs // 3600)}h ago"
+    return f"{int(secs // 86400)}d ago"
+
+def story_rows_html(stories):
+    if not stories:
+        return '<div class="empty">Connecting to news feeds\u2026 headlines populate on deploy.</div>'
+    sent_col = {"bullish": "var(--gr)", "bearish": "var(--rd)", "neutral": "var(--tx)"}
+    out = ""
+    for i, s in enumerate(stories, 1):
+        col = sent_col.get(s["sentiment"], "var(--tx)")
+        out += (
+            f'<a class="story" href="{s["link"]}" target="_blank" rel="noopener">'
+            f'<span class="story-num">{i}</span>'
+            f'<span class="story-body">'
+            f'<span class="story-hl">{s["title"]}</span>'
+            f'<span class="story-meta"><span style="color:{col};font-weight:700">{s["sentiment"]}</span>'
+            f' \u00B7 {s["source"]} \u00B7 {_time_ago(s["dt"])}</span>'
+            f'</span></a>'
+        )
+    return out
 
 
 def next_escrow_release():
@@ -474,6 +641,8 @@ def render_page():
     eco_html = ecosystem_cards_html()
     inst_html = institution_cards_html()
     tl_html = timeline_html()
+    stories_current = story_rows_html(NEWS["current"])
+    stories_weekly = story_rows_html(NEWS["weekly"])
 
     modal_rows = ""
     for label, ok, detail in checks:
@@ -657,6 +826,17 @@ def render_page():
   .tl-dot{{ border-radius:50%; margin:0 auto 10px; box-shadow:0 0 8px currentColor; border:2px solid var(--bg); }}
   .tl-event{{ font-size:14px; font-weight:800; color:var(--br); font-family:var(--mn); margin-bottom:5px; }}
   .tl-detail{{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui; }}
+
+  /* Top 20 XRP Stories */
+  .story-list{{ display:flex; flex-direction:column; gap:2px; margin-bottom:14px; }}
+  .story{{ display:flex; gap:12px; align-items:flex-start; padding:9px 8px; border-bottom:1px solid var(--b); text-decoration:none; border-radius:6px; }}
+  .story:hover{{ background:var(--s2); }}
+  .story:last-child{{ border-bottom:none; }}
+  .story-num{{ flex:0 0 26px; text-align:center; font-family:var(--mn); font-weight:900; color:var(--hdr); font-size:15px; padding-top:1px; }}
+  .story-body{{ display:flex; flex-direction:column; gap:3px; }}
+  .story-hl{{ font-size:15px; font-weight:600; color:var(--br); font-family:system-ui; line-height:1.4; }}
+  .story:hover .story-hl{{ color:#fff; }}
+  .story-meta{{ font-size:13px; font-family:var(--mn); color:var(--tx); text-transform:capitalize; }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -972,12 +1152,25 @@ def render_page():
         </div>
       </div>
     </div>
+
+    <!-- SECTION 10: TOP 20 XRP STORIES (two subsections) -->
+    <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4CB</span> Top 20 XRP Stories</div>
+      <div class="eco-sub-h" style="padding:0"><span style="font-size:20px">\U0001F4F0</span> Top 20 Current Stories</div>
+      <div class="story-list">
+        {stories_current}
+      </div>
+      <div class="eco-sub-h" style="padding:0"><span style="font-size:20px">\U0001F525</span> Top 20 Most Influential Articles of the Week</div>
+      <div class="story-list">
+        {stories_weekly}
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; INTEGRATION TIMELINE</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; TOP 20 XRP STORIES</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -1003,7 +1196,7 @@ def render_page():
       \u26A0\uFE0F Not Financial Advice \u2014 XRPRadar is for informational purposes only. DYOR.
     </div>
     <div class="f-line">
-      Feeds: <span class="val" id="ft-feeds">\u2014</span>
+      Feeds: <span class="val" id="ft-feeds">{NEWS["feeds_active"]}/{NEWS["feeds_total"]}</span>
       &nbsp;|&nbsp; Maintenance: <span class="val" id="ft-maint">None</span>
       &nbsp;|&nbsp; Preflight: <span style="color:{overall_color};font-weight:800" id="ft-qa">{overall}</span>
       <button class="footer-btn details-btn" onclick="openPFModal()">\U0001F50D DETAILS</button>
@@ -1135,6 +1328,11 @@ def debug():
 
 try:
     fetch_market()
+except Exception:
+    pass
+
+try:
+    fetch_news()
 except Exception:
     pass
 
