@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 36 — World briefing clocks (UTC + 7 crypto hubs) on the Intelligence Brief
+Version 38 — Unique Displays, Longitudinal Value Markers, Regional News Activity Heatmap
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -44,7 +44,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "36"
+APP_VERSION = "38"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -59,6 +59,8 @@ MARKET = {
     "xrp_price": None, "xrp_chg": None,
     "fng": None, "fng_label": None,
     "mcap": None, "vol24": None, "rank": None, "h24": None, "l24": None, "xrpbtc": None,
+    "fng_history": [], "funding": None,
+    "perf_1w": None, "perf_30d": None, "perf_90d": None, "perf_6m": None,
     "sources_active": 0, "sources_total": 3,
     "updated": None,
     # technicals (Binance klines)
@@ -113,11 +115,21 @@ def fetch_market():
     except Exception:
         pass
     try:
-        r = requests.get("https://api.alternative.me/fng/", headers=hdr, timeout=5)
-        d = r.json().get("data", [{}])[0]
-        MARKET["fng"]       = int(d.get("value", 0))
-        MARKET["fng_label"] = d.get("value_classification", "")
-        active += 1
+        r = requests.get("https://api.alternative.me/fng/?limit=30", headers=hdr, timeout=5)
+        arr = r.json().get("data", [])
+        if arr:
+            MARKET["fng"]       = int(arr[0].get("value", 0))
+            MARKET["fng_label"] = arr[0].get("value_classification", "")
+            MARKET["fng_history"] = [int(x.get("value", 0)) for x in reversed(arr)]  # oldest -> newest
+            active += 1
+    except Exception:
+        pass
+
+    try:
+        r = requests.get("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=XRPUSDT", headers=hdr, timeout=5)
+        fr = r.json().get("lastFundingRate")
+        if fr is not None:
+            MARKET["funding"] = float(fr)
     except Exception:
         pass
 
@@ -155,6 +167,17 @@ def fetch_market():
             window = k1d[-90:] if len(k1d) >= 90 else k1d
             MARKET["sr_support"]    = min(float(c[3]) for c in window)
             MARKET["sr_resistance"] = max(float(c[2]) for c in window)
+            # Longitudinal performance windows
+            cur = closes_1d[-1]
+            def _perf(days):
+                if len(closes_1d) > days and closes_1d[-(days + 1)]:
+                    old = closes_1d[-(days + 1)]
+                    return (cur - old) / old * 100
+                return None
+            MARKET["perf_1w"]  = _perf(7)
+            MARKET["perf_30d"] = _perf(30)
+            MARKET["perf_90d"] = _perf(90)
+            MARKET["perf_6m"]  = _perf(180)
         if k1h or k1d:
             active += 1
     except Exception:
@@ -806,6 +829,101 @@ def signal_score():
     else:             label, col = "BEARISH",  "var(--rd)"
     return {"score": score, "label": label, "color": col}
 
+def smart_money():
+    """Smart Money Score (0-100), rescaled from the components with real data:
+    RSI 1D, Sentiment, Funding Rate. Higher = accumulation, lower = distribution."""
+    rsi = MARKET.get("rsi_1d")
+    total, bull, bear, _ = signal_stats()
+    fund = MARKET.get("funding")
+    comps = []
+
+    if rsi:
+        if rsi < 30:   rs = 85
+        elif rsi < 45: rs = 70
+        elif rsi < 55: rs = 55
+        elif rsi < 70: rs = 40
+        else:          rs = 25
+        comps.append(("RSI 1D", f"{rsi:.1f}", rs))
+
+    if total:
+        share = bull / total * 100
+        if share >= 60:   ss = 75
+        elif share >= 45: ss = 62
+        elif share >= 30: ss = 52
+        elif share >= 15: ss = 42
+        else:             ss = 32
+        comps.append(("Sentiment", f"{round(share)}% bullish", ss))
+
+    if fund is not None:
+        fpct = fund * 100
+        if fpct < -0.01:  fs = 80
+        elif fpct < 0.01: fs = 62
+        elif fpct < 0.05: fs = 46
+        else:             fs = 30
+        comps.append(("Funding Rate", f"{fpct:+.4f}%", fs))
+
+    score = round(sum(c[2] for c in comps) / len(comps)) if comps else 50
+    if   score < 35: label, col = "Distribution", "var(--rd)"
+    elif score < 45: label, col = "Cautious", "var(--or)"
+    elif score < 55: label, col = "Neutral / Mixed", "var(--yl)"
+    elif score < 70: label, col = "Accumulation", "var(--gr)"
+    else:            label, col = "Strong Accumulation", "var(--gr)"
+    return {"score": score, "label": label, "color": col, "comps": comps}
+
+def _fng_color(v):
+    if v <= 25: return "var(--rd)"
+    if v <= 45: return "var(--or)"
+    if v <= 55: return "var(--yl)"
+    if v <= 75: return "var(--gr)"
+    return "var(--tq)"
+
+def fng_history_html():
+    hist = MARKET.get("fng_history") or []
+    if not hist:
+        return '<div class="empty">Fear &amp; Greed history populates on deploy.</div>'
+    bars = ""
+    n = len(hist)
+    for i, v in enumerate(hist):
+        col = _fng_color(v)
+        h = max(6, min(100, v))
+        last = " fg-today" if i == n - 1 else ""
+        bars += f'<div class="fg-bar{last}" style="height:{h}%;background:{col}" title="{v}"></div>'
+    return bars
+
+REGION_DISPLAY = {"Japan": "Japan", "Korea": "Korea", "UAE": "UAE/Middle East", "Europe": "Europe",
+                  "India": "India", "LatAm": "Latin America", "Africa": "Africa", "SEA": "SE Asia"}
+
+def regional_heatmap_html():
+    pool = NEWS.get("pool", [])
+    counts = {r: 0 for r in REGIONS}
+    for s in pool:
+        r = s.get("region")
+        if r in counts:
+            counts[r] += 1
+    mx = max(counts.values()) if counts else 0
+    cards = ""
+    for reg in REGIONS:
+        c = counts[reg]
+        if mx and c:
+            inten = c / mx
+            bg = f"rgba(72,255,130,{0.06 + inten * 0.22:.2f})"
+            bd = f"rgba(72,255,130,{0.25 + inten * 0.45:.2f})"
+            num_col = "var(--gr)"
+        else:
+            bg = "var(--s2)"
+            bd = "var(--b)"
+            num_col = "var(--tx)"
+        cards += (
+            f'<div class="rh-card" style="background:{bg};border-color:{bd}">'
+            f'<div class="rh-flag">{REGION_FLAGS.get(reg, "")}</div>'
+            f'<div class="rh-name">{REGION_DISPLAY.get(reg, reg)}</div>'
+            f'<div class="rh-num" style="color:{num_col}">{c}</div>'
+            f'<div class="rh-lbl">stories today</div>'
+            f'</div>'
+        )
+    return cards
+
+
 def _rank_counts(items):
     counts = {}
     for it in items:
@@ -1253,6 +1371,32 @@ def render_page():
     brf_tradfi = _bs.get("tradfi", "\u2014")
     wc_html = world_clocks_html()
 
+    # Unique Displays — Smart Money Score + F&G history
+    sm = smart_money()
+    sm_score = sm["score"]
+    sm_label = sm["label"]
+    sm_color = sm["color"]
+    sm_rows = "".join(
+        f'<div class="sm-row"><span class="sm-k">{html.escape(name)}</span><span class="sm-v">{html.escape(val)}</span></div>'
+        for name, val, _ in sm["comps"]
+    ) or '<div class="sm-row"><span class="sm-k">Awaiting live signals\u2026</span><span class="sm-v">\u2014</span></div>'
+    fng_hist_html = fng_history_html()
+
+    # Longitudinal Value Markers
+    def _perf_card(label, val):
+        if val is None:
+            return f'<div class="lvm-card"><div class="lvm-win">{label}</div><div class="lvm-val" style="color:var(--tx)">\u2014</div><div class="lvm-sub">price change</div></div>'
+        col = "var(--gr)" if val >= 0 else "var(--rd)"
+        arrow = "\u25B2" if val >= 0 else "\u25BC"
+        return (f'<div class="lvm-card"><div class="lvm-win">{label}</div>'
+                f'<div class="lvm-val" style="color:{col}">{arrow} {abs(val):.1f}%</div>'
+                f'<div class="lvm-sub">price change</div></div>')
+    lvm_html = (_perf_card("1 Week", MARKET.get("perf_1w")) + _perf_card("30 Day", MARKET.get("perf_30d")) +
+                _perf_card("90 Day", MARKET.get("perf_90d")) + _perf_card("6 Month", MARKET.get("perf_6m")))
+
+    # Regional News Activity Heatmap
+    rh_html = regional_heatmap_html()
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -1584,6 +1728,44 @@ def render_page():
   .wc-center{{ position:absolute; left:50%; top:50%; width:5px; height:5px; border-radius:50%; background:var(--rd); transform:translate(-50%,-50%); }}
   .wc-off{{ font-size:12px; font-weight:700; color:var(--hdr); margin-bottom:2px; }}
   .wc-b{{ font-size:11px; color:var(--tx); line-height:1.5; white-space:nowrap; }}
+
+  /* Unique Displays: Smart Money Score + F&G history */
+  .ud-grid{{ display:grid; grid-template-columns:1fr 2fr; gap:12px; }}
+  .ud-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px; }}
+  .sm-score{{ font-size:52px; font-weight:900; font-family:var(--mn); line-height:1; }}
+  .sm-cap{{ font-size:14px; color:var(--tx); font-family:var(--mn); }}
+  .sm-label{{ font-size:16px; font-weight:800; font-family:var(--mn); margin:8px 0; }}
+  .sm-bar{{ height:8px; background:var(--s2); border:1px solid var(--b); border-radius:4px; overflow:hidden; margin-bottom:14px; }}
+  .sm-fill{{ height:100%; background:linear-gradient(90deg,var(--rd),var(--yl),var(--gr)); }}
+  .sm-row{{ display:flex; justify-content:space-between; align-items:center; min-height:31px; font-family:var(--mn); font-size:13px; border-bottom:1px solid rgba(26,32,48,.35); }}
+  .sm-row:last-child{{ border-bottom:none; }}
+  .sm-k{{ color:var(--tx); }}
+  .sm-v{{ color:var(--br); font-weight:700; }}
+  .fg-title{{ font-size:15px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--hdr); margin-bottom:12px; display:flex; align-items:center; gap:8px; }}
+  .fg-chart{{ display:flex; align-items:flex-end; gap:3px; height:130px; padding:6px 0; }}
+  .fg-bar{{ flex:1; min-width:4px; border-radius:2px 2px 0 0; }}
+  .fg-bar.fg-today{{ outline:2px solid var(--br); outline-offset:1px; }}
+  .fg-axis{{ display:flex; justify-content:space-between; font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:4px; }}
+  .fg-legend{{ display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; font-size:12px; font-family:var(--mn); color:var(--tx); }}
+  .fg-key{{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:middle; }}
+  @media(max-width:900px){{ .ud-grid{{ grid-template-columns:1fr; }} }}
+
+  /* Longitudinal Value Markers */
+  .lvm-grid{{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }}
+  .lvm-card{{ background:var(--s2); border:1px solid var(--b); border-radius:10px; padding:16px; text-align:center; }}
+  .lvm-win{{ font-size:13px; color:var(--tx); font-family:var(--mn); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }}
+  .lvm-val{{ font-size:28px; font-weight:900; font-family:var(--mn); line-height:1; }}
+  .lvm-sub{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:6px; }}
+  @media(max-width:900px){{ .lvm-grid{{ grid-template-columns:repeat(2,1fr); }} }}
+
+  /* Regional News Activity Heatmap */
+  .rh-grid{{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }}
+  .rh-card{{ border:1px solid var(--b); border-radius:10px; padding:16px 12px; text-align:center; }}
+  .rh-flag{{ font-size:26px; line-height:1; }}
+  .rh-name{{ font-size:14px; font-weight:800; color:var(--br); font-family:var(--mn); margin:6px 0; }}
+  .rh-num{{ font-size:30px; font-weight:900; font-family:var(--mn); line-height:1; }}
+  .rh-lbl{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:5px; }}
+  @media(max-width:900px){{ .rh-grid{{ grid-template-columns:repeat(2,1fr); }} }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -2101,9 +2283,6 @@ def render_page():
           <div class="brf-when">Next edition {brf_next}</div>
         </div>
       </div>
-      <div class="wc-row">
-        {wc_html}
-      </div>
       <div class="brf-grid">
         <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F4CA</span> Market Pulse</div><div class="brf-x">{brf_pulse}</div></div>
         <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F517</span> Story Connections</div><div class="brf-x">{brf_conn}</div></div>
@@ -2114,12 +2293,65 @@ def render_page():
       </div>
       <div class="brf-note">\u26A0\uFE0F Informational only \u2014 not financial advice. Editions publish at 12:00 PM and 9:00 PM CST and are derived from the live news feed.</div>
     </div>
+
+    <!-- SECTION 18: WORLD BRIEFING CLOCKS -->
+    <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F310</span> World Briefing Clocks</div>
+      <div class="trk-tag" style="color:var(--tx)">Local time across major crypto hubs, with each city's 1st (12:00 PM CST) and 2nd (9:00 PM CST) briefing time \u2014 yellow by day, gray by night.</div>
+      <div class="wc-row">
+        {wc_html}
+      </div>
+    </div>
+
+    <!-- SECTION 19: UNIQUE DISPLAYS -->
+    <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3A8</span> Unique Displays</div>
+      <div class="ud-grid">
+        <div class="ud-panel">
+          <div class="fg-title"><span style="font-size:20px">\U0001F9E0</span> Smart Money Score</div>
+          <div><span class="sm-score" style="color:{sm_color}">{sm_score}</span><span class="sm-cap"> /100</span></div>
+          <div class="sm-label" style="color:{sm_color}">{sm_label}</div>
+          <div class="sm-bar"><div class="sm-fill" style="width:{sm_score}%"></div></div>
+          {sm_rows}
+        </div>
+        <div class="ud-panel">
+          <div class="fg-title"><span style="font-size:20px">\U0001F630</span> Fear &amp; Greed Index \u2014 30-Day History</div>
+          <div class="fg-chart">{fng_hist_html}</div>
+          <div class="fg-axis"><span>30 days ago</span><span>20 days ago</span><span>10 days ago</span><span>today</span></div>
+          <div class="fg-legend">
+            <span><span class="fg-key" style="background:var(--rd)"></span>Extreme Fear (0-25)</span>
+            <span><span class="fg-key" style="background:var(--or)"></span>Fear (25-45)</span>
+            <span><span class="fg-key" style="background:var(--yl)"></span>Neutral (45-55)</span>
+            <span><span class="fg-key" style="background:var(--gr)"></span>Greed (55-75)</span>
+            <span><span class="fg-key" style="background:var(--tq)"></span>Extreme Greed (75-100)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 20: LONGITUDINAL VALUE MARKERS -->
+    <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C8</span> Longitudinal Value Markers</div>
+      <div class="trk-tag" style="color:var(--tx)">XRP/USD price performance across key windows.</div>
+      <div class="lvm-grid">
+        {lvm_html}
+      </div>
+    </div>
+
+    <!-- SECTION 21: REGIONAL NEWS ACTIVITY HEATMAP -->
+    <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5FA\uFE0F</span> Regional News Activity Heatmap</div>
+      <div class="trk-tag" style="color:var(--tx)">XRP stories by region today \u2014 brighter means more coverage.</div>
+      <div class="rh-grid">
+        {rh_html}
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; WORLD BRIEFING CLOCKS</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; UNIQUE DISPLAYS + LONGITUDINAL + HEATMAP</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
