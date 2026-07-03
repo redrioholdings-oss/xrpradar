@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 27 — Cross-section de-dup + distinct Top 20 header icon
+Version 28 — US Intelligence, Global Pulse, Regional Discourse (news-derived)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -28,6 +28,7 @@ import os
 import time
 import threading
 from datetime import datetime, timezone
+import html
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 
@@ -37,7 +38,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "27"
+APP_VERSION = "28"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -203,7 +204,31 @@ NEWS_FEEDS = [
     ("AMBCrypto",      "https://ambcrypto.com/feed/"),
 ]
 
-NEWS = {"current": [], "weekly": [], "feeds_active": 0, "feeds_total": len(NEWS_FEEDS), "updated": None}
+NEWS = {"current": [], "weekly": [], "pool": [], "feeds_active": 0, "feeds_total": len(NEWS_FEEDS), "updated": None}
+
+# Regions (match Iteration-1) for Regional Discourse + Global Pulse signals
+REGIONS = ["Japan", "Korea", "UAE", "Europe", "India", "LatAm", "Africa", "SEA"]
+REGION_FLAGS = {"Japan": "\U0001F1EF\U0001F1F5", "Korea": "\U0001F1F0\U0001F1F7", "UAE": "\U0001F1E6\U0001F1EA",
+                "Europe": "\U0001F1EA\U0001F1FA", "India": "\U0001F1EE\U0001F1F3", "LatAm": "\U0001F30E",
+                "Africa": "\U0001F30D", "SEA": "\U0001F30F"}
+REGION_KEYWORDS = {
+    "Japan":  ["japan", "japanese", "sbi", "bitflyer", "coincheck", "jpn", "yen"],
+    "Korea":  ["korea", "korean", "upbit", "bithumb", "coinone", "korbit", "krw"],
+    "UAE":    ["uae", "dubai", "abu dhabi", "emirates", "difc", "vara", "middle east"],
+    "Europe": ["europe", "european", " eu ", "mica", "ecb", " uk ", "britain", "germany", "france", "swiss", "spain"],
+    "India":  ["india", "indian", "wazirx", "coinswitch", "coindcx", "inr", "sebi", "rbi"],
+    "LatAm":  ["latin", "latam", "mexico", "brazil", "argentina", "colombia", "peru", "chile", "bitso"],
+    "Africa": ["africa", "nigeria", "kenya", "south africa", "ghana", "ethiopia", "naira"],
+    "SEA":    ["singapore", "thailand", "vietnam", "philippines", "indonesia", "malaysia", "tranglo"],
+}
+US_KEYWORDS = {"sec", "cftc", "etf", "congress", "senate", "white house", "united states",
+               "nasdaq", "blackrock", "fidelity", "treasury", "washington", "u.s.", "american"}
+
+def _classify_region(text_low):
+    for region, kws in REGION_KEYWORDS.items():
+        if any(kw in text_low for kw in kws):
+            return region
+    return None
 
 _BULLISH = {"surge","surges","rally","rallies","soar","soars","jump","jumps","gain","gains",
             "bullish","approved","approval","win","wins","victory","adoption","partnership",
@@ -300,6 +325,7 @@ def fetch_news():
                 pool.append({
                     "key": key, "title": title, "link": e["link"] or "#", "source": name, "dt": dt,
                     "sentiment": _sentiment(text), "influence": _influence(text, name),
+                    "region": _classify_region(low),
                 })
                 got = True
             if got:
@@ -307,6 +333,7 @@ def fetch_news():
         except Exception:
             continue
 
+    NEWS["pool"] = pool
     # Influential = the week's 20 most influential (takes priority so it always fills to 20)
     week_ago = now.timestamp() - 7 * 86400
     weekly_pool = [s for s in pool if s["dt"].timestamp() >= week_ago]
@@ -335,15 +362,107 @@ def story_rows_html(stories):
     for i, s in enumerate(stories, 1):
         col = sent_col.get(s["sentiment"], "var(--tx)")
         out += (
-            f'<a class="story" href="{s["link"]}" target="_blank" rel="noopener">'
+            f'<a class="story" href="{html.escape(s["link"], quote=True)}" target="_blank" rel="noopener">'
             f'<span class="story-num">{i}</span>'
             f'<span class="story-body">'
-            f'<span class="story-hl">{s["title"]}</span>'
+            f'<span class="story-hl">{html.escape(s["title"])}</span>'
             f'<span class="story-meta"><span style="color:{col};font-weight:700">{s["sentiment"]}</span>'
-            f' \u00B7 {s["source"]} \u00B7 {_time_ago(s["dt"])}</span>'
+            f' \u00B7 {html.escape(s["source"])} \u00B7 {_time_ago(s["dt"])}</span>'
             f'</span></a>'
         )
     return out
+
+
+def _matches(story, kws):
+    t = (story["title"] + " " + story["source"]).lower()
+    return any(k in t for k in kws)
+
+def us_intelligence():
+    """News-derived US briefing. (Upgrade point: swap internals for a Claude API call,
+    keeping this computed version as the fallback.)"""
+    pool = NEWS.get("pool", [])
+    ts = NEWS.get("updated")
+    us = [s for s in pool if _matches(s, US_KEYWORDS) or "ripple" in s["title"].lower()]
+    if not us:
+        return {"pulse": "Awaiting US market signals \u2014 the news feed is still loading.",
+                "regulatory": "No US regulatory headlines in the current cycle.",
+                "institutional": "No US institutional headlines in the current cycle.", "ts": ts}
+    bulls = sum(1 for s in us if s["sentiment"] == "bullish")
+    bears = sum(1 for s in us if s["sentiment"] == "bearish")
+    lean = "bullish" if bulls > bears else "bearish" if bears > bulls else "balanced"
+    n = len(us)
+    pulse = (f"{n} US-focused XRP stor{'y' if n == 1 else 'ies'} this cycle; sentiment reads {lean} "
+             f"({bulls} bullish, {bears} bearish), centered on regulatory clarity and institutional access.")
+    reg = [s for s in us if _matches(s, {"sec", "cftc", "court", "ruling", "settlement", "legislation", "congress", "senate", "regulat"})]
+    regulatory = (f"{len(reg)} stor{'y' if len(reg) == 1 else 'ies'} touch{'es' if len(reg) == 1 else ''} US regulation (SEC / CFTC / legislation)."
+                  if reg else "Quiet on the US regulatory front this cycle.")
+    inst = [s for s in us if _matches(s, {"etf", "bank", "custody", "blackrock", "fidelity", "nasdaq", "institutional", "fund"})]
+    institutional = (f"{len(inst)} stor{'y' if len(inst) == 1 else 'ies'} cover{'s' if len(inst) == 1 else ''} US institutional activity (ETFs, banks, custody)."
+                     if inst else "No notable US institutional moves this cycle.")
+    return {"pulse": pulse, "regulatory": regulatory, "institutional": institutional, "ts": ts}
+
+def _region_signals():
+    pool = NEWS.get("pool", [])
+    signals = {}
+    for reg in REGIONS:
+        rs = [s for s in pool if s.get("region") == reg]
+        if rs:
+            b = sum(1 for s in rs if s["sentiment"] == "bullish")
+            r = sum(1 for s in rs if s["sentiment"] == "bearish")
+            signals[reg] = "bullish" if b > r else "bearish" if r > b else "neutral"
+        else:
+            signals[reg] = "quiet"
+    return signals
+
+def global_pulse():
+    """News-derived global synthesis (same upgrade point as US Intelligence)."""
+    pool = NEWS.get("pool", [])
+    ts = NEWS.get("updated")
+    signals = _region_signals()
+    if not pool:
+        return {"pulse": "Awaiting global signals \u2014 the news feed is still loading.",
+                "thesis": "Region signals populate as feeds report in.", "signals": signals, "ts": ts}
+    bulls = sum(1 for s in pool if s["sentiment"] == "bullish")
+    bears = sum(1 for s in pool if s["sentiment"] == "bearish")
+    active = [r for r in REGIONS if signals[r] != "quiet"]
+    lean = "risk-on" if bulls > bears else "risk-off" if bears > bulls else "balanced"
+    pulse = (f"{len(pool)} XRP stories across {len(active)} active region{'s' if len(active) != 1 else ''}; "
+             f"the global tape reads {lean} ({bulls} bullish, {bears} bearish).")
+    bull_regions = [r for r in REGIONS if signals[r] == "bullish"]
+    if bull_regions:
+        thesis = f"Positive momentum is concentrated in {', '.join(bull_regions)}. "
+    else:
+        thesis = "No single region is clearly leading. "
+    thesis += ("Broad positive flow supports continuation \u2014 watch US regulatory catalysts for confirmation."
+               if bulls >= bears else
+               "Mixed-to-cautious flow points to range-bound action until a clearer catalyst emerges.")
+    return {"pulse": pulse, "thesis": thesis, "signals": signals, "ts": ts}
+
+def regional_discourse_html():
+    pool = NEWS.get("pool", [])
+    sig_col = {"bullish": "var(--gr)", "bearish": "var(--rd)", "neutral": "var(--yl)", "quiet": "var(--tx)"}
+    cards = ""
+    for reg in REGIONS:
+        rs = sorted([s for s in pool if s.get("region") == reg], key=lambda s: s["dt"], reverse=True)
+        n = len(rs)
+        if rs:
+            b = sum(1 for s in rs if s["sentiment"] == "bullish")
+            r = sum(1 for s in rs if s["sentiment"] == "bearish")
+            sig = "bullish" if b > r else "bearish" if r > b else "neutral"
+            top = html.escape(rs[0]["title"])
+        else:
+            sig = "quiet"
+            top = "No regional stories yet \u2014 feeds are loading."
+        col = sig_col[sig]
+        cards += (
+            f'<div class="rd-card">'
+            f'<div class="rd-top"><span class="rd-name">{REGION_FLAGS[reg]} {reg}</span>'
+            f'<span class="rd-sig" style="color:{col};border-color:{col}">{sig}</span></div>'
+            f'<div class="rd-count">{n} stor{"y" if n == 1 else "ies"}</div>'
+            f'<div class="rd-hl">{top}</div>'
+            f'</div>'
+        )
+    return cards
 
 
 def next_escrow_release():
@@ -648,6 +767,23 @@ def render_page():
     stories_current = story_rows_html(NEWS["current"])
     stories_weekly = story_rows_html(NEWS["weekly"])
 
+    us = us_intelligence()
+    gl = global_pulse()
+    _sig_col = {"bullish": "var(--gr)", "bearish": "var(--rd)", "neutral": "var(--yl)", "quiet": "var(--tx)"}
+    gl_signals_html = "".join(
+        f'<span class="sig-chip" style="color:{_sig_col[gl["signals"][r]]};border-color:{_sig_col[gl["signals"][r]]}">'
+        f'{REGION_FLAGS[r]} {r}: {gl["signals"][r]}</span>'
+        for r in REGIONS
+    )
+    us_ts = us["ts"] or "\u2014"
+    gl_ts = gl["ts"] or "\u2014"
+    us_pulse = us["pulse"]
+    us_regulatory = us["regulatory"]
+    us_institutional = us["institutional"]
+    gl_pulse = gl["pulse"]
+    gl_thesis = gl["thesis"]
+    rd_html = regional_discourse_html()
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -841,6 +977,27 @@ def render_page():
   .story-hl{{ font-size:15px; font-weight:600; color:var(--br); font-family:system-ui; line-height:1.4; }}
   .story:hover .story-hl{{ color:#fff; }}
   .story-meta{{ font-size:13px; font-family:var(--mn); color:var(--tx); text-transform:capitalize; }}
+
+  /* US Intelligence + Global Pulse (2-column) + Regional Discourse */
+  .intel-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0; align-items:stretch; }}
+  .intel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }}
+  .intel-h{{ padding:10px 14px; border-bottom:1px solid var(--b); background:var(--s2); display:flex; justify-content:space-between; align-items:center; }}
+  .intel-t{{ font-size:16px; font-weight:800; font-family:var(--mn); letter-spacing:1.5px; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
+  .intel-t .sic{{ font-size:30px; }}
+  .intel-b{{ padding:12px 14px; display:flex; flex-direction:column; gap:10px; }}
+  .intel-pulse{{ font-size:14px; color:var(--br); line-height:1.55; font-family:system-ui; }}
+  .intel-row{{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui; }}
+  .intel-row b{{ color:var(--label,#8099b3); font-family:var(--mn); text-transform:uppercase; letter-spacing:1px; font-size:12px; font-weight:800; }}
+  .sig-row{{ display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }}
+  .sig-chip{{ font-size:12px; font-family:var(--mn); font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid; }}
+  .rd-grid{{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }}
+  .rd-card{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:12px 14px; }}
+  .rd-top{{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }}
+  .rd-name{{ font-size:15px; font-weight:800; color:var(--br); font-family:var(--mn); }}
+  .rd-sig{{ font-size:12px; font-weight:700; font-family:var(--mn); padding:1px 8px; border-radius:4px; border:1px solid; text-transform:uppercase; letter-spacing:1px; }}
+  .rd-count{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-bottom:5px; }}
+  .rd-hl{{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -1169,12 +1326,46 @@ def render_page():
         {stories_weekly}
       </div>
     </div>
+
+    <!-- SECTION 11: US INTELLIGENCE + GLOBAL PULSE (2-column, news-derived) -->
+    <div class="intel-grid">
+      <div class="intel" style="border-color:rgba(3,177,252,.35)">
+        <div class="intel-h">
+          <span class="intel-t" style="color:var(--hdr)"><span class="sic">\U0001F1FA\U0001F1F8</span> US Intelligence</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">{us_ts}</span>
+        </div>
+        <div class="intel-b">
+          <div class="intel-pulse">{us_pulse}</div>
+          <div class="intel-row"><b>Regulatory</b><br>{us_regulatory}</div>
+          <div class="intel-row"><b>Institutional</b><br>{us_institutional}</div>
+        </div>
+      </div>
+      <div class="intel" style="border-color:rgba(72,255,130,.35)">
+        <div class="intel-h">
+          <span class="intel-t" style="color:var(--hdr)"><span class="sic">\U0001F310</span> Global Pulse</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">{gl_ts}</span>
+        </div>
+        <div class="intel-b">
+          <div class="intel-pulse">{gl_pulse}</div>
+          <div class="intel-row"><b>Thesis</b><br>{gl_thesis}</div>
+          <div class="sig-row">{gl_signals_html}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 12: REGIONAL DISCOURSE (news-derived) -->
+    <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5FA\uFE0F</span> Regional Discourse</div>
+      <div class="rd-grid">
+        {rd_html}
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; STORY DE-DUP + ICON</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; US INTEL + GLOBAL + REGIONAL</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
