@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 22 — Monitor and Partnership Tracker as two separate sections
+Version 23 — Working status filter buttons on the Integration Monitor
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "22"
+APP_VERSION = "23"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -312,7 +312,7 @@ def institution_cards_html():
         tint  = STATUS_TINT.get(status, "var(--b)")
         emoji = STATUS_EMOJI.get(status, "")
         out += (
-            f'<div class="trk-card" style="border:1px solid {tint}">'
+            f'<div class="trk-card" data-status="{status}" style="border:1px solid {tint}">'
             f'<div class="trk-top">'
             f'<span class="trk-status">{flag} {emoji} <span style="color:{col}">{status}</span></span>'
             f'<span class="trk-type">{kind}</span>'
@@ -600,8 +600,10 @@ def render_page():
 
   /* SECTION 7 — Mainstream Integration + Institutional Partnership trackers */
   .trk-tag{{ font-size:14px; font-style:italic; color:var(--yl); font-family:system-ui; margin:2px 0 12px; line-height:1.5; }}
-  .trk-legend{{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }}
-  .trk-chip{{ padding:6px 12px; border-radius:4px; font-size:13px; font-weight:700; font-family:var(--mn); letter-spacing:.5px; border:1px solid; }}
+  .trk-legend{{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px; }}
+  .trk-btn{{ padding:6px 12px; border-radius:4px; font-size:13px; font-weight:700; font-family:var(--mn); letter-spacing:.5px; border:1px solid; cursor:pointer; background:transparent; opacity:.6; transition:opacity .15s; }}
+  .trk-btn:hover{{ opacity:.9; }}
+  .trk-btn.active{{ opacity:1; box-shadow:0 0 0 1px currentColor inset; }}
   .trk-grid{{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }}
   .trk-card{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; }}
   .trk-top{{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }}
@@ -898,11 +900,12 @@ def render_page():
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001FA9A</span> Mainstream Integration Monitor</div>
       <div class="trk-tag">XRP is no longer knocking on the door of traditional finance \u2014 it's building new springboards for growth and utilization.</div>
       <div class="trk-legend">
-        <span class="trk-chip" style="color:var(--gr);border-color:rgba(72,255,130,.4);background:rgba(72,255,130,.12)">\u2705 CONFIRMED</span>
-        <span class="trk-chip" style="color:var(--bl);border-color:rgba(117,188,255,.4);background:rgba(117,188,255,.12)">\U0001F50D EXPLORING</span>
-        <span class="trk-chip" style="color:var(--yl);border-color:rgba(255,204,0,.4);background:rgba(255,204,0,.12)">\U0001F4AC RUMORED</span>
-        <span class="trk-chip" style="color:var(--or);border-color:rgba(255,153,0,.4);background:rgba(255,153,0,.12)">\U0001F9EA PILOT</span>
-        <span class="trk-chip" style="color:var(--rd);border-color:rgba(255,64,96,.4);background:rgba(255,64,96,.12)">\u2694\uFE0F COMPETING</span>
+        <button class="trk-btn active" data-filter="ALL" onclick="filterTracker('ALL',this)" style="color:#ffffff;border-color:rgba(255,255,255,.5)">ALL</button>
+        <button class="trk-btn" data-filter="CONFIRMED" onclick="filterTracker('CONFIRMED',this)" style="color:var(--gr);border-color:rgba(72,255,130,.5)">\u2705 CONFIRMED</button>
+        <button class="trk-btn" data-filter="EXPLORING" onclick="filterTracker('EXPLORING',this)" style="color:var(--bl);border-color:rgba(117,188,255,.5)">\U0001F50D EXPLORING</button>
+        <button class="trk-btn" data-filter="RUMORED" onclick="filterTracker('RUMORED',this)" style="color:var(--yl);border-color:rgba(255,204,0,.5)">\U0001F4AC RUMORED</button>
+        <button class="trk-btn" data-filter="PILOT" onclick="filterTracker('PILOT',this)" style="color:var(--or);border-color:rgba(255,153,0,.5)">\U0001F9EA PILOT</button>
+        <button class="trk-btn" data-filter="COMPETING" onclick="filterTracker('COMPETING',this)" style="color:var(--rd);border-color:rgba(255,64,96,.5)">\u2694\uFE0F COMPETING</button>
       </div>
     </div>
 
@@ -918,7 +921,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; MONITOR + TRACKER (SEPARATE)</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; WORKING FILTER BUTTONS</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -983,6 +986,18 @@ def render_page():
     function openPFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'flex'; }}
     function closePFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'none'; }}
     document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') closePFModal(); }});
+
+    // Partnership Tracker status filter (Mainstream Integration Monitor buttons)
+    function filterTracker(status, btn) {{
+      var cards = document.querySelectorAll('.trk-card');
+      for (var i = 0; i < cards.length; i++) {{
+        var s = cards[i].getAttribute('data-status');
+        cards[i].style.display = (status === 'ALL' || s === status) ? '' : 'none';
+      }}
+      var btns = document.querySelectorAll('.trk-btn');
+      for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+      if (btn) btn.classList.add('active');
+    }}
 
     // Escrow countdown (to next 1st-of-month, 00:00 UTC)
     (function () {{
