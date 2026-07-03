@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 46 — Regulatory Radar (country status, ETF/ETP tracker, SEC timeline, MiCA, CBDC)
+Version 47 — Fix: SEC Timeline overflow (stacked full-width, not half-column)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "46"
+APP_VERSION = "47"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -2265,7 +2265,11 @@ def render_page():
   /* Integration Timeline (horizontal) */
   .tl-wrap{{ position:relative; padding:6px 0 4px; }}
   .tl-line{{ position:absolute; top:56px; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--yl),var(--gr),transparent); }}
-  .tl-track{{ display:flex; gap:0; overflow-x:auto; padding-bottom:10px; position:relative; }}
+  .tl-track{{ display:flex; gap:0; overflow-x:auto; padding-bottom:10px; position:relative;
+    scrollbar-width:thin; scrollbar-color:#33405e var(--s2); }}
+  .tl-track::-webkit-scrollbar{{ height:6px; }}
+  .tl-track::-webkit-scrollbar-track{{ background:var(--s2); border-radius:6px; }}
+  .tl-track::-webkit-scrollbar-thumb{{ background:#33405e; border-radius:6px; }}
   .tl-node{{ flex:0 0 200px; min-width:200px; text-align:center; padding:0 10px; position:relative; }}
   .tl-year{{ font-size:16px; font-weight:900; font-family:var(--mn); margin-bottom:8px; }}
   .tl-dot{{ border-radius:50%; margin:0 auto 10px; box-shadow:0 0 8px currentColor; border:2px solid var(--bg); }}
@@ -3335,16 +3339,11 @@ def render_page():
         </table>
       </div>
 
-      <div class="pt-cols" style="margin-bottom:16px">
-        <div class="pt-col">
-          <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\u2696\uFE0F SEC Case Timeline</div>
-          <div class="tl-wrap"><div class="tl-line"></div><div class="tl-track">{sec_tl_html}</div></div>
-        </div>
-        <div class="pt-col">
-          <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F1EA\U0001F1FA MiCA Implementation</div>
-          <div class="ud-panel">{mica_html}</div>
-        </div>
-      </div>
+      <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\u2696\uFE0F SEC Case Timeline</div>
+      <div class="tl-wrap" style="margin-bottom:16px"><div class="tl-line"></div><div class="tl-track">{sec_tl_html}</div></div>
+
+      <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F1EA\U0001F1FA MiCA Implementation</div>
+      <div class="ud-panel" style="margin-bottom:16px">{mica_html}</div>
 
       <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F3E6 Central Bank / CBDC Projects on XRPL</div>
       <div class="cg-grid" style="grid-template-columns:repeat(3,1fr)">
@@ -3490,7 +3489,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; REGULATORY RADAR</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; SEC TIMELINE FIX</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
