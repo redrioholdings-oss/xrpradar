@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 35 — XRP Intelligence Brief (twice daily, AM 12pm & PM 9pm CST)
+Version 36 — World briefing clocks (UTC + 7 crypto hubs) on the Intelligence Brief
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -44,7 +44,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "35"
+APP_VERSION = "36"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -702,6 +702,63 @@ def generate_brief():
     BRIEF["sections"] = _brief_sections(NEWS.get("pool", []))
 
 
+# ── World briefing clocks: UTC + 7 major crypto-trading cities ──
+WORLD_CITIES = [
+    ("UTC",       "UTC"),
+    ("New York",  "America/New_York"),
+    ("London",    "Europe/London"),
+    ("Dubai",     "Asia/Dubai"),
+    ("Singapore", "Asia/Singapore"),
+    ("Hong Kong", "Asia/Hong_Kong"),
+    ("Tokyo",     "Asia/Tokyo"),
+    ("Seoul",     "Asia/Seoul"),
+]
+
+def _tz(name):
+    if name == "UTC":
+        return timezone.utc
+    try:
+        return ZoneInfo(name)
+    except Exception:
+        return timezone.utc
+
+def _fmt_local(dt, z):
+    try:
+        return dt.astimezone(z).strftime("%-I:%M %p")
+    except ValueError:
+        return dt.astimezone(z).strftime("%I:%M %p").lstrip("0")
+
+def world_clocks_html():
+    now_utc = datetime.now(timezone.utc)
+    ct = datetime.now(CENTRAL)
+    b1 = ct.replace(hour=12, minute=0, second=0, microsecond=0)   # 12:00 PM CST edition
+    b2 = ct.replace(hour=21, minute=0, second=0, microsecond=0)   # 9:00 PM CST edition
+    out = ""
+    for city, tzname in WORLD_CITIES:
+        z = _tz(tzname)
+        off = now_utc.astimezone(z).utcoffset().total_seconds() / 3600
+        hh = int(abs(off)); mm = int(round((abs(off) - hh) * 60))
+        if tzname == "UTC":
+            off_disp = "\u00B10"
+        else:
+            off_disp = ("+" if off >= 0 else "\u2212") + str(hh) + (f":{mm:02d}" if mm else "")
+        out += (
+            f'<div class="wc">'
+            f'<div class="wc-city">{city}</div>'
+            f'<div class="wc-clock" data-tz="{tzname}">'
+            f'<span class="wc-hand wc-hr"></span>'
+            f'<span class="wc-hand wc-min"></span>'
+            f'<span class="wc-hand wc-sec"></span>'
+            f'<span class="wc-center"></span>'
+            f'</div>'
+            f'<div class="wc-off">UTC {off_disp}</div>'
+            f'<div class="wc-b">1st {_fmt_local(b1, z)}</div>'
+            f'<div class="wc-b">2nd {_fmt_local(b2, z)}</div>'
+            f'</div>'
+        )
+    return out
+
+
 def signal_score():
     """Composite 0-100, rescaled from the 4 components we have real data for:
     Price Momentum (15), RSI (12), Sentiment (15), Fear & Greed (5) = 47 max."""
@@ -1194,6 +1251,7 @@ def render_page():
     brf_regional = _bs.get("regional", "\u2014")
     brf_watch = _bs.get("watchlist", "\u2014")
     brf_tradfi = _bs.get("tradfi", "\u2014")
+    wc_html = world_clocks_html()
 
     modal_rows = ""
     for label, ok, detail in checks:
@@ -1509,6 +1567,23 @@ def render_page():
   .brf-x{{ font-size:14px; color:var(--br); line-height:1.6; font-family:system-ui; }}
   .brf-note{{ font-size:12px; color:var(--tx); font-family:var(--mn); opacity:.7; margin-top:12px; }}
   @media(max-width:900px){{ .brf-grid{{ grid-template-columns:1fr; }} }}
+
+  /* World briefing clocks */
+  .wc-row{{ display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; margin:14px 0; padding:12px;
+    background:var(--s2); border:1px solid var(--b); border-radius:10px; }}
+  .wc{{ flex:1 1 92px; min-width:84px; text-align:center; font-family:var(--mn); }}
+  .wc-city{{ font-size:12px; font-weight:700; color:var(--br); margin-bottom:6px; white-space:nowrap; }}
+  .wc-clock{{ position:relative; width:54px; height:54px; border-radius:50%; margin:0 auto 6px; border:2px solid #4a5878;
+    background:radial-gradient(circle,rgba(128,153,179,.16),rgba(128,153,179,.04)); }}
+  .wc-clock.wc-day{{ border-color:var(--yl); background:radial-gradient(circle,rgba(255,204,0,.28),rgba(255,204,0,.07)); }}
+  .wc-hand{{ position:absolute; left:50%; bottom:50%; transform-origin:bottom center; transform:rotate(0deg); background:var(--br); border-radius:2px; }}
+  .wc-hr{{ width:3px; height:14px; margin-left:-1.5px; }}
+  .wc-min{{ width:2px; height:20px; margin-left:-1px; }}
+  .wc-sec{{ width:1px; height:21px; margin-left:-.5px; background:var(--rd); }}
+  .wc-clock.wc-day .wc-hr, .wc-clock.wc-day .wc-min{{ background:#2a2000; }}
+  .wc-center{{ position:absolute; left:50%; top:50%; width:5px; height:5px; border-radius:50%; background:var(--rd); transform:translate(-50%,-50%); }}
+  .wc-off{{ font-size:12px; font-weight:700; color:var(--hdr); margin-bottom:2px; }}
+  .wc-b{{ font-size:11px; color:var(--tx); line-height:1.5; white-space:nowrap; }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -2026,6 +2101,9 @@ def render_page():
           <div class="brf-when">Next edition {brf_next}</div>
         </div>
       </div>
+      <div class="wc-row">
+        {wc_html}
+      </div>
       <div class="brf-grid">
         <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F4CA</span> Market Pulse</div><div class="brf-x">{brf_pulse}</div></div>
         <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F517</span> Story Connections</div><div class="brf-x">{brf_conn}</div></div>
@@ -2041,7 +2119,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; XRP INTELLIGENCE BRIEF</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; WORLD BRIEFING CLOCKS</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -2106,6 +2184,36 @@ def render_page():
     function openPFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'flex'; }}
     function closePFModal() {{ var m = document.getElementById('pf-modal'); if (m) m.style.display = 'none'; }}
     document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') closePFModal(); }});
+
+    // World briefing clocks — live analog hands, yellow (day) / gray (night)
+    function wcTick() {{
+      var now = new Date();
+      var clocks = document.querySelectorAll('.wc-clock');
+      for (var i = 0; i < clocks.length; i++) {{
+        var el = clocks[i];
+        var tz = el.getAttribute('data-tz');
+        var hh = 0, mm = 0, ss = now.getSeconds();
+        try {{
+          var parts = new Intl.DateTimeFormat('en-GB', {{
+            timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+          }}).formatToParts(now);
+          for (var j = 0; j < parts.length; j++) {{
+            if (parts[j].type === 'hour') hh = parseInt(parts[j].value, 10);
+            else if (parts[j].type === 'minute') mm = parseInt(parts[j].value, 10);
+            else if (parts[j].type === 'second') ss = parseInt(parts[j].value, 10);
+          }}
+          if (hh === 24) hh = 0;
+        }} catch (e) {{ hh = now.getUTCHours(); mm = now.getUTCMinutes(); }}
+        var day = (hh >= 6 && hh < 18);
+        el.classList.toggle('wc-day', day);
+        var hr = el.querySelector('.wc-hr'), mn = el.querySelector('.wc-min'), sc = el.querySelector('.wc-sec');
+        if (hr) hr.style.transform = 'rotate(' + (((hh % 12) * 30) + (mm * 0.5)) + 'deg)';
+        if (mn) mn.style.transform = 'rotate(' + (mm * 6) + 'deg)';
+        if (sc) sc.style.transform = 'rotate(' + (ss * 6) + 'deg)';
+      }}
+    }}
+    setInterval(wcTick, 1000);
+    wcTick();
 
     // Partnership Tracker status filter (Mainstream Integration Monitor buttons)
     function filterTracker(status, btn) {{
