@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 24 — Empty-state note when a filter has no items
+Version 25 — XRP x Traditional Finance Integration Timeline
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "24"
+APP_VERSION = "25"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -305,6 +305,38 @@ PARTNERSHIPS = [
     ("Georgia", "\U0001F1EC\U0001F1EA", "Digital GEL", "EXPLORING", "National Bank of Georgia exploring Ripple technology for a national digital currency."),
 ]
 
+INTEGRATION_TIMELINE = [
+    ("2012", "Ripple Founded", "OpenCoin (later Ripple) created with a mission to replace correspondent banking.", False),
+    ("2018", "First Bank Partnerships", "Santander One Pay FX and American Express FX International Payments launch on RippleNet.", True),
+    ("2019", "ODL Goes Live", "On-Demand Liquidity launches commercially. XRP used as a bridge currency at scale for the first time.", True),
+    ("2020", "SEC Lawsuit", "SEC files suit \u2014 temporarily freezing institutional adoption in the US. Global expansion continues.", False),
+    ("2021", "SBI + Tranglo", "SBI Holdings scales Japan operations. Ripple acquires 40% of Tranglo \u2014 an SE Asia ODL hub.", True),
+    ("2022", "SWIFT ISO 20022", "SWIFT mandates ISO 20022 migration \u2014 the same standard XRPL natively supports. Alignment begins.", True),
+    ("2023", "Bhutan CBDC Live", "Bank of Bhutan launches a national digital currency on XRPL. First sovereign CBDC on the ledger.", True),
+    ("2023", "Partial Legal Victory", "Judge Torres: XRP is not a security in programmatic sales. US institutional adoption starts thawing.", True),
+    ("2024", "XRPL EVM Sidechain", "An Ethereum-compatible sidechain launches on XRPL \u2014 opening DeFi and smart-contract integration.", True),
+    ("2025", "SEC Settlement", "SEC drops the case. $50M settlement. Full US regulatory clarity arrives; institutional floodgates open.", True),
+    ("2025", "ETF Filings Wave", "Bitwise, WisdomTree, and Canary Capital file US spot XRP ETF applications. European ETPs already live.", True),
+    ("2026", "TradFi Integration Era", "Banks, asset managers, and payment networks actively building on XRPL. Post-lawsuit adoption accelerating.", True),
+]
+
+def timeline_html():
+    out = ""
+    for year, event, detail, major in INTEGRATION_TIMELINE:
+        dot_col = "var(--gr)" if major else "var(--yl)"
+        dot_sz  = "16px" if major else "11px"
+        yr_col  = "var(--gr)" if major else "var(--yl)"
+        out += (
+            f'<div class="tl-node">'
+            f'<div class="tl-year" style="color:{yr_col}">{year}</div>'
+            f'<div class="tl-dot" style="width:{dot_sz};height:{dot_sz};background:{dot_col}"></div>'
+            f'<div class="tl-event">{event}</div>'
+            f'<div class="tl-detail">{detail}</div>'
+            f'</div>'
+        )
+    return out
+
+
 def institution_cards_html():
     out = ""
     for name, kind, flag, status, detail, source in INSTITUTIONS:
@@ -441,6 +473,7 @@ def render_page():
     esc_iso = esc.strftime("%Y-%m-%dT%H:%M:%SZ")
     eco_html = ecosystem_cards_html()
     inst_html = institution_cards_html()
+    tl_html = timeline_html()
 
     modal_rows = ""
     for label, ok, detail in checks:
@@ -614,6 +647,16 @@ def render_page():
     display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }}
   .trk-src{{ font-size:12px; font-style:italic; color:var(--tx); font-family:var(--mn); margin-top:auto; }}
   .trk-empty{{ padding:22px; text-align:center; color:var(--tx); font-family:var(--mn); font-size:14px; border:1px dashed var(--b); border-radius:8px; margin-top:8px; }}
+
+  /* Integration Timeline (horizontal) */
+  .tl-wrap{{ position:relative; padding:6px 0 4px; }}
+  .tl-line{{ position:absolute; top:56px; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--yl),var(--gr),transparent); }}
+  .tl-track{{ display:flex; gap:0; overflow-x:auto; padding-bottom:10px; position:relative; }}
+  .tl-node{{ flex:0 0 200px; min-width:200px; text-align:center; padding:0 10px; position:relative; }}
+  .tl-year{{ font-size:16px; font-weight:900; font-family:var(--mn); margin-bottom:8px; }}
+  .tl-dot{{ border-radius:50%; margin:0 auto 10px; box-shadow:0 0 8px currentColor; border:2px solid var(--bg); }}
+  .tl-event{{ font-size:14px; font-weight:800; color:var(--br); font-family:var(--mn); margin-bottom:5px; }}
+  .tl-detail{{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui; }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -918,12 +961,23 @@ def render_page():
       </div>
       <div id="trk-empty" class="trk-empty" style="display:none">No institutions in this category are currently available.</div>
     </div>
+
+    <!-- SECTION 9: XRP × TRADITIONAL FINANCE — INTEGRATION TIMELINE -->
+    <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C5</span> XRP \u00D7 Traditional Finance \u2014 Integration Timeline</div>
+      <div class="tl-wrap">
+        <div class="tl-line"></div>
+        <div class="tl-track">
+          {tl_html}
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; FILTER EMPTY-STATE NOTE</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; INTEGRATION TIMELINE</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
