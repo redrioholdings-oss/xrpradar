@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 32 — Enriched right rail with allowed metrics
+Version 33 — Analytics Lab (news-derived, exclusions adapted)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -39,7 +39,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "32"
+APP_VERSION = "33"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -940,6 +940,11 @@ def render_page():
     ms_xrpbtc = f'{MARKET["xrpbtc"]:.8f}' if MARKET.get("xrpbtc") else "\u2014"
     esc_next_str = esc_date_str
 
+    # Analytics Lab
+    al_ratio = (f'{(sb_bull / sb_bear):.2f}:1 bull/bear' if sb_bear else ('\u221E bull/bear' if sb_bull else '0:0'))
+    al_fng = f'{MARKET["fng"]} \u2014 {MARKET["fng_label"]}' if MARKET.get("fng") is not None else "\u2014"
+    al_foreign = sum(1 for s in NEWS.get("pool", []) if s.get("foreign"))
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -1211,6 +1216,16 @@ def render_page():
   .rail-k{{ color:var(--tx); }}
   .rail-v{{ font-weight:700; color:var(--br); text-align:right; white-space:nowrap; }}
   @media(max-width:900px){{ .feed-wrap{{ grid-template-columns:1fr; }} }}
+
+  /* Analytics Lab */
+  .lab3{{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; }}
+  .labp{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:14px 16px; }}
+  .labt{{ font-size:15px; font-weight:800; font-family:var(--mn); color:var(--hdr); margin-bottom:8px; display:flex; align-items:center; gap:8px; }}
+  .bstat{{ display:flex; justify-content:space-between; align-items:center; min-height:33px; font-family:var(--mn); font-size:14px; border-bottom:1px solid rgba(26,32,48,.35); }}
+  .bstat:last-child{{ border-bottom:none; }}
+  .bk{{ color:var(--tx); }}
+  .bv{{ font-weight:700; color:var(--br); text-align:right; }}
+  @media(max-width:900px){{ .lab3{{ grid-template-columns:1fr; }} }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -1645,12 +1660,52 @@ def render_page():
         </div>
       </div>
     </div>
+
+    <!-- SECTION 15: ANALYTICS LAB -->
+    <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F52C</span> Analytics Lab</div>
+      <div class="lab3">
+        <div class="labp">
+          <div class="labt"><span style="font-size:20px">\U0001F4C8</span> Signal Metrics</div>
+          <div class="bstat"><span class="bk">Stories Today</span><span class="bv" style="color:var(--bl)">{sb_total}</span></div>
+          <div class="bstat"><span class="bk">Bullish Signals</span><span class="bv" style="color:var(--gr)">{sb_bull}</span></div>
+          <div class="bstat"><span class="bk">Bearish Signals</span><span class="bv" style="color:var(--rd)">{sb_bear}</span></div>
+          <div class="bstat"><span class="bk">Neutral</span><span class="bv">{sb_neut}</span></div>
+          <div class="bstat"><span class="bk">Net Sentiment</span><span class="bv" style="color:{sb_net_col}">{sb_net_str}</span></div>
+          <div class="bstat"><span class="bk">Bull/Bear Ratio</span><span class="bv" style="color:var(--yl)">{al_ratio}</span></div>
+        </div>
+        <div class="labp">
+          <div class="labt"><span style="font-size:20px">\U0001F4CA</span> Market Analytics</div>
+          <div class="bstat"><span class="bk">Global Rank</span><span class="bv" style="color:var(--bl)">{ms_rank}</span></div>
+          <div class="bstat"><span class="bk">Market Cap</span><span class="bv">{ms_mcap}</span></div>
+          <div class="bstat"><span class="bk">24h Volume</span><span class="bv" style="color:var(--yl)">{ms_vol}</span></div>
+          <div class="bstat"><span class="bk">Vol / MCap %</span><span class="bv" style="color:var(--bl)">{ms_volmcap}</span></div>
+          <div class="bstat"><span class="bk">Fear &amp; Greed</span><span class="bv" style="color:var(--yl)">{al_fng}</span></div>
+          <div class="bstat"><span class="bk">24h Change</span><span class="bv" style="color:{ms_chg_col}">{ms_chg}</span></div>
+        </div>
+        <div class="labp">
+          <div class="labt"><span style="font-size:20px">\U0001F50D</span> Feed Intelligence</div>
+          <div class="bstat"><span class="bk">Total Sources</span><span class="bv" style="color:var(--bl)">{NEWS["feeds_total"]}</span></div>
+          <div class="bstat"><span class="bk">Active Feeds</span><span class="bv" style="color:var(--gr)">{NEWS["feeds_active"]}</span></div>
+          <div class="bstat"><span class="bk">Foreign Feeds</span><span class="bv">{al_foreign} stories</span></div>
+          <div class="bstat"><span class="bk">Refresh</span><span class="bv">5 min</span></div>
+          <div class="bstat"><span class="bk">Regions Tracked</span><span class="bv" style="color:var(--yl)">8 regions</span></div>
+          <div class="bstat"><span class="bk">Engine</span><span class="bv" style="color:var(--gr)">News-Derived</span></div>
+        </div>
+      </div>
+      <div class="sb-grid4">
+        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">{sb_total}</div><div class="sb-lbl">Total Stories</div><div class="sb-sub">In memory</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">{sb_bull_pct}%</div><div class="sb-lbl">Bullish</div><div class="sb-sub">of tracked</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--rd)">{sb_bear_pct}%</div><div class="sb-lbl">Bearish</div><div class="sb-sub">of tracked</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:{sb_net_col}">{sb_net_str}</div><div class="sb-lbl">Net Sentiment</div><div class="sb-sub">bull \u2212 bear</div></div>
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; ENRICHED RIGHT RAIL</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; ANALYTICS LAB</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
