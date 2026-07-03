@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 23 — Working status filter buttons on the Integration Monitor
+Version 24 — Empty-state note when a filter has no items
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -35,7 +35,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "23"
+APP_VERSION = "24"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -613,6 +613,7 @@ def render_page():
   .trk-detail{{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui; margin-bottom:8px;
     display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }}
   .trk-src{{ font-size:12px; font-style:italic; color:var(--tx); font-family:var(--mn); margin-top:auto; }}
+  .trk-empty{{ padding:22px; text-align:center; color:var(--tx); font-family:var(--mn); font-size:14px; border:1px dashed var(--b); border-radius:8px; margin-top:8px; }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -915,13 +916,14 @@ def render_page():
       <div class="trk-grid">
         {inst_html}
       </div>
+      <div id="trk-empty" class="trk-empty" style="display:none">No institutions in this category are currently available.</div>
     </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; WORKING FILTER BUTTONS</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; FILTER EMPTY-STATE NOTE</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -990,10 +992,14 @@ def render_page():
     // Partnership Tracker status filter (Mainstream Integration Monitor buttons)
     function filterTracker(status, btn) {{
       var cards = document.querySelectorAll('.trk-card');
+      var visible = 0;
       for (var i = 0; i < cards.length; i++) {{
-        var s = cards[i].getAttribute('data-status');
-        cards[i].style.display = (status === 'ALL' || s === status) ? '' : 'none';
+        var show = (status === 'ALL' || cards[i].getAttribute('data-status') === status);
+        cards[i].style.display = show ? '' : 'none';
+        if (show) visible++;
       }}
+      var empty = document.getElementById('trk-empty');
+      if (empty) empty.style.display = (visible === 0) ? 'block' : 'none';
       var btns = document.querySelectorAll('.trk-btn');
       for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
       if (btn) btn.classList.add('active');
