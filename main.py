@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 53 — XRPRadar Exclusive Intelligence: Partnership Momentum Chart (chunk 2 of 5)
+Version 54 — XRPRadar Exclusive Intelligence: Catalyst Clock (chunk 3 of 5)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "53"
+APP_VERSION = "54"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -724,6 +724,31 @@ def fetch_news():
     NEWS["updated"] = now.strftime("%Y-%m-%d %H:%M:%S UTC")
     _track_sentiment_history(pool)
     _detect_partnership_deals(pool)
+    _track_catalyst_clock(pool)
+
+
+# ── Catalyst Clock — when XRP-moving stories actually break (hour x weekday, UTC) ──
+# Persistent accumulator, builds up honestly over time. Counts only stories already
+# flagged "breaking" by the existing classifier -- no new definition of "significant" invented.
+CATALYST_CLOCK = [[0] * 24 for _ in range(7)]   # [weekday 0=Mon..6=Sun][hour 0-23 UTC]
+_CATALYST_SEEN_KEYS = set()
+_CATALYST_TOTAL = 0
+
+def _track_catalyst_clock(pool):
+    global _CATALYST_TOTAL
+    for s in pool:
+        if not s.get("breaking"):
+            continue
+        key = s["key"]
+        if key in _CATALYST_SEEN_KEYS:
+            continue
+        _CATALYST_SEEN_KEYS.add(key)
+        try:
+            dt = s["dt"].astimezone(timezone.utc)
+        except Exception:
+            continue
+        CATALYST_CLOCK[dt.weekday()][dt.hour] += 1
+        _CATALYST_TOTAL += 1
 
 
 # ── Global XRP Enterprise & Partnership Ledger ──
@@ -902,6 +927,36 @@ def clarity_tracker_html():
             f'{html.escape(s["title"])}</a></div></div>'
         )
     return out
+
+
+_WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+def catalyst_clock_html():
+    mx = max(max(row) for row in CATALYST_CLOCK) or 1
+    cells = ""
+    for wd in range(7):
+        cells += f'<div class="cc-row"><span class="cc-daylbl">{_WEEKDAY_LABELS[wd]}</span>'
+        for hr in range(24):
+            v = CATALYST_CLOCK[wd][hr]
+            inten = v / mx if mx else 0
+            if v == 0:
+                bg = "var(--s2)"
+            else:
+                bg = f"rgba(255,153,0,{0.15 + inten * 0.75:.2f})"
+            cells += f'<div class="cc-cell" style="background:{bg}" title="{_WEEKDAY_LABELS[wd]} {hr:02d}:00 UTC \u2014 {v} breaking stor{"y" if v == 1 else "ies"}"></div>'
+        cells += '</div>'
+
+    # Peak hour / weekday
+    hour_totals = [sum(CATALYST_CLOCK[wd][hr] for wd in range(7)) for hr in range(24)]
+    day_totals = [sum(CATALYST_CLOCK[wd]) for wd in range(7)]
+    if _CATALYST_TOTAL:
+        peak_hr = hour_totals.index(max(hour_totals))
+        peak_day = _WEEKDAY_LABELS[day_totals.index(max(day_totals))]
+        peak_txt = f"{peak_hr:02d}:00 UTC on {peak_day}s"
+    else:
+        peak_txt = "\u2014 (building up)"
+    hour_lbls = "".join(f'<span class="cc-hourlbl">{h if h % 3 == 0 else ""}</span>' for h in range(24))
+    return cells, peak_txt, hour_lbls
 
 
 def ici_comps_html(comps):
@@ -2663,6 +2718,8 @@ def render_page():
     ici_color = _ici["color"]
     ici_comps_rendered = ici_comps_html(_ici["comps"])
     pm_bars, pm_total, pm_this_week, pm_trend, pm_tcol, pm_avg = partnership_momentum_html()
+    cc_cells, cc_peak, cc_hourlbls = catalyst_clock_html()
+    cc_total = _CATALYST_TOTAL
 
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
@@ -3266,6 +3323,20 @@ def render_page():
   .pm-chart{{ display:flex; align-items:flex-end; gap:5px; height:70px; }}
   .pm-bar{{ flex:1; min-width:8px; background:var(--yl); border-radius:2px 2px 0 0; opacity:.85; }}
   .pm-axis{{ display:flex; justify-content:space-between; font-size:11px; color:var(--tx); font-family:var(--mn); margin-top:4px; }}
+
+  /* Catalyst Clock */
+  .cc-panel{{ margin-top:16px; background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px; overflow-x:auto; }}
+  .cc-title{{ font-size:14px; font-weight:800; font-family:var(--mn); color:var(--or); margin-bottom:4px; display:flex; align-items:center; gap:8px; }}
+  .cc-sub{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-bottom:12px; }}
+  .cc-peak{{ font-size:13px; font-family:var(--mn); color:var(--br); margin-bottom:12px; }}
+  .cc-peak b{{ color:var(--or); }}
+  .cc-grid{{ min-width:640px; }}
+  .cc-row{{ display:flex; align-items:center; gap:2px; margin-bottom:2px; }}
+  .cc-daylbl{{ flex:0 0 30px; font-size:11px; color:var(--tx); font-family:var(--mn); }}
+  .cc-cell{{ flex:1; height:14px; border-radius:2px; min-width:8px; }}
+  .cc-hourlbls{{ display:flex; gap:2px; margin-top:2px; margin-left:32px; min-width:608px; }}
+  .cc-hourlbl{{ flex:1; font-size:9px; color:var(--tx); font-family:var(--mn); text-align:center; min-width:8px; }}
+  .cc-scrollnote{{ font-size:11px; color:var(--tx); font-family:var(--mn); margin-top:8px; }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -4312,7 +4383,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; PARTNERSHIP MOMENTUM CHUNK 2</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; CATALYST CLOCK CHUNK 3</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -4360,6 +4431,17 @@ def render_page():
         </div>
         <div class="pm-chart">{pm_bars}</div>
         <div class="pm-axis"><span>10 weeks ago</span><span>5 weeks ago</span><span>this week</span></div>
+      </div>
+
+      <div class="cc-panel">
+        <div class="cc-title">\u23F0 Catalyst Clock</div>
+        <div class="cc-sub">When XRP-moving stories actually break \u2014 hour (UTC) \u00D7 weekday, built from our own breaking-story history since deploy.</div>
+        <div class="cc-peak">Peak so far: <b>{cc_peak}</b> &nbsp;|&nbsp; {cc_total} breaking stories tracked</div>
+        <div class="cc-grid">
+          {cc_cells}
+          <div class="cc-hourlbls">{cc_hourlbls}</div>
+        </div>
+        <div class="cc-scrollnote">Darker = more breaking stories at that hour \u00B7 scroll horizontally on small screens</div>
       </div>
     </div>
   </main>
