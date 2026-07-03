@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 28 — US Intelligence, Global Pulse, Regional Discourse (news-derived)
+Version 29 — Signal Scoreboard
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -38,7 +38,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "28"
+APP_VERSION = "29"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -52,6 +52,7 @@ app = Flask(__name__)
 MARKET = {
     "xrp_price": None, "xrp_chg": None,
     "fng": None, "fng_label": None,
+    "mcap": None, "vol24": None, "rank": None, "h24": None, "l24": None,
     "sources_active": 0, "sources_total": 3,
     "updated": None,
     # technicals (Binance klines)
@@ -99,6 +100,9 @@ def fetch_market():
         if p > 0:
             MARKET["xrp_price"] = p
             MARKET["xrp_chg"]   = chg
+            MARKET["mcap"]      = float(d.get("marketCapUsd", 0) or 0)
+            MARKET["vol24"]     = float(d.get("volumeUsd24Hr", 0) or 0)
+            MARKET["rank"]      = d.get("rank")
             active += 1
     except Exception:
         pass
@@ -118,6 +122,9 @@ def fetch_market():
         if k1h:
             closes_1h = [float(c[4]) for c in k1h]
             MARKET["rsi_1h"] = calc_rsi(closes_1h)
+            last24 = k1h[-24:]
+            MARKET["h24"] = max(float(c[2]) for c in last24)
+            MARKET["l24"] = min(float(c[3]) for c in last24)
         if k1d:
             closes_1d = [float(c[4]) for c in k1d]
             highs_1d  = [float(c[2]) for c in k1d]
@@ -437,6 +444,25 @@ def global_pulse():
                if bulls >= bears else
                "Mixed-to-cautious flow points to range-bound action until a clearer catalyst emerges.")
     return {"pulse": pulse, "thesis": thesis, "signals": signals, "ts": ts}
+
+def _fmt_usd(v):
+    if not v:
+        return "\u2014"
+    if v >= 1e9:
+        return f"${v / 1e9:.2f}B"
+    if v >= 1e6:
+        return f"${v / 1e6:.2f}M"
+    if v >= 1e3:
+        return f"${v / 1e3:.1f}K"
+    return f"${v:.2f}"
+
+def signal_stats():
+    pool = NEWS.get("pool", [])
+    total = len(pool)
+    bull = sum(1 for s in pool if s["sentiment"] == "bullish")
+    bear = sum(1 for s in pool if s["sentiment"] == "bearish")
+    neut = total - bull - bear
+    return total, bull, bear, neut
 
 def regional_discourse_html():
     pool = NEWS.get("pool", [])
@@ -784,6 +810,23 @@ def render_page():
     gl_thesis = gl["thesis"]
     rd_html = regional_discourse_html()
 
+    # Signal Scoreboard
+    sb_total, sb_bull, sb_bear, sb_neut = signal_stats()
+    _t = sb_total or 1
+    sb_bull_pct = round(sb_bull / _t * 100)
+    sb_bear_pct = round(sb_bear / _t * 100)
+    sb_net = sb_bull - sb_bear
+    sb_net_col = "var(--gr)" if sb_net >= 0 else "var(--rd)"
+    sb_net_str = f"+{sb_net}" if sb_net >= 0 else str(sb_net)
+    sb_fng = MARKET["fng"] if MARKET["fng"] is not None else "\u2014"
+    sb_fng_lbl = MARKET["fng_label"] or "\u2014"
+    sb_rank = f'#{MARKET["rank"]}' if MARKET.get("rank") else "#\u2014"
+    sb_mcap = _fmt_usd(MARKET.get("mcap"))
+    sb_vol = _fmt_usd(MARKET.get("vol24"))
+    sb_high = f'${MARKET["h24"]:.4f}' if MARKET.get("h24") else "\u2014"
+    sb_low = f'${MARKET["l24"]:.4f}' if MARKET.get("l24") else "\u2014"
+    sb_feeds = f'{NEWS["feeds_active"]}/{NEWS["feeds_total"]}'
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -998,6 +1041,17 @@ def render_page():
   .rd-count{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-bottom:5px; }}
   .rd-hl{{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
+
+  /* Signal Scoreboard */
+  .sb-grid{{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }}
+  .sb-grid4{{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; }}
+  .sb-box{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:12px 10px; text-align:center; }}
+  .sb-num{{ font-size:24px; font-weight:900; font-family:var(--mn); line-height:1.1; color:var(--br); }}
+  .sb-lbl{{ font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--tx); font-family:var(--mn); margin-top:7px; }}
+  .sb-sub{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:3px; }}
+  .sb-bar{{ height:8px; background:var(--s2); border:1px solid var(--b); border-radius:4px; overflow:hidden; margin-top:10px; }}
+  .sb-fill{{ height:100%; background:linear-gradient(90deg,var(--rd),var(--yl),var(--gr)); transition:width .4s; }}
+  @media(max-width:900px){{ .sb-grid{{ grid-template-columns:repeat(3,1fr); }} .sb-grid4{{ grid-template-columns:repeat(2,1fr); }} }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -1360,12 +1414,32 @@ def render_page():
         {rd_html}
       </div>
     </div>
+
+    <!-- SECTION 13: SIGNAL SCOREBOARD -->
+    <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4E1</span> Signal Scoreboard</div>
+      <div class="sb-grid">
+        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">{sb_total}</div><div class="sb-lbl">Stories Tracked</div><div class="sb-sub">{sb_feeds} sources</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">{sb_bull}</div><div class="sb-lbl">Bullish</div><div class="sb-sub">{sb_bull_pct}%</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--rd)">{sb_bear}</div><div class="sb-lbl">Bearish</div><div class="sb-sub">{sb_bear_pct}%</div></div>
+        <div class="sb-box"><div class="sb-num">{sb_neut}</div><div class="sb-lbl">Neutral</div><div class="sb-sub" style="color:{sb_net_col}">Net: {sb_net_str}</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--yl)">{sb_fng}</div><div class="sb-lbl">Fear &amp; Greed</div><div class="sb-sub">{sb_fng_lbl}</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">{sb_rank}</div><div class="sb-lbl">Global Rank</div><div class="sb-sub">CoinCap</div></div>
+      </div>
+      <div class="sb-grid4">
+        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">{sb_mcap}</div><div class="sb-lbl">Market Cap</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--yl)">{sb_vol}</div><div class="sb-lbl">24h Volume</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">{sb_high}</div><div class="sb-lbl">24h High</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--rd)">{sb_low}</div><div class="sb-lbl">24h Low</div></div>
+      </div>
+      <div class="sb-bar"><div class="sb-fill" style="width:{sb_bull_pct}%"></div></div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; US INTEL + GLOBAL + REGIONAL</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; SIGNAL SCOREBOARD</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
