@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 41 — Brief Home: designated 'This Week's Editions' area on the Intelligence Brief
+Version 42 — Breaking News + Whale Alert Feed wired live; reusable home-base placeholder
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "41"
+APP_VERSION = "42"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -1249,6 +1249,35 @@ def render_page():
     overall_color = "#48ff82" if overall == "PASS" else "#ff4060"
     boot_str = BOOT_TIME.strftime("%Y-%m-%d %H:%M:%S UTC")
 
+    # Breaking News bar — real breaking stories when present, home-base message otherwise
+    _pool = NEWS.get("pool", [])
+    _breaking_stories = sorted((s for s in _pool if s.get("breaking")), key=lambda s: s["dt"], reverse=True)
+    if _breaking_stories:
+        _top_break = _breaking_stories[0]
+        bktext = f'{html.escape(_top_break["source"])}: {html.escape(_top_break["title"])}'
+    elif _pool:
+        bktext = "\U0001F6F0\uFE0F Monitoring live feeds \u2014 breaking alerts appear here automatically."
+    else:
+        bktext = "\U0001F6F0\uFE0F Connecting to news feeds \u2014 breaking alerts appear here automatically."
+
+    # Whale Alert Feed — real whale-tagged stories when present, home-base placeholder otherwise
+    _whale_stories = sorted((s for s in _pool if s.get("category") == "Whale"), key=lambda s: s["dt"], reverse=True)[:8]
+    if _whale_stories:
+        whale_feed_html = "".join(
+            f'<div class="wa-row"><span class="wa-src">{html.escape(w["source"])}</span>'
+            f'<a class="wa-hl" href="{html.escape(w["link"], quote=True)}" target="_blank" rel="noopener">{html.escape(w["title"])}</a>'
+            f'<span class="wa-time">{_time_ago(w["dt"])}</span></div>'
+            for w in _whale_stories
+        )
+        whale_ts_val = _time_ago(_whale_stories[0]["dt"])
+    else:
+        whale_feed_html = (
+            '<div class="home-base"><div class="home-base-icon">\U0001F433</div>'
+            '<div class="home-base-title">Monitoring On-Chain Movements</div>'
+            '<div class="home-base-sub">Whale-sized transfers surface here automatically as soon as they appear in the live news feed \u2014 no action needed.</div></div>'
+        )
+        whale_ts_val = "\u2014"
+
     # XRP price — red or green by movement
     if MARKET["xrp_price"] is not None:
         chg = MARKET["xrp_chg"] or 0
@@ -1590,6 +1619,13 @@ def render_page():
   .sr-line{{ display:flex; justify-content:space-between; font-family:var(--mn); font-size:15px; padding:8px 0; border-bottom:1px solid var(--b); }}
   .sr-line:last-child{{ border-bottom:none; }}
   .empty{{ padding:16px; font-family:var(--mn); font-size:14px; color:var(--tx); text-align:center; }}
+
+  /* Reusable "home base" — reserved space for upcoming/still-filling sections */
+  .home-base{{ padding:26px 20px; text-align:center; border:1px dashed rgba(128,153,179,.3); border-radius:8px;
+    background:rgba(128,153,179,.03); }}
+  .home-base-icon{{ font-size:32px; line-height:1; margin-bottom:10px; opacity:.85; }}
+  .home-base-title{{ font-size:14px; font-weight:800; font-family:var(--mn); letter-spacing:.5px; color:var(--br); margin-bottom:5px; }}
+  .home-base-sub{{ font-size:12px; font-family:var(--mn); color:var(--tx); max-width:420px; margin:0 auto; line-height:1.6; }}
   .tvs{{ margin-top:12px; padding:10px 12px; background:var(--s2); border-radius:6px; border:1px solid var(--b); }}
   .tvs-lbl{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:4px; text-transform:uppercase; letter-spacing:1px; }}
   .tvs-txt{{ font-size:14px; color:var(--br); line-height:1.6; }}
@@ -1611,6 +1647,12 @@ def render_page():
   .pt{{ font-size:19px; text-transform:uppercase; letter-spacing:2px; font-family:var(--mn); font-weight:800; display:flex; align-items:center; gap:10px; }}
   .pt .sic{{ font-size:30px; }}
   .whale-feed{{ padding:8px 14px; max-height:240px; overflow-y:auto; }}
+  .wa-row{{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid rgba(26,32,48,.4); font-family:var(--mn); font-size:13px; }}
+  .wa-row:last-child{{ border-bottom:none; }}
+  .wa-src{{ color:var(--yl); font-weight:700; white-space:nowrap; }}
+  .wa-hl{{ color:var(--br); text-decoration:none; flex:1; }}
+  .wa-hl:hover{{ color:var(--hdr); text-decoration:underline; }}
+  .wa-time{{ color:var(--tx); white-space:nowrap; font-size:12px; }}
   .whale-item{{ padding:10px 0; border-bottom:1px solid var(--b); }}
   .whale-item:last-child{{ border-bottom:none; }}
   .whale-hl{{ font-size:15px; font-weight:700; color:var(--yl); font-family:system-ui; line-height:1.4; margin-bottom:4px; }}
@@ -1965,7 +2007,7 @@ def render_page():
       <div class="bkrow">
         <span class="bklbl"><span class="bk-bolt">\u26A1</span>BREAKING NEWS</span>
         <div class="bkscroll">
-          <div class="bktext" id="bktext">Monitoring XRP global news feeds \u2014 live headlines connect in a later version.</div>
+          <div class="bktext" id="bktext">{bktext}</div>
         </div>
       </div>
     </div>
@@ -2137,10 +2179,10 @@ def render_page():
       <div class="panel" style="border-color:rgba(255,204,0,.35)">
         <div class="ph">
           <span class="pt" style="color:var(--hdr)"><span class="sic">\U0001F433</span> Whale Alert Feed</span>
-          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="whale-ts">\u2014</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="whale-ts">{whale_ts_val}</span>
         </div>
         <div class="whale-feed" id="whale-feed">
-          <div class="empty">Headlines connect when the news feed section is built.</div>
+          {whale_feed_html}
         </div>
       </div>
     </div>
@@ -2647,7 +2689,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; BRIEF HOME</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; LIVE BREAKING + WHALE FEED</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
