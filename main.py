@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 51 — CLARITY Act Tracker (fixed top 10, ranked by influence)
+Version 52 — XRPRadar Exclusive Intelligence: Institutional Confidence Index (chunk 1 of 5)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "51"
+APP_VERSION = "52"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -904,6 +904,19 @@ def clarity_tracker_html():
     return out
 
 
+def ici_comps_html(comps):
+    out = ""
+    for name, detail, pts in comps:
+        pct = round(pts / 20 * 100)
+        out += (
+            f'<div class="ici-comp-row"><span class="ici-comp-name">{html.escape(name)}</span>'
+            f'<div class="ici-comp-track"><div class="ici-comp-fill" style="width:{pct}%"></div></div>'
+            f'<span class="ici-comp-pts">{pts}/20</span></div>'
+            f'<div class="ici-comp-detail">{html.escape(detail)}</div>'
+        )
+    return out
+
+
 def _track_sentiment_history(pool):
     for s in pool:
         try:
@@ -1338,6 +1351,82 @@ def world_clocks_html():
             f'</div>'
         )
     return out
+
+
+def institutional_confidence_index():
+    """XRPRadar Institutional Confidence Index (ICI) — 0-100, rescaled from five real components
+    unique to this site's own accumulated tracking. Every component is disclosed and computed
+    from data already gathered elsewhere on the page; nothing here is invented or opaque."""
+    comps = []
+
+    # 1. Partnership Momentum — from our own growing Enterprise Ledger (detected deals only)
+    detected_n = sum(1 for e in PARTNERSHIP_LEDGER if e["source"] == "detected")
+    if detected_n >= 6:
+        pm = 20
+    elif detected_n >= 3:
+        pm = 15
+    elif detected_n >= 1:
+        pm = 10
+    else:
+        pm = 5
+    comps.append(("Partnership Momentum", f"{detected_n} new deals detected", pm))
+
+    # 2. Developer Activity — from live XRPL GitHub tracking
+    dev_commits = GITHUB_DEV.get("rippled_7d", 0) + GITHUB_DEV.get("other_7d", 0)
+    if dev_commits >= 16:
+        da = 20
+    elif dev_commits >= 6:
+        da = 15
+    elif dev_commits >= 1:
+        da = 10
+    else:
+        da = 5
+    comps.append(("Developer Activity", f"{dev_commits} commits/7d", da))
+
+    # 3. Smart Money Positioning — rescale the existing Smart Money Score (0-100 -> 0-20)
+    sm = smart_money()
+    smp = round(sm["score"] / 100 * 20)
+    comps.append(("Smart Money Positioning", f'{sm["score"]}/100 \u2014 {sm["label"]}', smp))
+
+    # 4. Executive Tone — sentiment across real statements in the Ripple Exec Tracker
+    ex_stories = EXEC_TRACKER.get("stories", [])
+    if ex_stories:
+        ex_bull = sum(1 for s in ex_stories if _sentiment(s["title"]) == "bullish")
+        ex_bear = sum(1 for s in ex_stories if _sentiment(s["title"]) == "bearish")
+        ex_share = (ex_bull - ex_bear) / len(ex_stories)
+        et = round(10 + ex_share * 10)
+        et = max(0, min(20, et))
+        et_disp = f"{ex_bull} positive / {ex_bear} negative of {len(ex_stories)}"
+    else:
+        et, et_disp = 10, "Awaiting statements"
+    comps.append(("Executive Tone", et_disp, et))
+
+    # 5. Regulatory Momentum — CLARITY Act tracker fill + net sentiment of Legal/Reg news
+    ca_n = len(CLARITY_ACT_STORIES)
+    pool = NEWS.get("pool", [])
+    reg_stories = [s for s in pool if s.get("category") in ("Legal", "Reg")]
+    if reg_stories:
+        reg_bull = sum(1 for s in reg_stories if s["sentiment"] == "bullish")
+        reg_bear = sum(1 for s in reg_stories if s["sentiment"] == "bearish")
+        reg_share = (reg_bull - reg_bear) / len(reg_stories)
+    else:
+        reg_share = 0
+    rm = round((ca_n / 10) * 10 + (reg_share * 10 + 10) / 2)
+    rm = max(0, min(20, rm))
+    comps.append(("Regulatory Momentum", f"{ca_n}/10 CLARITY Act stories tracked", rm))
+
+    score = sum(c[2] for c in comps)
+    if score >= 80:
+        label, col = "Institutional Grade", "var(--gr)"
+    elif score >= 65:
+        label, col = "Strong Confidence", "var(--gr)"
+    elif score >= 50:
+        label, col = "Moderate Confidence", "var(--yl)"
+    elif score >= 35:
+        label, col = "Cautious", "var(--or)"
+    else:
+        label, col = "Low Confidence", "var(--rd)"
+    return {"score": score, "label": label, "color": col, "comps": comps}
 
 
 def signal_score():
@@ -2538,6 +2627,13 @@ def render_page():
     ca_html = clarity_tracker_html()
     ca_count = len(CLARITY_ACT_STORIES)
 
+    # XRPRadar Exclusive Intelligence — Institutional Confidence Index
+    _ici = institutional_confidence_index()
+    ici_score = _ici["score"]
+    ici_label = _ici["label"]
+    ici_color = _ici["color"]
+    ici_comps_rendered = ici_comps_html(_ici["comps"])
+
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
     _xp = MARKET.get("xrp_price") or 0
@@ -3108,6 +3204,27 @@ def render_page():
   .ca-time{{ font-size:11px; color:var(--tx); font-family:var(--mn); margin-left:auto; }}
   .ca-hl{{ font-size:14px; font-weight:700; color:var(--br); text-decoration:none; line-height:1.4; font-family:system-ui; }}
   .ca-hl:hover{{ color:var(--hdr); text-decoration:underline; }}
+
+  /* Flagship: Institutional Confidence Index */
+  .flagship-intro{{ font-size:13px; color:var(--tx); line-height:1.7; font-family:system-ui; margin-bottom:16px; max-width:920px; }}
+  .ici-wrap{{ display:grid; grid-template-columns:220px 1fr; gap:20px; background:linear-gradient(135deg,#0a0a14,#0d0d1a);
+    border:1px solid rgba(255,204,0,.25); border-radius:14px; padding:22px; }}
+  .ici-dial{{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }}
+  .ici-score{{ font-size:64px; font-weight:900; font-family:var(--mn); line-height:1; }}
+  .ici-cap{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-top:2px; }}
+  .ici-label{{ font-size:15px; font-weight:800; font-family:var(--mn); margin-top:8px; letter-spacing:.5px; }}
+  .ici-bar{{ width:100%; height:8px; background:var(--s2); border-radius:4px; overflow:hidden; margin-top:12px; }}
+  .ici-fill{{ height:100%; background:linear-gradient(90deg,var(--rd),var(--or),var(--yl),var(--gr)); }}
+  .ici-comps{{ display:flex; flex-direction:column; gap:8px; justify-content:center; }}
+  .ici-comp-row{{ display:grid; grid-template-columns:170px 1fr 44px; align-items:center; gap:10px; }}
+  .ici-comp-name{{ font-size:12px; font-weight:700; color:var(--br); font-family:var(--mn); }}
+  .ici-comp-track{{ height:7px; background:var(--s2); border-radius:4px; overflow:hidden; position:relative; }}
+  .ici-comp-fill{{ height:100%; background:var(--tq); border-radius:4px; }}
+  .ici-comp-detail{{ font-size:11px; color:var(--tx); font-family:var(--mn); grid-column:1/3; margin-top:-4px; }}
+  .ici-comp-pts{{ font-size:12px; font-weight:800; color:var(--yl); font-family:var(--mn); text-align:right; }}
+  .ici-foot{{ margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.08); font-size:11px;
+    color:var(--tx); font-family:var(--mn); line-height:1.6; }}
+  @media(max-width:900px){{ .ici-wrap{{ grid-template-columns:1fr; }} }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -4154,13 +4271,42 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; CLARITY ACT TRACKER</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; ICI FLAGSHIP CHUNK 1</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
       horizontal color-coded line with a tinted ball showing the number. Labels
       are white with larger icons. More sections follow, each verified first.
       ATH, CoinGecko, and access-limited feeds remain permanently excluded.
+    </div>
+
+    <!-- SECTION 30: XRPRADAR EXCLUSIVE INTELLIGENCE (flagship) -->
+    <div class="acct" style="border-color:rgba(255,204,0,.4);margin:10px 0">
+      <div class="sec-title" style="color:var(--yl)"><span class="sic">\U0001F3C6</span> XRPRadar Exclusive Intelligence</div>
+      <div class="flagship-intro">
+        Metrics built entirely from data we track ourselves \u2014 our own growing partnership ledger, our own executive
+        statement archive, our own GitHub monitoring, our own news timing history. Nothing here is copied from another
+        site's API; it exists because XRPRadar has been watching and recording since deploy.
+      </div>
+
+      <div class="ici-wrap">
+        <div class="ici-dial">
+          <div class="ici-score" style="color:{ici_color}">{ici_score}</div>
+          <div class="ici-cap">/ 100</div>
+          <div class="ici-label" style="color:{ici_color}">{ici_label}</div>
+          <div class="ici-bar"><div class="ici-fill" style="width:{ici_score}%"></div></div>
+        </div>
+        <div class="ici-comps">
+          {ici_comps_rendered}
+        </div>
+      </div>
+      <div class="ici-foot">
+        \U0001F3C6 XRPRadar Institutional Confidence Index (ICI) \u2014 rescaled from five disclosed components: Partnership
+        Momentum (our Enterprise Ledger), Developer Activity (live GitHub tracking), Smart Money Positioning (RSI +
+        sentiment + funding rate), Executive Tone (sentiment across real Ripple leadership statements), and Regulatory
+        Momentum (CLARITY Act coverage + Legal/Reg news sentiment). Each component is shown above with its real
+        underlying value \u2014 nothing is a black box. Informational only, not financial advice.
+      </div>
     </div>
   </main>
 
