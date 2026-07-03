@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 30 — Global News Feed + right rail (XRPL Network / Market Structure / Ripple Escrow)
+Version 32 — Enriched right rail with allowed metrics
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -39,7 +39,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "30"
+APP_VERSION = "32"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -921,6 +921,14 @@ def render_page():
     gn_shown = min(gn_total, 60)
     # Market Structure (excluded rows dropped: ATH, % Below ATH)
     ms_rank = f'#{MARKET["rank"]}' if MARKET.get("rank") else "\u2014"
+    ms_price = f'${MARKET["xrp_price"]:.4f}' if MARKET.get("xrp_price") else "\u2014"
+    if MARKET.get("xrp_chg") is not None:
+        _c = MARKET["xrp_chg"]
+        ms_chg = f'{_c:+.2f}%'
+        ms_chg_col = "var(--gr)" if _c >= 0 else "var(--rd)"
+    else:
+        ms_chg = "\u2014"
+        ms_chg_col = "var(--tx)"
     ms_mcap = _fmt_usd(MARKET.get("mcap"))
     ms_vol = _fmt_usd(MARKET.get("vol24"))
     if MARKET.get("vol24") and MARKET.get("mcap"):
@@ -1170,7 +1178,12 @@ def render_page():
   .gn-btn.active{{ opacity:1; color:var(--hdr); border-color:var(--hdr); box-shadow:0 0 0 1px var(--hdr) inset; }}
   .gn-stats{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:10px; }}
   .gn-stats b{{ color:var(--gr); }}
-  .gn-list{{ display:flex; flex-direction:column; gap:8px; max-height:1000px; overflow-y:auto; }}
+  .gn-list{{ display:flex; flex-direction:column; gap:8px; max-height:920px; overflow-y:scroll; padding-right:6px;
+    scrollbar-width:thin; scrollbar-color:#33405e var(--s2); }}
+  .gn-list::-webkit-scrollbar{{ width:8px; }}
+  .gn-list::-webkit-scrollbar-track{{ background:var(--s2); border-radius:6px; }}
+  .gn-list::-webkit-scrollbar-thumb{{ background:#33405e; border-radius:6px; }}
+  .gn-list::-webkit-scrollbar-thumb:hover{{ background:var(--hdr); }}
   .gn-card{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:14px; }}
   .gn-top{{ display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }}
   .gn-src{{ font-size:12px; font-weight:700; font-family:var(--mn); color:var(--tq); border:1px solid rgba(0,229,204,.4);
@@ -1188,15 +1201,15 @@ def render_page():
   .gn-dot{{ width:12px; height:12px; border-radius:50%; display:inline-block; }}
   .gn-empty{{ padding:22px; text-align:center; color:var(--tx); font-family:var(--mn); font-size:14px; }}
   .rail{{ display:flex; flex-direction:column; gap:10px; }}
-  .rail-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:14px 16px; }}
+  .rail-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px 18px; }}
   .rail-h{{ font-size:15px; font-weight:800; font-family:var(--mn); letter-spacing:1.5px; text-transform:uppercase;
-    color:var(--hdr); display:flex; align-items:center; gap:10px; margin-bottom:12px; }}
+    color:var(--hdr); display:flex; align-items:center; gap:10px; margin-bottom:6px; }}
   .rail-h .sic{{ font-size:30px; }}
-  .rail-row{{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:5px 0;
-    font-family:var(--mn); font-size:14px; border-bottom:1px solid rgba(26,32,48,.5); }}
+  .rail-row{{ display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:34px;
+    font-family:var(--mn); font-size:14px; border-bottom:1px solid rgba(26,32,48,.35); }}
   .rail-row:last-child{{ border-bottom:none; }}
   .rail-k{{ color:var(--tx); }}
-  .rail-v{{ font-weight:700; color:var(--br); text-align:right; }}
+  .rail-v{{ font-weight:700; color:var(--br); text-align:right; white-space:nowrap; }}
   @media(max-width:900px){{ .feed-wrap{{ grid-template-columns:1fr; }} }}
 
   /* MAIN */
@@ -1584,7 +1597,7 @@ def render_page():
     <!-- SECTION 14: GLOBAL NEWS FEED + RIGHT RAIL -->
     <div class="feed-wrap">
       <div class="acct" style="border-color:rgba(3,177,252,.35);margin:0">
-        <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5DE\uFE0F</span> Global News Feed</div>
+        <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5DE\uFE0F</span> Global News Feed &amp; Search</div>
         <input class="gn-search" id="gn-search" type="text" placeholder="\U0001F50D Search XRP news..." oninput="filterFeed()">
         <div class="gn-cats" id="gn-cats">
           <button class="gn-btn active" data-cat="ALL" onclick="feedCat('ALL',this)">ALL</button>
@@ -1610,9 +1623,13 @@ def render_page():
           <div class="rail-row"><span class="rail-k">Ledger Close</span><span class="rail-v">~3-5 seconds</span></div>
           <div class="rail-row"><span class="rail-k">Tx Fee</span><span class="rail-v">~0.00001 XRP</span></div>
           <div class="rail-row"><span class="rail-k">Circulating</span><span class="rail-v" style="color:var(--gr)">62.2B XRP</span></div>
+          <div class="rail-row"><span class="rail-k">Escrow Locked</span><span class="rail-v">~43B XRP</span></div>
+          <div class="rail-row"><span class="rail-k">Total Supply</span><span class="rail-v">100B XRP</span></div>
         </div>
         <div class="rail-panel">
           <div class="rail-h"><span class="sic">\U0001F4CA</span> Market Structure</div>
+          <div class="rail-row"><span class="rail-k">Price</span><span class="rail-v">{ms_price}</span></div>
+          <div class="rail-row"><span class="rail-k">24h Change</span><span class="rail-v" style="color:{ms_chg_col}">{ms_chg}</span></div>
           <div class="rail-row"><span class="rail-k">Global Rank</span><span class="rail-v" style="color:var(--bl)">{ms_rank}</span></div>
           <div class="rail-row"><span class="rail-k">Market Cap</span><span class="rail-v">{ms_mcap}</span></div>
           <div class="rail-row"><span class="rail-k">24h Volume</span><span class="rail-v">{ms_vol}</span></div>
@@ -1633,7 +1650,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; GLOBAL NEWS FEED</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; ENRICHED RIGHT RAIL</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
