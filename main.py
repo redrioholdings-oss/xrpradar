@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 29 — Signal Scoreboard
+Version 30 — Global News Feed + right rail (XRPL Network / Market Structure / Ripple Escrow)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -29,6 +29,7 @@ import time
 import threading
 from datetime import datetime, timezone
 import html
+import re
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 
@@ -38,7 +39,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "29"
+APP_VERSION = "30"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -52,7 +53,7 @@ app = Flask(__name__)
 MARKET = {
     "xrp_price": None, "xrp_chg": None,
     "fng": None, "fng_label": None,
-    "mcap": None, "vol24": None, "rank": None, "h24": None, "l24": None,
+    "mcap": None, "vol24": None, "rank": None, "h24": None, "l24": None, "xrpbtc": None,
     "sources_active": 0, "sources_total": 3,
     "updated": None,
     # technicals (Binance klines)
@@ -112,6 +113,14 @@ def fetch_market():
         MARKET["fng"]       = int(d.get("value", 0))
         MARKET["fng_label"] = d.get("value_classification", "")
         active += 1
+    except Exception:
+        pass
+
+    try:
+        r = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=XRPBTC", headers=hdr, timeout=5)
+        px = float(r.json().get("price", 0) or 0)
+        if px > 0:
+            MARKET["xrpbtc"] = px
     except Exception:
         pass
 
@@ -209,6 +218,7 @@ NEWS_FEEDS = [
     ("NewsBTC",        "https://www.newsbtc.com/feed/"),
     ("CryptoPotato",   "https://cryptopotato.com/feed/"),
     ("AMBCrypto",      "https://ambcrypto.com/feed/"),
+    ("CoinPost JP",    "https://coinpost.jp/?feed=rss2"),
 ]
 
 NEWS = {"current": [], "weekly": [], "pool": [], "feeds_active": 0, "feeds_total": len(NEWS_FEEDS), "updated": None}
@@ -303,6 +313,45 @@ def _influence(text, source):
     kw = sum(1 for w in _IMPORTANT if w in text.lower())
     return _SOURCE_WEIGHT.get(source, 1) * 2 + kw * 3
 
+_BREAKING_KW = {"breaking", "just in", "urgent", "alert", "confirmed", "official"}
+
+def _category(text):
+    t = text.lower()
+    if any(k in t for k in ["whale", "million xrp", "billion xrp", "large transfer", "moved xrp"]):
+        return "Whale"
+    if any(k in t for k in ["sec", "court", "lawsuit", "ruling", "settlement", "judge", "legal", "appeal"]):
+        return "Legal"
+    if any(k in t for k in ["regulat", "mica", "cftc", "policy", "license", "compliance", "sanction"]):
+        return "Reg"
+    if any(k in t for k in ["rlusd", "amm", "defi", "partnership", "tokeniz", "stablecoin", "adoption", "nft", "ecosystem"]):
+        return "Ecosystem"
+    if any(k in t for k in ["xrpl", "ledger", "upgrade", "hooks", "evm", "validator", "amendment"]):
+        return "Tech"
+    if any(k in t for k in ["price", "surge", "rally", "dump", "plunge", "target", "forecast", "breakout"]):
+        return "Price"
+    return "General"
+
+def _is_foreign(text):
+    if not text:
+        return False
+    non_ascii = sum(1 for c in text if ord(c) > 127)
+    return (non_ascii / max(len(text), 1)) > 0.12
+
+def _is_breaking(text, influence):
+    return any(k in text.lower() for k in _BREAKING_KW) or influence >= 22
+
+def _clean_summary(raw, limit=240):
+    if not raw:
+        return ""
+    txt = re.sub(r"<[^>]+>", "", raw)          # strip HTML tags
+    txt = re.sub(r"\s+", " ", txt).strip()      # collapse whitespace
+    if len(txt) > limit:
+        txt = txt[:limit].rsplit(" ", 1)[0] + "\u2026"
+    return txt
+
+def _translate_url(link):
+    return "https://translate.google.com/translate?sl=auto&tl=en&u=" + html.escape(link, quote=True)
+
 def fetch_news():
     now = datetime.now(timezone.utc)
     active = 0
@@ -320,7 +369,7 @@ def fetch_news():
                     continue
                 text = title + " " + e["summary"]
                 low = text.lower()
-                if "xrp" not in low and "ripple" not in low:
+                if "xrp" not in low and "ripple" not in low and "\u30ea\u30c3\u30d7\u30eb" not in text:
                     continue
                 key = title.lower()[:80]
                 if key in seen:
@@ -329,10 +378,16 @@ def fetch_news():
                 dt = _parse_date(e["date_str"]) or now
                 if dt.tzinfo is None:
                     dt = dt.replace(tzinfo=timezone.utc)
+                infl = _influence(text, name)
+                summary = _clean_summary(e["summary"])
                 pool.append({
                     "key": key, "title": title, "link": e["link"] or "#", "source": name, "dt": dt,
-                    "sentiment": _sentiment(text), "influence": _influence(text, name),
+                    "sentiment": _sentiment(text), "influence": infl,
                     "region": _classify_region(low),
+                    "summary": summary,
+                    "category": _category(title + " " + summary),
+                    "foreign": _is_foreign(title),
+                    "breaking": _is_breaking(text, infl),
                 })
                 got = True
             if got:
@@ -376,6 +431,39 @@ def story_rows_html(stories):
             f'<span class="story-meta"><span style="color:{col};font-weight:700">{s["sentiment"]}</span>'
             f' \u00B7 {html.escape(s["source"])} \u00B7 {_time_ago(s["dt"])}</span>'
             f'</span></a>'
+        )
+    return out
+
+
+def global_feed_html(limit=60):
+    pool = NEWS.get("pool", [])
+    if not pool:
+        return '<div class="empty">Connecting to news feeds\u2026 stories populate on deploy.</div>'
+    sent_col = {"bullish": "var(--gr)", "bearish": "var(--rd)", "neutral": "#8099b3"}
+    stories = sorted(pool, key=lambda s: s["dt"], reverse=True)[:limit]
+    out = ""
+    for s in stories:
+        cat = s.get("category", "General")
+        sent = s.get("sentiment", "neutral")
+        col = sent_col.get(sent, "#8099b3")
+        title = html.escape(s["title"])
+        summary = html.escape(s.get("summary", ""))
+        data_text = html.escape((s["title"] + " " + s.get("summary", "")).lower(), quote=True)
+        breaking = ('<span class="gn-break">\u26A1 BREAKING</span>' if s.get("breaking") else '')
+        translate = ('' if not s.get("foreign") else
+                     f'<a class="gn-tr" href="{_translate_url(s["link"])}" target="_blank" rel="noopener">\U0001F310 Translate</a>')
+        summary_html = f'<div class="gn-sum">{summary}</div>' if summary else ''
+        out += (
+            f'<div class="gn-card" data-cat="{cat.upper()}" data-text="{data_text}">'
+            f'<div class="gn-top"><span class="gn-src">{html.escape(s["source"])}</span>'
+            f'<span class="gn-cat">{cat}</span>{breaking}'
+            f'<span class="gn-time">{_time_ago(s["dt"])}</span></div>'
+            f'<a class="gn-hl" href="{html.escape(s["link"], quote=True)}" target="_blank" rel="noopener">{title}</a>'
+            f'{translate}'
+            f'{summary_html}'
+            f'<div class="gn-foot"><span class="gn-dot" style="background:{col}"></span>'
+            f'<span style="color:{col};text-transform:capitalize">{sent}</span></div>'
+            f'</div>'
         )
     return out
 
@@ -827,6 +915,23 @@ def render_page():
     sb_low = f'${MARKET["l24"]:.4f}' if MARKET.get("l24") else "\u2014"
     sb_feeds = f'{NEWS["feeds_active"]}/{NEWS["feeds_total"]}'
 
+    # Global News Feed + right rail
+    gn_html = global_feed_html()
+    gn_total = len(NEWS.get("pool", []))
+    gn_shown = min(gn_total, 60)
+    # Market Structure (excluded rows dropped: ATH, % Below ATH)
+    ms_rank = f'#{MARKET["rank"]}' if MARKET.get("rank") else "\u2014"
+    ms_mcap = _fmt_usd(MARKET.get("mcap"))
+    ms_vol = _fmt_usd(MARKET.get("vol24"))
+    if MARKET.get("vol24") and MARKET.get("mcap"):
+        ms_volmcap = f'{MARKET["vol24"] / MARKET["mcap"] * 100:.2f}%'
+    else:
+        ms_volmcap = "\u2014"
+    ms_high = f'${MARKET["h24"]:.4f}' if MARKET.get("h24") else "\u2014"
+    ms_low = f'${MARKET["l24"]:.4f}' if MARKET.get("l24") else "\u2014"
+    ms_xrpbtc = f'{MARKET["xrpbtc"]:.8f}' if MARKET.get("xrpbtc") else "\u2014"
+    esc_next_str = esc_date_str
+
     modal_rows = ""
     for label, ok, detail in checks:
         c = "#48ff82" if ok else "#ff4060"
@@ -1052,6 +1157,47 @@ def render_page():
   .sb-bar{{ height:8px; background:var(--s2); border:1px solid var(--b); border-radius:4px; overflow:hidden; margin-top:10px; }}
   .sb-fill{{ height:100%; background:linear-gradient(90deg,var(--rd),var(--yl),var(--gr)); transition:width .4s; }}
   @media(max-width:900px){{ .sb-grid{{ grid-template-columns:repeat(3,1fr); }} .sb-grid4{{ grid-template-columns:repeat(2,1fr); }} }}
+
+  /* Global News Feed + right rail */
+  .feed-wrap{{ display:grid; grid-template-columns:2fr 1fr; gap:10px; margin:10px 0; align-items:start; }}
+  .gn-search{{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); border-radius:8px;
+    color:var(--br); font-family:var(--mn); font-size:15px; padding:12px 14px; margin-bottom:10px; }}
+  .gn-search::placeholder{{ color:var(--tx); }}
+  .gn-cats{{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }}
+  .gn-btn{{ padding:6px 14px; border-radius:6px; font-size:13px; font-weight:700; font-family:var(--mn); letter-spacing:1px;
+    border:1px solid var(--b); background:transparent; color:var(--tx); cursor:pointer; opacity:.75; }}
+  .gn-btn:hover{{ opacity:1; }}
+  .gn-btn.active{{ opacity:1; color:var(--hdr); border-color:var(--hdr); box-shadow:0 0 0 1px var(--hdr) inset; }}
+  .gn-stats{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:10px; }}
+  .gn-stats b{{ color:var(--gr); }}
+  .gn-list{{ display:flex; flex-direction:column; gap:8px; max-height:1000px; overflow-y:auto; }}
+  .gn-card{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:14px; }}
+  .gn-top{{ display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }}
+  .gn-src{{ font-size:12px; font-weight:700; font-family:var(--mn); color:var(--tq); border:1px solid rgba(0,229,204,.4);
+    border-radius:4px; padding:1px 8px; }}
+  .gn-cat{{ font-size:12px; font-family:var(--mn); color:var(--tx); }}
+  .gn-break{{ font-size:12px; font-weight:800; font-family:var(--mn); color:var(--yl); letter-spacing:1px; }}
+  .gn-time{{ font-size:12px; font-family:var(--mn); color:var(--tx); margin-left:auto; }}
+  .gn-hl{{ display:block; font-size:16px; font-weight:700; color:var(--hdr); font-family:system-ui; line-height:1.4;
+    text-decoration:none; margin-bottom:4px; }}
+  .gn-hl:hover{{ text-decoration:underline; }}
+  .gn-tr{{ display:inline-block; font-size:13px; font-family:var(--mn); color:var(--tx); text-decoration:none; margin-bottom:6px; }}
+  .gn-tr:hover{{ color:var(--hdr); text-decoration:underline; }}
+  .gn-sum{{ font-size:14px; color:var(--tx); line-height:1.6; font-family:system-ui; margin-bottom:8px; }}
+  .gn-foot{{ display:flex; align-items:center; gap:8px; font-size:13px; font-family:var(--mn); font-weight:700; }}
+  .gn-dot{{ width:12px; height:12px; border-radius:50%; display:inline-block; }}
+  .gn-empty{{ padding:22px; text-align:center; color:var(--tx); font-family:var(--mn); font-size:14px; }}
+  .rail{{ display:flex; flex-direction:column; gap:10px; }}
+  .rail-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:14px 16px; }}
+  .rail-h{{ font-size:15px; font-weight:800; font-family:var(--mn); letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--hdr); display:flex; align-items:center; gap:10px; margin-bottom:12px; }}
+  .rail-h .sic{{ font-size:30px; }}
+  .rail-row{{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:5px 0;
+    font-family:var(--mn); font-size:14px; border-bottom:1px solid rgba(26,32,48,.5); }}
+  .rail-row:last-child{{ border-bottom:none; }}
+  .rail-k{{ color:var(--tx); }}
+  .rail-v{{ font-weight:700; color:var(--br); text-align:right; }}
+  @media(max-width:900px){{ .feed-wrap{{ grid-template-columns:1fr; }} }}
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
@@ -1434,12 +1580,60 @@ def render_page():
       </div>
       <div class="sb-bar"><div class="sb-fill" style="width:{sb_bull_pct}%"></div></div>
     </div>
+
+    <!-- SECTION 14: GLOBAL NEWS FEED + RIGHT RAIL -->
+    <div class="feed-wrap">
+      <div class="acct" style="border-color:rgba(3,177,252,.35);margin:0">
+        <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5DE\uFE0F</span> Global News Feed</div>
+        <input class="gn-search" id="gn-search" type="text" placeholder="\U0001F50D Search XRP news..." oninput="filterFeed()">
+        <div class="gn-cats" id="gn-cats">
+          <button class="gn-btn active" data-cat="ALL" onclick="feedCat('ALL',this)">ALL</button>
+          <button class="gn-btn" data-cat="PRICE" onclick="feedCat('PRICE',this)">PRICE</button>
+          <button class="gn-btn" data-cat="LEGAL" onclick="feedCat('LEGAL',this)">LEGAL</button>
+          <button class="gn-btn" data-cat="REG" onclick="feedCat('REG',this)">REG</button>
+          <button class="gn-btn" data-cat="ECOSYSTEM" onclick="feedCat('ECOSYSTEM',this)">ECOSYSTEM</button>
+          <button class="gn-btn" data-cat="TECH" onclick="feedCat('TECH',this)">TECH</button>
+          <button class="gn-btn" data-cat="WHALE" onclick="feedCat('WHALE',this)">WHALE</button>
+        </div>
+        <div class="gn-stats"><b id="gn-shown">{gn_shown}</b> stories shown &nbsp;|&nbsp; {gn_total} total &nbsp;|&nbsp; {sb_feeds} sources online</div>
+        <div class="gn-list" id="gn-list">
+          {gn_html}
+        </div>
+        <div class="gn-empty" id="gn-empty" style="display:none">No stories match your filter.</div>
+      </div>
+
+      <div class="rail">
+        <div class="rail-panel">
+          <div class="rail-h"><span class="sic">\U0001F517</span> XRPL Network</div>
+          <div class="rail-row"><span class="rail-k">Network</span><span class="rail-v" style="color:var(--gr)">\u25CF Live</span></div>
+          <div class="rail-row"><span class="rail-k">Consensus</span><span class="rail-v">Federated Byzantine</span></div>
+          <div class="rail-row"><span class="rail-k">Ledger Close</span><span class="rail-v">~3-5 seconds</span></div>
+          <div class="rail-row"><span class="rail-k">Tx Fee</span><span class="rail-v">~0.00001 XRP</span></div>
+          <div class="rail-row"><span class="rail-k">Circulating</span><span class="rail-v" style="color:var(--gr)">62.2B XRP</span></div>
+        </div>
+        <div class="rail-panel">
+          <div class="rail-h"><span class="sic">\U0001F4CA</span> Market Structure</div>
+          <div class="rail-row"><span class="rail-k">Global Rank</span><span class="rail-v" style="color:var(--bl)">{ms_rank}</span></div>
+          <div class="rail-row"><span class="rail-k">Market Cap</span><span class="rail-v">{ms_mcap}</span></div>
+          <div class="rail-row"><span class="rail-k">24h Volume</span><span class="rail-v">{ms_vol}</span></div>
+          <div class="rail-row"><span class="rail-k">Vol / MCap</span><span class="rail-v" style="color:var(--yl)">{ms_volmcap}</span></div>
+          <div class="rail-row"><span class="rail-k">24h High</span><span class="rail-v" style="color:var(--gr)">{ms_high}</span></div>
+          <div class="rail-row"><span class="rail-k">24h Low</span><span class="rail-v" style="color:var(--rd)">{ms_low}</span></div>
+          <div class="rail-row"><span class="rail-k">XRP/BTC</span><span class="rail-v">{ms_xrpbtc}</span></div>
+        </div>
+        <div class="rail-panel">
+          <div class="rail-h"><span class="sic">\u23F3</span> Ripple Escrow</div>
+          <div class="rail-row"><span class="rail-k">Next Release</span><span class="rail-v" style="color:var(--yl)">{esc_next_str}</span></div>
+          <div class="rail-row"><span class="rail-k">Amount</span><span class="rail-v">1B XRP</span></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; SIGNAL SCOREBOARD</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; GLOBAL NEWS FEED</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -1519,6 +1713,32 @@ def render_page():
       var btns = document.querySelectorAll('.trk-btn');
       for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
       if (btn) btn.classList.add('active');
+    }}
+
+    // Global News Feed — search + category filter (client-side, never blocks)
+    var _feedCat = 'ALL';
+    function _applyFeed() {{
+      var q = (document.getElementById('gn-search') || {{}}).value || '';
+      q = q.toLowerCase().trim();
+      var cards = document.querySelectorAll('#gn-list .gn-card');
+      var shown = 0;
+      for (var i = 0; i < cards.length; i++) {{
+        var okCat = (_feedCat === 'ALL') || (cards[i].getAttribute('data-cat') === _feedCat);
+        var okQ = !q || (cards[i].getAttribute('data-text') || '').indexOf(q) !== -1;
+        var vis = okCat && okQ;
+        cards[i].style.display = vis ? '' : 'none';
+        if (vis) shown++;
+      }}
+      var sh = document.getElementById('gn-shown'); if (sh) sh.textContent = shown;
+      var em = document.getElementById('gn-empty'); if (em) em.style.display = shown === 0 ? 'block' : 'none';
+    }}
+    function filterFeed() {{ _applyFeed(); }}
+    function feedCat(cat, btn) {{
+      _feedCat = cat;
+      var btns = document.querySelectorAll('#gn-cats .gn-btn');
+      for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+      if (btn) btn.classList.add('active');
+      _applyFeed();
     }}
 
     // Escrow countdown (to next 1st-of-month, 00:00 UTC)
