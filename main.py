@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 52 — XRPRadar Exclusive Intelligence: Institutional Confidence Index (chunk 1 of 5)
+Version 53 — XRPRadar Exclusive Intelligence: Partnership Momentum Chart (chunk 2 of 5)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "52"
+APP_VERSION = "53"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -915,6 +915,35 @@ def ici_comps_html(comps):
             f'<div class="ici-comp-detail">{html.escape(detail)}</div>'
         )
     return out
+
+
+def partnership_momentum_html(weeks=10):
+    """Deals detected per week, bucketed from our own Enterprise Ledger timestamps.
+    Builds up honestly over time -- no fabricated history."""
+    now = datetime.now(timezone.utc)
+    detected = [e for e in PARTNERSHIP_LEDGER if e.get("source") == "detected" and e.get("date")]
+    buckets = [0] * weeks
+    for e in detected:
+        age_days = (now - e["date"]).days
+        week_idx = weeks - 1 - (age_days // 7)
+        if 0 <= week_idx < weeks:
+            buckets[week_idx] += 1
+    mx = max(buckets) or 1
+    bars = "".join(
+        f'<div class="pm-bar" style="height:{max(6, v / mx * 100):.0f}%" title="{v} deal{"s" if v != 1 else ""}"></div>'
+        for v in buckets
+    )
+    total = len(detected)
+    this_week = buckets[-1]
+    last_week = buckets[-2] if weeks >= 2 else 0
+    if this_week > last_week:
+        trend, tcol = f"\u25B2 up from {last_week} last week", "var(--gr)"
+    elif this_week < last_week:
+        trend, tcol = f"\u25BC down from {last_week} last week", "var(--rd)"
+    else:
+        trend, tcol = "\u2192 steady week over week", "var(--tx)"
+    avg = round(total / weeks, 1) if total else 0.0
+    return bars, total, this_week, trend, tcol, avg
 
 
 def _track_sentiment_history(pool):
@@ -2633,6 +2662,7 @@ def render_page():
     ici_label = _ici["label"]
     ici_color = _ici["color"]
     ici_comps_rendered = ici_comps_html(_ici["comps"])
+    pm_bars, pm_total, pm_this_week, pm_trend, pm_tcol, pm_avg = partnership_momentum_html()
 
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
@@ -3225,6 +3255,17 @@ def render_page():
   .ici-foot{{ margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.08); font-size:11px;
     color:var(--tx); font-family:var(--mn); line-height:1.6; }}
   @media(max-width:900px){{ .ici-wrap{{ grid-template-columns:1fr; }} }}
+
+  /* Partnership Momentum Chart */
+  .pm-panel{{ margin-top:16px; background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px; }}
+  .pm-title{{ font-size:14px; font-weight:800; font-family:var(--mn); color:var(--yl); margin-bottom:4px; display:flex; align-items:center; gap:8px; }}
+  .pm-sub{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-bottom:12px; }}
+  .pm-stats{{ display:flex; gap:18px; flex-wrap:wrap; margin-bottom:12px; }}
+  .pm-stat-num{{ font-size:22px; font-weight:900; font-family:var(--mn); }}
+  .pm-stat-lbl{{ font-size:11px; color:var(--tx); font-family:var(--mn); text-transform:uppercase; letter-spacing:.5px; }}
+  .pm-chart{{ display:flex; align-items:flex-end; gap:5px; height:70px; }}
+  .pm-bar{{ flex:1; min-width:8px; background:var(--yl); border-radius:2px 2px 0 0; opacity:.85; }}
+  .pm-axis{{ display:flex; justify-content:space-between; font-size:11px; color:var(--tx); font-family:var(--mn); margin-top:4px; }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -4271,7 +4312,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; ICI FLAGSHIP CHUNK 1</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; PARTNERSHIP MOMENTUM CHUNK 2</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -4306,6 +4347,19 @@ def render_page():
         sentiment + funding rate), Executive Tone (sentiment across real Ripple leadership statements), and Regulatory
         Momentum (CLARITY Act coverage + Legal/Reg news sentiment). Each component is shown above with its real
         underlying value \u2014 nothing is a black box. Informational only, not financial advice.
+      </div>
+
+      <div class="pm-panel">
+        <div class="pm-title">\U0001F4C8 Partnership Momentum</div>
+        <div class="pm-sub">New deals detected per week, straight from our own Enterprise Ledger \u2014 builds up day by day, nothing fabricated.</div>
+        <div class="pm-stats">
+          <div><div class="pm-stat-num" style="color:var(--yl)">{pm_total}</div><div class="pm-stat-lbl">Total Detected</div></div>
+          <div><div class="pm-stat-num" style="color:var(--gr)">{pm_this_week}</div><div class="pm-stat-lbl">This Week</div></div>
+          <div><div class="pm-stat-num" style="color:{pm_tcol};font-size:14px;padding-top:4px">{pm_trend}</div><div class="pm-stat-lbl">Trend</div></div>
+          <div><div class="pm-stat-num" style="color:var(--bl)">{pm_avg}</div><div class="pm-stat-lbl">Avg / Week</div></div>
+        </div>
+        <div class="pm-chart">{pm_bars}</div>
+        <div class="pm-axis"><span>10 weeks ago</span><span>5 weeks ago</span><span>this week</span></div>
       </div>
     </div>
   </main>
