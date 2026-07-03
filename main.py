@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 45 — Ripple Executive Tracker + XRPL Dev Activity
+Version 46 — Regulatory Radar (country status, ETF/ETP tracker, SEC timeline, MiCA, CBDC)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "45"
+APP_VERSION = "46"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -1572,6 +1572,72 @@ def run_preflight():
 # ─────────────────────────────────────────────────────────────────────
 # PAGE
 # ─────────────────────────────────────────────────────────────────────
+COUNTRY_STATUS = [
+    ("United States", "\U0001F1FA\U0001F1F8", "CONTESTED", "SEC lawsuit settled; XRP non-security ruling in programmatic sales. Evolving clarity."),
+    ("European Union", "\U0001F1EA\U0001F1FA", "LEGAL", "MiCA regulation fully in force. XRP classified as crypto-asset, not security."),
+    ("United Kingdom", "\U0001F1EC\U0001F1E7", "LEGAL", "FCA regulated. Crypto-asset promotion rules apply. No XRP-specific restrictions."),
+    ("Japan", "\U0001F1EF\U0001F1F5", "LEGAL", "FSA regulated. XRP officially recognized as a crypto-asset. SBI Holdings major partner."),
+    ("South Korea", "\U0001F1F0\U0001F1F7", "LEGAL", "FSC/FSS regulated. Major trading volume on Upbit and Bithumb."),
+    ("Singapore", "\U0001F1F8\U0001F1EC", "LEGAL", "MAS regulated under PSA. Ripple holds a Major Payment Institution license."),
+    ("UAE", "\U0001F1E6\U0001F1EA", "LEGAL", "VARA (Dubai) and ADGM (Abu Dhabi) regulated. Ripple has a regional HQ in Dubai."),
+    ("Switzerland", "\U0001F1E8\U0001F1ED", "LEGAL", "FINMA regulated. Crypto Valley in Zug. Openly traded on licensed exchanges."),
+    ("Australia", "\U0001F1E6\U0001F1FA", "LEGAL", "ASIC regulated. Crypto exchanges licensed. No XRP-specific restrictions."),
+    ("Germany", "\U0001F1E9\U0001F1EA", "LEGAL", "BaFin regulated under MiCA. Deutsche B\u00F6rse-listed crypto products available."),
+    ("Brazil", "\U0001F1E7\U0001F1F7", "LEGAL", "Banco Central do Brasil regulated. Bitso is a major corridor partner."),
+    ("Canada", "\U0001F1E8\U0001F1E6", "LEGAL", "CSA regulated. Crypto ETPs listed on TSX. Active Canada-Mexico ODL corridor."),
+    ("Mexico", "\U0001F1F2\U0001F1FD", "LEGAL", "CNBV regulated. Major Ripple ODL remittance corridor with the United States."),
+    ("Philippines", "\U0001F1F5\U0001F1ED", "LEGAL", "BSP regulated. Major remittance corridor for OFW payments via Ripple partners."),
+    ("India", "\U0001F1EE\U0001F1F3", "TAXED", "30% crypto tax + 1% TDS. Legal to hold and trade; framework still developing."),
+    ("Thailand", "\U0001F1F9\U0001F1ED", "LEGAL", "SEC Thailand regulated. Listed on licensed exchanges with active Ripple partnerships."),
+    ("Nigeria", "\U0001F1F3\U0001F1EC", "RESTRICTED", "CBN lifted crypto ban in 2023; regulated under SEC Nigeria, bank restrictions remain."),
+    ("China", "\U0001F1E8\U0001F1F3", "BANNED", "All crypto trading banned since 2021. Citizens may not legally trade or hold XRP."),
+    ("Russia", "\U0001F1F7\U0001F1FA", "RESTRICTED", "Limited legal use. Crypto as payment banned; trading tolerated but heavily restricted."),
+    ("Saudi Arabia", "\U0001F1F8\U0001F1E6", "PENDING", "SAMA evaluating framework. Not officially prohibited but no clear legal status."),
+]
+COUNTRY_STATUS_COLORS = {
+    "LEGAL": "var(--gr)", "CONTESTED": "var(--yl)", "TAXED": "var(--or)",
+    "RESTRICTED": "var(--or)", "BANNED": "var(--rd)", "PENDING": "var(--bl)",
+}
+
+ETF_TRACKER = [
+    {"applicant": "21Shares", "product": "XRP ETP", "market": "Europe", "status": "LIVE", "date": "2019",
+     "note": "Actively trading on SIX Swiss Exchange. AUM growing."},
+    {"applicant": "CoinShares", "product": "XRP ETP", "market": "Europe", "status": "LIVE", "date": "2020",
+     "note": "Listed on multiple European exchanges. Institutional grade."},
+    {"applicant": "WisdomTree", "product": "XRP ETP", "market": "Europe", "status": "LIVE", "date": "2021",
+     "note": "FCA and EU regulated. Available in UK and Europe."},
+    {"applicant": "VanEck", "product": "XRP ETP", "market": "Europe", "status": "LIVE", "date": "2021",
+     "note": "Deutsche B\u00F6rse listed. Physically backed."},
+    {"applicant": "Bitwise", "product": "XRP ETF", "market": "USA", "status": "FILED", "date": "2025",
+     "note": "SEC review pending. Filed as a spot XRP ETF."},
+    {"applicant": "WisdomTree", "product": "XRP ETF", "market": "USA", "status": "FILED", "date": "2025",
+     "note": "US spot ETF filing submitted to the SEC."},
+    {"applicant": "ProShares", "product": "XRP Futures ETF", "market": "USA", "status": "REVIEW", "date": "2025",
+     "note": "Futures-based product under SEC consideration."},
+    {"applicant": "Canary Capital", "product": "XRP ETF", "market": "USA", "status": "FILED", "date": "2024",
+     "note": "First US spot XRP ETF filing. Pioneer application."},
+]
+ETF_STATUS_COLORS = {"LIVE": "var(--gr)", "FILED": "var(--yl)", "REVIEW": "var(--or)"}
+
+SEC_TIMELINE = [
+    ("Dec 2020", "SEC Files Lawsuit", "SEC sues Ripple Labs and its CEO for a $1.3B unregistered securities offering.", False),
+    ("Nov 2022", "Judge Sides on Documents", "Court orders release of the Hinman speech documents.", False),
+    ("Jul 2023", "Historic Partial Victory", "Judge Torres rules XRP is NOT a security in programmatic exchange sales.", True),
+    ("Aug 2023", "SEC Appeals", "SEC files notice of appeal on the programmatic sales ruling.", False),
+    ("Oct 2024", "SEC Drops Charges", "SEC drops charges against Ripple's leadership personally.", True),
+    ("Mar 2025", "Settlement Reached", "Ripple and SEC settle. $50M fine paid vs. the original $2B demand.", True),
+    ("2026", "Post-Settlement Era", "XRP operating in post-lawsuit clarity under a crypto-friendlier SEC.", True),
+]
+
+MICA_CALENDAR = [
+    ("Jun 2023", "MiCA Published", "EU Markets in Crypto-Assets regulation officially published.", True),
+    ("Dec 2024", "Stablecoin Rules Live", "Title III/IV provisions effective; RLUSD and issuers must comply.", True),
+    ("Dec 2024", "Full MiCA in Force", "Complete framework operational across all 27 EU member states.", True),
+    ("2025", "National Implementation", "Member states complete national regulatory adaptations.", False),
+    ("2025-2026", "CASP Licensing Wave", "Crypto Asset Service Providers complete MiCA licensing.", False),
+    ("2026+", "MiCA Review Clause", "European Commission reviews effectiveness and possible DeFi/NFT expansion.", False),
+]
+
 ODL_CORRIDORS = [
     {"from_c": "\U0001F1FA\U0001F1F8 USA", "to_c": "\U0001F1F2\U0001F1FD Mexico", "partner": "Bitso", "status": "ACTIVE",
      "note": "Largest ODL corridor globally \u2014 high daily volume via Bitso."},
@@ -1601,6 +1667,76 @@ ISO20022_ADOPTERS = [
     {"name": "HVPS+", "region": "Canada", "note": "High Value Payment System Canada, completed 2023."},
     {"name": "RITS", "region": "Australia", "note": "Reserve Bank Information Transfer System, migrated."},
 ]
+
+
+def country_grid_html():
+    out = ""
+    for name, flag, status, note in COUNTRY_STATUS:
+        col = COUNTRY_STATUS_COLORS.get(status, "var(--tx)")
+        out += (
+            f'<div class="cg-card" style="border-color:{col}55">'
+            f'<div class="cg-top"><span class="cg-flag">{flag}</span>'
+            f'<span class="cg-name">{html.escape(name)}</span></div>'
+            f'<span class="odl-status" style="background:{col}26;color:{col}">{status}</span>'
+            f'<div class="cg-note">{html.escape(note)}</div>'
+            f'</div>'
+        )
+    return out
+
+def etf_tracker_html():
+    out = ""
+    for e in ETF_TRACKER:
+        col = ETF_STATUS_COLORS.get(e["status"], "var(--tx)")
+        out += (
+            f'<tr><td style="font-weight:700;color:var(--br)">{html.escape(e["applicant"])}</td>'
+            f'<td>{html.escape(e["product"])}</td><td style="color:var(--tx)">{html.escape(e["market"])}</td>'
+            f'<td><span class="odl-status" style="background:{col}26;color:{col}">{e["status"]}</span></td>'
+            f'<td style="color:var(--tx)">{html.escape(e["date"])}</td>'
+            f'<td style="color:var(--tx);max-width:220px">{html.escape(e["note"])}</td></tr>'
+        )
+    return out
+
+def sec_timeline_html():
+    out = ""
+    for date, event, detail, major in SEC_TIMELINE:
+        dot_col = "var(--gr)" if major else "var(--yl)"
+        dot_sz = "16px" if major else "11px"
+        out += (
+            f'<div class="tl-node" style="flex-basis:170px;min-width:170px">'
+            f'<div class="tl-year" style="color:{dot_col};font-size:13px">{date}</div>'
+            f'<div class="tl-dot" style="width:{dot_sz};height:{dot_sz};background:{dot_col}"></div>'
+            f'<div class="tl-event" style="font-size:13px">{html.escape(event)}</div>'
+            f'<div class="tl-detail" style="font-size:12px">{html.escape(detail)}</div>'
+            f'</div>'
+        )
+    return out
+
+def mica_calendar_html():
+    out = ""
+    for date, event, detail, done in MICA_CALENDAR:
+        icon = "\u2705" if done else "\u25CB"
+        col = "var(--gr)" if done else "var(--tx)"
+        out += (
+            f'<div class="mica-row"><span style="color:{col};font-size:15px">{icon}</span>'
+            f'<span class="mica-date">{html.escape(date)}</span>'
+            f'<span class="mica-event" style="color:{col}">{html.escape(event)}</span>'
+            f'<span class="mica-detail">{html.escape(detail)}</span></div>'
+        )
+    return out
+
+def cbdc_grid_html():
+    out = ""
+    for name, flag, project, status, detail in PARTNERSHIPS:
+        col = STATUS_COLORS.get(status, "var(--tx)")
+        out += (
+            f'<div class="cg-card" style="border-color:{col}55">'
+            f'<div class="cg-top"><span class="cg-flag">{flag}</span>'
+            f'<span class="cg-name">{html.escape(name)}</span></div>'
+            f'<span class="odl-status" style="background:{col}26;color:{col}">{status}</span>'
+            f'<div class="cg-note"><b style="color:var(--br)">{html.escape(project)}</b><br>{html.escape(detail)}</div>'
+            f'</div>'
+        )
+    return out
 
 
 def odl_corridors_html():
@@ -1917,6 +2053,13 @@ def render_page():
     else:
         gh_last_msg = "Awaiting first sync\u2026"
         gh_last_meta = "\u2014"
+
+    # Regulatory Radar
+    cg_html = country_grid_html()
+    etf_html = etf_tracker_html()
+    sec_tl_html = sec_timeline_html()
+    mica_html = mica_calendar_html()
+    cbdc_html = cbdc_grid_html()
 
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
@@ -2398,6 +2541,20 @@ def render_page():
   .gh-msg:hover{{ color:var(--hdr); text-decoration:underline; }}
   .gh-meta{{ display:block; color:var(--tx); margin-top:2px; }}
   @media(max-width:900px){{ .ed-grid{{ grid-template-columns:1fr; }} }}
+
+  /* Regulatory Radar */
+  .cg-grid{{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }}
+  .cg-card{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:10px; }}
+  .cg-top{{ display:flex; align-items:center; gap:6px; margin-bottom:6px; }}
+  .cg-flag{{ font-size:18px; }}
+  .cg-name{{ font-size:12px; font-weight:700; color:var(--br); font-family:var(--mn); }}
+  .cg-note{{ font-size:11px; color:var(--tx); line-height:1.5; font-family:system-ui; margin-top:6px; }}
+  .mica-row{{ display:flex; align-items:baseline; gap:10px; padding:8px 0; border-bottom:1px solid rgba(26,32,48,.4); font-family:var(--mn); flex-wrap:wrap; }}
+  .mica-row:last-child{{ border-bottom:none; }}
+  .mica-date{{ font-size:12px; color:var(--tx); min-width:70px; }}
+  .mica-event{{ font-size:13px; font-weight:700; }}
+  .mica-detail{{ font-size:12px; color:var(--tx); flex-basis:100%; font-family:system-ui; }}
+  @media(max-width:900px){{ .cg-grid{{ grid-template-columns:repeat(2,1fr); }} }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -3159,7 +3316,43 @@ def render_page():
       </div>
     </div>
 
-    <!-- SECTION 25: PRACTICAL TOOLS -->
+    <!-- SECTION 25: REGULATORY RADAR -->
+    <div class="acct" style="border-color:rgba(255,153,0,.35);margin:10px 0">
+      <div class="sec-title" style="color:var(--or)"><span class="sic">\U0001F3DB\uFE0F</span> Regulatory Radar</div>
+
+      <div class="trk-tag" style="color:var(--tx);display:flex;justify-content:space-between">
+        <span>\U0001F30D Global XRP Legal Status</span><span>Reference \u2014 verify locally before acting</span>
+      </div>
+      <div class="cg-grid" style="margin-bottom:16px">
+        {cg_html}
+      </div>
+
+      <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F4CA XRP ETF / ETP Tracker</div>
+      <div style="overflow-x:auto;margin-bottom:16px">
+        <table class="pt-tbl">
+          <thead><tr><th>Applicant</th><th>Product</th><th>Market</th><th>Status</th><th>Filed</th><th>Note</th></tr></thead>
+          <tbody>{etf_html}</tbody>
+        </table>
+      </div>
+
+      <div class="pt-cols" style="margin-bottom:16px">
+        <div class="pt-col">
+          <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\u2696\uFE0F SEC Case Timeline</div>
+          <div class="tl-wrap"><div class="tl-line"></div><div class="tl-track">{sec_tl_html}</div></div>
+        </div>
+        <div class="pt-col">
+          <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F1EA\U0001F1FA MiCA Implementation</div>
+          <div class="ud-panel">{mica_html}</div>
+        </div>
+      </div>
+
+      <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F3E6 Central Bank / CBDC Projects on XRPL</div>
+      <div class="cg-grid" style="grid-template-columns:repeat(3,1fr)">
+        {cbdc_html}
+      </div>
+    </div>
+
+    <!-- SECTION 26: PRACTICAL TOOLS -->
     <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F6E0\uFE0F</span> Practical Tools</div>
       <div class="pt-cols">
@@ -3297,7 +3490,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; EXEC TRACKER + DEV ACTIVITY</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; REGULATORY RADAR</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
