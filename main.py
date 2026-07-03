@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 44 — Sentiment Engine + Competitive Briefing
+Version 45 — Ripple Executive Tracker + XRPL Dev Activity
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "44"
+APP_VERSION = "45"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -203,6 +203,89 @@ COMPETITOR_EDGE = {
     "XLM": "XRP carries deeper liquidity, more active corridors and broader institutional adoption.",
 }
 
+EXECUTIVES = [
+    {"name": "Brad Garlinghouse", "title": "CEO, Ripple", "tab": "BRAD",
+     "feed": "https://news.google.com/rss/search?q=Brad+Garlinghouse+XRP+Ripple&hl=en-US&gl=US&ceid=US:en"},
+    {"name": "Monica Long", "title": "President, Ripple", "tab": "MONICA",
+     "feed": "https://news.google.com/rss/search?q=Monica+Long+Ripple+XRP&hl=en-US&gl=US&ceid=US:en"},
+    {"name": "David Schwartz", "title": "CTO, Ripple", "tab": "DAVID",
+     "feed": "https://news.google.com/rss/search?q=David+Schwartz+Ripple+XRPL&hl=en-US&gl=US&ceid=US:en"},
+    {"name": "Stuart Alderoty", "title": "Chief Legal Officer, Ripple", "tab": "STUART",
+     "feed": "https://news.google.com/rss/search?q=Stuart+Alderoty+Ripple+SEC&hl=en-US&gl=US&ceid=US:en"},
+]
+EXEC_TRACKER = {"stories": [], "updated": None}
+
+def fetch_exec_tracker():
+    hdr = {"User-Agent": "XRPRadar/4"}
+    now = datetime.now(timezone.utc)
+    all_stories = []
+    for ex in EXECUTIVES:
+        try:
+            r = requests.get(ex["feed"], headers=hdr, timeout=8)
+            entries = _parse_feed(r.content)
+            for e in entries[:4]:
+                if not e["title"]:
+                    continue
+                dt = _parse_date(e["date_str"]) or now
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                all_stories.append({
+                    "exec": ex["name"], "exec_title": ex["title"], "tab": ex["tab"],
+                    "title": e["title"][:140], "link": e["link"] or "#", "dt": dt,
+                })
+        except Exception:
+            continue
+    all_stories.sort(key=lambda s: s["dt"], reverse=True)
+    EXEC_TRACKER["stories"] = all_stories[:24]
+    EXEC_TRACKER["updated"] = now.strftime("%H:%M UTC")
+
+
+GITHUB_REPOS = [("XRPLF", "rippled"), ("XRPLF", "xrpl-dev-portal"), ("XRPLF", "xrpl.js")]
+GITHUB_DEV = {"commits": [], "stars": 0, "issues": 0, "rippled_7d": 0, "other_7d": 0, "updated": None}
+
+def fetch_github_dev():
+    hdr = {"Accept": "application/vnd.github.v3+json", "User-Agent": "XRPRadar/4"}
+    all_commits = []
+    stars = 0
+    issues = 0
+    for owner, repo in GITHUB_REPOS:
+        try:
+            r = requests.get(f"https://api.github.com/repos/{owner}/{repo}/commits?per_page=10",
+                              headers=hdr, timeout=10)
+            commits = r.json()
+            if isinstance(commits, list):
+                for c in commits[:6]:
+                    cm = c.get("commit", {})
+                    au = cm.get("author", {})
+                    msg = (cm.get("message") or "")[:90]
+                    nl = msg.find("\n")
+                    if nl > 0:
+                        msg = msg[:nl]
+                    all_commits.append({
+                        "repo": repo, "msg": msg, "author": (au.get("name") or "")[:30],
+                        "date": (au.get("date") or "")[:10], "url": c.get("html_url", ""),
+                    })
+        except Exception:
+            pass
+        try:
+            r2 = requests.get(f"https://api.github.com/repos/{owner}/{repo}", headers=hdr, timeout=8)
+            meta = r2.json()
+            stars += int(meta.get("stargazers_count", 0) or 0)
+            issues += int(meta.get("open_issues_count", 0) or 0)
+        except Exception:
+            pass
+
+    all_commits.sort(key=lambda c: c.get("date", ""), reverse=True)
+    GITHUB_DEV["commits"] = all_commits[:15]
+    GITHUB_DEV["stars"] = stars
+    GITHUB_DEV["issues"] = issues
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+    recent = [c for c in all_commits if c.get("date", "") >= cutoff]
+    GITHUB_DEV["rippled_7d"] = len([c for c in recent if c["repo"] == "rippled"])
+    GITHUB_DEV["other_7d"] = len([c for c in recent if c["repo"] != "rippled"])
+    GITHUB_DEV["updated"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
+
 def fetch_competitors():
     hdr = {"User-Agent": "XRPRadar/4"}
     ids = ",".join(c["id"] for c in COMPETITORS)
@@ -270,11 +353,16 @@ def _bg_refresh():
 threading.Thread(target=_bg_refresh, daemon=True).start()
 
 def _bg_news():
+    n = 0
     while True:
         try:
             fetch_news()
+            fetch_exec_tracker()
+            if n % 2 == 0:
+                fetch_github_dev()
         except Exception:
             pass
+        n += 1
         time.sleep(300)
 
 threading.Thread(target=_bg_news, daemon=True).start()
@@ -1152,6 +1240,39 @@ def sentiment_leaderboard_html():
     return out
 
 
+def exec_tracker_html():
+    stories = EXEC_TRACKER.get("stories", [])
+    if not stories:
+        return '<div class="home-base"><div class="home-base-icon">\U0001F3A4</div><div class="home-base-title">Monitoring Executive Statements</div><div class="home-base-sub">Public statements from Ripple\u2019s leadership team surface here automatically as they\u2019re published.</div></div>'
+    out = ""
+    for s in stories:
+        out += (
+            f'<div class="ex-row" data-tab="{s["tab"]}">'
+            f'<div class="ex-top"><span class="ex-name">{html.escape(s["exec"])}</span>'
+            f'<span class="ex-title">{html.escape(s["exec_title"])}</span>'
+            f'<span class="ex-time">{_time_ago(s["dt"])}</span></div>'
+            f'<a class="ex-hl" href="{html.escape(s["link"], quote=True)}" target="_blank" rel="noopener">{html.escape(s["title"])}</a>'
+            f'</div>'
+        )
+    return out
+
+
+def github_commits_html():
+    commits = GITHUB_DEV.get("commits", [])
+    if not commits:
+        return '<div class="home-base"><div class="home-base-icon">\U0001F4BB</div><div class="home-base-title">Monitoring XRPL Development</div><div class="home-base-sub">Commits across rippled, xrpl-dev-portal and xrpl.js surface here automatically.</div></div>'
+    out = ""
+    for c in commits:
+        out += (
+            f'<div class="gh-row">'
+            f'<span class="gh-repo">{html.escape(c["repo"])}</span>'
+            f'<a class="gh-msg" href="{html.escape(c["url"], quote=True)}" target="_blank" rel="noopener">{html.escape(c["msg"] or "(no message)")}</a>'
+            f'<span class="gh-meta">{html.escape(c["author"])} \u00B7 {html.escape(c["date"])}</span>'
+            f'</div>'
+        )
+    return out
+
+
 def competitor_table_html():
     xrp_price = MARKET.get("xrp_price")
     xrp_chg = MARKET.get("xrp_chg")
@@ -1780,6 +1901,23 @@ def render_page():
     odl_html = odl_corridors_html()
     iso_html = iso20022_html()
 
+    # Ripple Executive Tracker + XRPL Dev Activity
+    ex_html = exec_tracker_html()
+    ex_ts = EXEC_TRACKER.get("updated") or "\u2014"
+    gh_commits_html = github_commits_html()
+    gh_ts = GITHUB_DEV.get("updated") or "\u2014"
+    gh_stars = f'{GITHUB_DEV.get("stars", 0):,}'
+    gh_issues = f'{GITHUB_DEV.get("issues", 0):,}'
+    gh_rippled_7d = GITHUB_DEV.get("rippled_7d", 0)
+    gh_other_7d = GITHUB_DEV.get("other_7d", 0)
+    _commits = GITHUB_DEV.get("commits", [])
+    if _commits:
+        gh_last_msg = html.escape(_commits[0]["msg"] or "(no message)")
+        gh_last_meta = f'{html.escape(_commits[0]["author"])} \u00B7 {html.escape(_commits[0]["date"])}'
+    else:
+        gh_last_msg = "Awaiting first sync\u2026"
+        gh_last_meta = "\u2014"
+
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
     _xp = MARKET.get("xrp_price") or 0
@@ -2223,6 +2361,43 @@ def render_page():
   .odl-note{{ color:var(--tx); font-size:12px; flex:1; min-width:140px; }}
   .sw-grid{{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }}
   @media(max-width:900px){{ .sw-grid{{ grid-template-columns:repeat(2,1fr); }} }}
+
+  /* Ripple Executive Tracker + XRPL Dev Activity */
+  .ed-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }}
+  .ed-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; overflow:hidden; }}
+  .ed-head{{ padding:10px 14px; background:var(--s2); border-bottom:1px solid var(--b); display:flex; justify-content:space-between; align-items:center; }}
+  .ed-title{{ font-size:15px; font-weight:800; font-family:var(--mn); letter-spacing:1px; }}
+  .ex-tabs{{ display:flex; gap:0; border-bottom:1px solid var(--b); overflow-x:auto; }}
+  .ex-tab{{ padding:7px 14px; background:transparent; border:none; color:var(--tx); font-family:var(--mn);
+    font-size:12px; font-weight:700; cursor:pointer; text-transform:uppercase; letter-spacing:1px; white-space:nowrap;
+    border-bottom:2px solid transparent; }}
+  .ex-tab.on{{ color:var(--or); border-bottom-color:var(--or); }}
+  .ex-feed{{ max-height:340px; overflow-y:auto; padding:8px 12px; }}
+  .ex-row{{ padding:9px 0; border-bottom:1px solid rgba(26,32,48,.4); }}
+  .ex-row:last-child{{ border-bottom:none; }}
+  .ex-top{{ display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap; }}
+  .ex-name{{ font-size:13px; font-weight:800; color:var(--or); font-family:var(--mn); }}
+  .ex-title{{ font-size:11px; color:var(--tx); font-family:var(--mn); }}
+  .ex-time{{ font-size:11px; color:var(--tx); font-family:var(--mn); margin-left:auto; }}
+  .ex-hl{{ display:block; font-size:14px; color:var(--br); text-decoration:none; line-height:1.5; font-family:system-ui; }}
+  .ex-hl:hover{{ color:var(--hdr); text-decoration:underline; }}
+  .gh-stats{{ display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--b); background:var(--s2); }}
+  .gh-stat{{ padding:9px 6px; text-align:center; border-right:1px solid var(--b); }}
+  .gh-stat:last-child{{ border-right:none; }}
+  .gh-stat-num{{ font-size:17px; font-weight:900; font-family:var(--mn); }}
+  .gh-stat-lbl{{ font-size:10px; color:var(--tx); font-family:var(--mn); text-transform:uppercase; letter-spacing:.5px; line-height:1.4; margin-top:2px; }}
+  .gh-latest{{ padding:9px 12px; border-bottom:1px solid var(--b); background:rgba(72,255,130,.04); }}
+  .gh-latest-lbl{{ font-size:11px; color:var(--tx); font-family:var(--mn); margin-bottom:2px; }}
+  .gh-latest-msg{{ font-size:13px; font-weight:700; color:var(--gr); font-family:system-ui; }}
+  .gh-latest-meta{{ font-size:11px; color:var(--tx); font-family:var(--mn); margin-top:2px; }}
+  .gh-feed{{ max-height:220px; overflow-y:auto; padding:8px 12px; }}
+  .gh-row{{ padding:8px 0; border-bottom:1px solid rgba(26,32,48,.4); font-family:var(--mn); font-size:12px; }}
+  .gh-row:last-child{{ border-bottom:none; }}
+  .gh-repo{{ display:inline-block; color:var(--tq); font-weight:700; margin-right:6px; }}
+  .gh-msg{{ color:var(--br); text-decoration:none; }}
+  .gh-msg:hover{{ color:var(--hdr); text-decoration:underline; }}
+  .gh-meta{{ display:block; color:var(--tx); margin-top:2px; }}
+  @media(max-width:900px){{ .ed-grid{{ grid-template-columns:1fr; }} }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -2943,7 +3118,48 @@ def render_page():
       </div>
     </div>
 
-    <!-- SECTION 24: PRACTICAL TOOLS -->
+    <!-- SECTION 24: RIPPLE EXECUTIVE TRACKER + XRPL DEV ACTIVITY -->
+    <div class="ed-grid" style="margin:10px 0">
+      <div class="ed-panel" style="border-color:rgba(255,153,0,.25)">
+        <div class="ed-head">
+          <span class="ed-title" style="color:var(--or)">\U0001F3A4 Ripple Exec Tracker</span>
+          <span style="font-size:12px;font-family:var(--mn);color:var(--tx)">{ex_ts}</span>
+        </div>
+        <div class="ex-tabs" id="ex-tabs">
+          <button class="ex-tab on" data-tab="ALL" onclick="execTab('ALL',this)">ALL</button>
+          <button class="ex-tab" data-tab="BRAD" onclick="execTab('BRAD',this)">BRAD</button>
+          <button class="ex-tab" data-tab="MONICA" onclick="execTab('MONICA',this)">MONICA</button>
+          <button class="ex-tab" data-tab="DAVID" onclick="execTab('DAVID',this)">DAVID</button>
+          <button class="ex-tab" data-tab="STUART" onclick="execTab('STUART',this)">STUART</button>
+        </div>
+        <div class="ex-feed" id="ex-feed">
+          {ex_html}
+        </div>
+      </div>
+
+      <div class="ed-panel" style="border-color:rgba(72,255,130,.2)">
+        <div class="ed-head">
+          <span class="ed-title" style="color:var(--gr)">\U0001F4BB XRPL Dev Activity</span>
+          <span style="font-size:12px;font-family:var(--mn);color:var(--tx)">{gh_ts}</span>
+        </div>
+        <div class="gh-stats">
+          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--gr)">{gh_rippled_7d}</div><div class="gh-stat-lbl">rippled commits<br>7 days</div></div>
+          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--bl)">{gh_other_7d}</div><div class="gh-stat-lbl">other repos<br>7 days</div></div>
+          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--yl)">{gh_stars}</div><div class="gh-stat-lbl">GitHub stars<br>3 repos</div></div>
+          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--or)">{gh_issues}</div><div class="gh-stat-lbl">open issues<br>3 repos</div></div>
+        </div>
+        <div class="gh-latest">
+          <div class="gh-latest-lbl">Latest commit</div>
+          <div class="gh-latest-msg">{gh_last_msg}</div>
+          <div class="gh-latest-meta">{gh_last_meta}</div>
+        </div>
+        <div class="gh-feed" id="gh-feed">
+          {gh_commits_html}
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 25: PRACTICAL TOOLS -->
     <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F6E0\uFE0F</span> Practical Tools</div>
       <div class="pt-cols">
@@ -3081,7 +3297,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; SENTIMENT + COMPETITIVE</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; EXEC TRACKER + DEV ACTIVITY</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -3371,6 +3587,17 @@ def render_page():
       _applyFeed();
     }}
 
+    // Ripple Exec Tracker — tab filter (client-side, never blocks)
+    function execTab(tab, btn) {{
+      var rows = document.querySelectorAll('#ex-feed .ex-row');
+      for (var i = 0; i < rows.length; i++) {{
+        rows[i].style.display = (tab === 'ALL' || rows[i].getAttribute('data-tab') === tab) ? '' : 'none';
+      }}
+      var tabs = document.querySelectorAll('#ex-tabs .ex-tab');
+      for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('on');
+      if (btn) btn.classList.add('on');
+    }}
+
     // Next Briefing countdown (ticks live, hours/minutes)
     (function () {{
       var target = new Date("{brf_next_iso}").getTime();
@@ -3477,6 +3704,16 @@ except Exception:
 
 try:
     fetch_news()
+except Exception:
+    pass
+
+try:
+    fetch_exec_tracker()
+except Exception:
+    pass
+
+try:
+    fetch_github_dev()
 except Exception:
     pass
 
