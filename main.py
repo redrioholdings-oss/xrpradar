@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 50 — Advanced Metrics (tech specs, use cases, A/D line, correlation, order book, liquidity)
+Version 51 — CLARITY Act Tracker (fixed top 10, ranked by influence)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "50"
+APP_VERSION = "51"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -217,6 +217,52 @@ COMPETITOR_EDGE = {
     "ADA": "XRP has live ODL corridors, bank partnerships and regulatory clarity vs. a research-first roadmap.",
     "XLM": "XRP carries deeper liquidity, more active corridors and broader institutional adoption.",
 }
+
+# ── CLARITY Act Tracker — top 10 most influential stories, hard-capped, oldest/lowest-ranked drop off ──
+CLARITY_FEED = "https://news.google.com/rss/search?q=CLARITY+Act+crypto+Senate&hl=en-US&gl=US&ceid=US:en"
+CLARITY_ACT_STORIES = []
+_CLARITY_SEEN_KEYS = set()
+_CLARITY_MAX = 10
+
+def fetch_clarity_tracker():
+    hdr = {"User-Agent": "XRPRadar/4"}
+    now = datetime.now(timezone.utc)
+    candidates = []
+
+    # 1. Dedicated Google News RSS search
+    try:
+        r = requests.get(CLARITY_FEED, headers=hdr, timeout=8)
+        for e in _parse_feed(r.content)[:12]:
+            if not e["title"]:
+                continue
+            dt = _parse_date(e["date_str"]) or now
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            candidates.append({"key": "clarity:" + e["title"].lower()[:80], "title": e["title"][:160],
+                               "link": e["link"] or "#", "source": "Google News", "dt": dt,
+                               "influence": _influence(e["title"], "Google News")})
+    except Exception:
+        pass
+
+    # 2. Scan the existing XRP news pool for CLARITY Act mentions (already-classified stories)
+    for s in NEWS.get("pool", []):
+        text = (s["title"] + " " + s.get("summary", "")).lower()
+        if "clarity act" in text or "digital asset market clarity" in text:
+            candidates.append({"key": "clarity:" + s["key"], "title": s["title"], "link": s["link"],
+                               "source": s["source"], "dt": s["dt"], "influence": s["influence"]})
+
+    for c in candidates:
+        if c["key"] in _CLARITY_SEEN_KEYS:
+            continue
+        _CLARITY_SEEN_KEYS.add(c["key"])
+        CLARITY_ACT_STORIES.append(c)
+
+    # Hard cap: keep only the top 10 by influence (then recency) — everything else drops off
+    CLARITY_ACT_STORIES.sort(key=lambda s: (s["influence"], s["dt"]), reverse=True)
+    del CLARITY_ACT_STORIES[_CLARITY_MAX:]
+    kept_keys = {s["key"] for s in CLARITY_ACT_STORIES}
+    _CLARITY_SEEN_KEYS.intersection_update(kept_keys)
+
 
 EXECUTIVES = [
     {"name": "Brad Garlinghouse", "title": "CEO, Ripple", "tab": "BRAD",
@@ -427,6 +473,7 @@ def _bg_news():
         try:
             fetch_news()
             fetch_exec_tracker()
+            fetch_clarity_tracker()
             if n % 2 == 0:
                 fetch_github_dev()
         except Exception:
@@ -836,6 +883,25 @@ def liquidity_map_html():
         f'<div class="liq-skew">{skew}</div>'
         f'<div class="liq-note">Top 8 levels each side \u00B7 Binance XRP/USDT</div>'
     )
+
+
+def clarity_tracker_html():
+    stories = sorted(CLARITY_ACT_STORIES, key=lambda s: (s["influence"], s["dt"]), reverse=True)
+    if not stories:
+        return ('<div class="home-base"><div class="home-base-icon">\U0001F3DB\uFE0F</div>'
+                '<div class="home-base-title">Monitoring the CLARITY Act</div>'
+                '<div class="home-base-sub">The 10 most influential stories on the bill\u2019s progress through the '
+                'Senate will appear here automatically as they\u2019re published.</div></div>')
+    out = ""
+    for i, s in enumerate(stories, 1):
+        out += (
+            f'<div class="ca-row"><div class="ca-rank">#{i}</div><div class="ca-body">'
+            f'<div class="ca-top"><span class="ca-src">{html.escape(s["source"])}</span>'
+            f'<span class="ca-time">{_time_ago(s["dt"])}</span></div>'
+            f'<a class="ca-hl" href="{html.escape(s["link"], quote=True)}" target="_blank" rel="noopener">'
+            f'{html.escape(s["title"])}</a></div></div>'
+        )
+    return out
 
 
 def _track_sentiment_history(pool):
@@ -2468,6 +2534,10 @@ def render_page():
         ob_body_html = ob_bid_html  # home-base placeholder
     liq_html = liquidity_map_html()
 
+    # CLARITY Act Tracker
+    ca_html = clarity_tracker_html()
+    ca_count = len(CLARITY_ACT_STORIES)
+
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
     _xp = MARKET.get("xrp_price") or 0
@@ -3026,6 +3096,18 @@ def render_page():
   .liq-skew{{ font-size:14px; font-weight:800; color:var(--br); font-family:var(--mn); margin-bottom:4px; }}
   .liq-note{{ font-size:11px; color:var(--tx); font-family:var(--mn); }}
   @media(max-width:900px){{ .am-grid2{{ grid-template-columns:1fr; }} }}
+
+  /* CLARITY Act Tracker */
+  .ca-list{{ display:flex; flex-direction:column; gap:7px; max-height:520px; overflow-y:auto; }}
+  .ca-row{{ display:flex; align-items:flex-start; gap:12px; background:var(--s1); border:1px solid var(--b);
+    border-radius:8px; padding:10px 14px; }}
+  .ca-rank{{ flex:0 0 26px; text-align:center; font-size:15px; font-weight:900; font-family:var(--mn); color:var(--yl); padding-top:2px; }}
+  .ca-body{{ flex:1; min-width:0; }}
+  .ca-top{{ display:flex; align-items:center; gap:8px; margin-bottom:3px; flex-wrap:wrap; }}
+  .ca-src{{ font-size:11px; font-weight:700; color:var(--tq); font-family:var(--mn); }}
+  .ca-time{{ font-size:11px; color:var(--tx); font-family:var(--mn); margin-left:auto; }}
+  .ca-hl{{ font-size:14px; font-weight:700; color:var(--br); text-decoration:none; line-height:1.4; font-family:system-ui; }}
+  .ca-hl:hover{{ color:var(--hdr); text-decoration:underline; }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -3823,7 +3905,25 @@ def render_page():
       </div>
     </div>
 
-    <!-- SECTION 26: GLOBAL XRP ENTERPRISE & PARTNERSHIP LEDGER -->
+    <!-- SECTION 26: CLARITY ACT TRACKER -->
+    <div class="acct" style="border-color:rgba(255,153,0,.35);margin:10px 0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px">
+        <div class="sec-title" style="color:var(--or);margin:0"><span class="sic">\U0001F3DB\uFE0F</span> CLARITY Act Tracker</div>
+        <div style="text-align:right"><div class="pl-counter" style="color:var(--or)">{ca_count}/10</div>
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">most influential stories</div></div>
+      </div>
+      <div style="font-size:13px;color:var(--tx);line-height:1.7;font-family:system-ui;margin-bottom:12px;max-width:900px">
+        The Digital Asset Market Clarity Act (CLARITY Act) would split crypto oversight between the SEC and CFTC and is
+        currently on the Senate calendar awaiting a floor vote. This tracker holds the 10 most influential stories on its
+        progress at any time \u2014 ranked by influence, with the least significant dropped automatically as more important
+        news breaks. A fixed top 10, always current.
+      </div>
+      <div class="ca-list">
+        {ca_html}
+      </div>
+    </div>
+
+    <!-- SECTION 27: GLOBAL XRP ENTERPRISE & PARTNERSHIP LEDGER -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px">
         <div class="sec-title" style="color:var(--yl);margin:0"><span class="sic">\U0001F310</span> Global XRP Enterprise &amp; Partnership Ledger</div>
@@ -3858,7 +3958,7 @@ def render_page():
       </div>
     </div>
 
-    <!-- SECTION 27: ADVANCED METRICS -->
+    <!-- SECTION 28: ADVANCED METRICS -->
     <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F52C</span> Advanced Metrics</div>
       <div class="trk-tag" style="color:var(--tx)">Technical indicators, order book depth, and reference specs \u2014 all computed from live, verifiable market data.</div>
@@ -3916,7 +4016,7 @@ def render_page():
       </div>
     </div>
 
-    <!-- SECTION 28: PRACTICAL TOOLS -->
+    <!-- SECTION 29: PRACTICAL TOOLS -->
     <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F6E0\uFE0F</span> Practical Tools</div>
       <div class="pt-cols">
@@ -4054,7 +4154,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; ADVANCED METRICS</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; CLARITY ACT TRACKER</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -4500,6 +4600,11 @@ except Exception:
 
 try:
     fetch_github_dev()
+except Exception:
+    pass
+
+try:
+    fetch_clarity_tracker()
 except Exception:
     pass
 
