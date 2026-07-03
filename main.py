@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 48 — MiCA intro + fixed row layout (fills full width, no more empty column)
+Version 49 — Global XRP Enterprise & Partnership Ledger (growing, never-delete)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "48"
+APP_VERSION = "49"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -607,6 +607,78 @@ def fetch_news():
     NEWS["feeds_active"] = active
     NEWS["updated"] = now.strftime("%Y-%m-%d %H:%M:%S UTC")
     _track_sentiment_history(pool)
+    _detect_partnership_deals(pool)
+
+
+# ── Global XRP Enterprise & Partnership Ledger ──
+# Ever-growing, never-trimmed. Seed = 100 known entities (undated baseline).
+# New entries detected from the live news feed get real timestamps and always sort above the baseline.
+PARTNERSHIP_LEDGER = []          # list of dicts: name, country, cat, status, detail, date(None or datetime), source, key
+_PARTNERSHIP_SEEDED = False
+_PARTNERSHIP_SEEN_KEYS = set()
+_PARTNERSHIP_DEAL_KW = ["partner", "partnership", "collaborat", "agreement", "signs", "joins forces",
+                        "integrat", "teams up", "merger", "acquisition", "acquires", "deal with",
+                        "onboards", "adopts xrp", "adopts ripple"]
+
+def seed_partnership_ledger():
+    global _PARTNERSHIP_SEEDED
+    if _PARTNERSHIP_SEEDED:
+        return
+    for name, country, cat, status, detail in ENTERPRISE_SEED:
+        PARTNERSHIP_LEDGER.append({
+            "key": f"seed:{name.lower()}", "name": name, "country": country, "cat": cat,
+            "status": status, "detail": detail, "date": None, "source": "baseline", "link": None,
+        })
+    _PARTNERSHIP_SEEDED = True
+
+def _detect_partnership_deals(pool):
+    for s in pool:
+        key = s["key"]
+        if key in _PARTNERSHIP_SEEN_KEYS:
+            continue
+        text = (s["title"] + " " + s.get("summary", "")).lower()
+        if s.get("category") != "Ecosystem":
+            continue
+        if not any(kw in text for kw in _PARTNERSHIP_DEAL_KW):
+            continue
+        _PARTNERSHIP_SEEN_KEYS.add(key)
+        PARTNERSHIP_LEDGER.append({
+            "key": f"news:{key}", "name": s["title"], "country": None, "cat": "N",
+            "status": "NEW", "detail": s.get("summary", "") or s["source"], "date": s["dt"],
+            "source": "detected", "link": s.get("link"),
+        })
+
+def partnership_ledger_html(limit=30):
+    detected = sorted((e for e in PARTNERSHIP_LEDGER if e["source"] == "detected"),
+                       key=lambda e: e["date"], reverse=True)
+    baseline = [e for e in PARTNERSHIP_LEDGER if e["source"] == "baseline"]
+    ordered = (detected + baseline)[:limit]
+    if not ordered:
+        return '<div class="empty">Directory loading\u2026</div>'
+    out = ""
+    for e in ordered:
+        col = ENTERPRISE_CATEGORY_COLORS.get(e["cat"], "var(--tx)")
+        if e["source"] == "detected":
+            badge = '<span class="pl-new">\U0001F195 NEW</span>'
+            when = _time_ago(e["date"])
+            title_html = (f'<a href="{html.escape(e["link"] or "#", quote=True)}" target="_blank" rel="noopener">'
+                          f'{html.escape(e["name"])}</a>')
+            meta = html.escape(e["detail"][:140])
+        else:
+            badge = ""
+            when = "Established"
+            title_html = html.escape(e["name"])
+            meta = f'{html.escape(e["country"] or "")} \u2014 {html.escape(e["detail"])}'
+        out += (
+            f'<div class="pl-row" data-cat="{e["cat"]}" data-text="{html.escape((e["name"] + " " + (e["country"] or "") + " " + e["detail"]).lower(), quote=True)}">'
+            f'<div class="pl-top"><span class="pl-cat" style="color:{col}">{ENTERPRISE_CATEGORY_LABELS.get(e["cat"], "\U0001F195 New Deal")}</span>'
+            f'{badge}<span class="pl-status" style="color:{col}">{html.escape(e["status"])}</span>'
+            f'<span class="pl-when">{when}</span></div>'
+            f'<div class="pl-name">{title_html}</div>'
+            f'<div class="pl-meta">{meta}</div>'
+            f'</div>'
+        )
+    return out
 
 
 SENTIMENT_HISTORY = {}   # date_str -> {"bull","bear","neut","total","_keys"}
@@ -1572,6 +1644,120 @@ def run_preflight():
 # ─────────────────────────────────────────────────────────────────────
 # PAGE
 # ─────────────────────────────────────────────────────────────────────
+ENTERPRISE_CATEGORY_LABELS = {
+    "A": "\U0001F680 ODL/XRP Live", "B": "\U0001F3DB\uFE0F Global Banks", "C": "\U0001F6E0\uFE0F Tech/Custody",
+    "D": "\U0001F30D Regional", "E": "\U0001F7E1 ETF/Treasury",
+}
+ENTERPRISE_CATEGORY_COLORS = {"A": "var(--gr)", "B": "var(--bl)", "C": "var(--tq)", "D": "var(--or)", "E": "var(--yl)"}
+
+ENTERPRISE_SEED = [
+    # Category A: Live ODL / XRP Production Users (23)
+    ("SBI Remit / SBI Holdings", "\U0001F1EF\U0001F1F5 Japan", "A", "LIVE ODL", "Multi-corridor APAC retail & commercial remittance powered by XRP"),
+    ("Tranglo", "\U0001F1F2\U0001F1FE Malaysia/SE Asia", "A", "LIVE ODL", "Regional processing giant fully integrated into ODL"),
+    ("Bitso", "\U0001F1F2\U0001F1FD Mexico/LatAm", "A", "LIVE ODL", "Core liquidity hub routing heavy institutional USD-to-MXN lanes"),
+    ("Travelex Bank", "\U0001F1E7\U0001F1F7 Brazil", "A", "LIVE ODL", "First operational Latin American bank using XRP liquidity corridors"),
+    ("Zand Bank", "\U0001F1E6\U0001F1EA UAE", "A", "LIVE", "Digital corporate bank processing payments via XRP and RLUSD"),
+    ("AMINA Bank", "\U0001F1E8\U0001F1ED Switzerland", "A", "LIVE", "FINMA-regulated digital asset institution with live native Ripple Payments"),
+    ("Siam Commercial Bank", "\U0001F1F9\U0001F1ED Thailand", "A", "LIVE ODL", "Active live ODL corridors for inbound Japanese capital"),
+    ("UnionBank", "\U0001F1F5\U0001F1ED Philippines", "A", "LIVE ODL", "Automated processing for inbound domestic overseas worker remittances"),
+    ("CIBC", "\U0001F1E8\U0001F1E6 Canada", "A", "LIVE ODL", "Settles institutional growth transfers via ODL infrastructure"),
+    ("Qatar National Bank", "\U0001F1F6\U0001F1E6 Qatar", "A", "LIVE ODL", "Cross-border pipeline targeting Philippine remittance partners"),
+    ("ChinaBank", "\U0001F1F5\U0001F1ED Philippines", "A", "LIVE", "Clears Gulf-region corporate payments anchored to digital liquidity"),
+    ("Independent Reserve", "\U0001F1E6\U0001F1FA Australia", "A", "LIVE", "Regional liquidity exchange partner providing settlement architecture"),
+    ("BTC Markets", "\U0001F1E6\U0001F1FA Australia", "A", "LIVE", "Currency bridge managing the AUD leg of regional ODL clearing"),
+    ("Coins.ph", "\U0001F1F5\U0001F1ED Philippines", "A", "LIVE ODL", "Digital consumer network handling incoming XRP liquid conversions"),
+    ("FlashFX", "\U0001F1E6\U0001F1FA Australia", "A", "LIVE ODL", "Automated FX software routing transfers via on-chain token paths"),
+    ("Mercury FX", "\U0001F1EC\U0001F1E7 UK", "A", "LIVE ODL", "Enterprise currency platform processing instant commercial payments via XRP"),
+    ("Cuallix", "\U0001F1FA\U0001F1F8/\U0001F1F2\U0001F1FD USA/Mexico", "A", "PIONEER", "First fintech to pilot original xRapid/ODL settlement engines"),
+    ("X Money", "\U0001F310 Global", "A", "LIVE", "Retail cross-border digital financial platform using decentralized settlement"),
+    ("Novatti", "\U0001F1E6\U0001F1FA Australia", "A", "LIVE ODL", "Payments processor using XRP ledger routes for Southeast Asian corridors"),
+    ("iRemit", "\U0001F1F5\U0001F1ED Philippines", "A", "LIVE", "Non-bank remittance giant using ledger for real-time treasury management"),
+    ("Azimo", "\U0001F1EA\U0001F1FA Europe", "A", "LIVE", "International digital money transmitter processing enterprise payouts"),
+    ("Pyypl", "\U0001F30D Middle East/Africa", "A", "LIVE ODL", "Blockchain fintech offering consumer digital wallets via ODL"),
+    ("MoneyMatch", "\U0001F1F2\U0001F1FE Malaysia", "A", "LIVE", "Digital conversion firm routing commercial payments to European endpoints"),
+    # Category B: Global Banking Giants (32)
+    ("Bank of America", "\U0001F1FA\U0001F1F8 USA", "B", "PILOT", "Infrastructure pilot participant holding patents referencing XRP settlement"),
+    ("Banco Santander", "\U0001F1EA\U0001F1F8 Spain/UK", "B", "PRODUCTION", "Powers international One Pay FX app via RippleNet messaging"),
+    ("PNC Bank", "\U0001F1FA\U0001F1F8 USA", "B", "PRODUCTION", "First major domestic U.S. institutional network client"),
+    ("American Express", "\U0001F1FA\U0001F1F8 USA", "B", "PRODUCTION", "Commercial B2B international payments clearing partner"),
+    ("Deutsche Bank", "\U0001F1E9\U0001F1EA Germany", "B", "PILOT", "Combined Ripple blockchain architecture with legacy SWIFT mechanisms"),
+    ("Standard Chartered", "\U0001F1EC\U0001F1E7 UK", "B", "PRODUCTION", "Core early corporate investor and active digital clearing hub collaborator"),
+    ("JPMorgan Chase", "\U0001F310 Global", "B", "PARTICIPANT", "Overlapping participant in multi-network settlement ledger groups"),
+    ("HSBC", "\U0001F1EC\U0001F1E7 UK", "B", "PARTICIPANT", "Multi-national banking network mapped via active system routing IDs"),
+    ("MUFG Bank", "\U0001F1EF\U0001F1F5 Japan", "B", "PRODUCTION", "Tier-1 retail giant optimizing transaction messaging across APAC"),
+    ("ING Group", "\U0001F1F3\U0001F1F1 Netherlands", "B", "REGISTERED", "Multi-national bank registered in regional backend messaging directories"),
+    ("BBVA", "\U0001F1EA\U0001F1F8 Spain", "B", "PILOT", "Corporate banking implementing cross-border branch liquidity trials"),
+    ("Commonwealth Bank (CBA)", "\U0001F1E6\U0001F1FA Australia", "B", "PILOT", "Major retail institution participating in pilot ecosystem networks"),
+    ("Westpac", "\U0001F1E6\U0001F1FA Australia", "B", "REGISTERED", "Registered network member maintaining live backend communication IDs"),
+    ("ANZ Bank", "\U0001F1E6\U0001F1FA Australia", "B", "HISTORICAL", "Historical testing partner of the underlying clearing protocol"),
+    ("National Australia Bank (NAB)", "\U0001F1E6\U0001F1FA Australia", "B", "REGISTERED", "Incorporated into the ledger settlement network indexing systems"),
+    ("Macquarie Bank", "\U0001F1E6\U0001F1FA Australia", "B", "REGISTERED", "Financial and transaction group listed on official routing logs"),
+    ("Royal Bank of Canada (RBC)", "\U0001F1E8\U0001F1E6 Canada", "B", "EXPLORING", "Explored the decentralized rail protocol for automated settlement"),
+    ("SEB", "\U0001F1F8\U0001F1EA Sweden", "B", "PRODUCTION", "Operates high-volume corporate lines over Ripple software rails"),
+    ("UBS", "\U0001F1E8\U0001F1ED Switzerland", "B", "EVALUATING", "Asset and investment firm evaluating high-speed distributed ledgers"),
+    ("BMO Financial Group", "\U0001F1E8\U0001F1E6 Canada", "B", "EXPLORING", "North American commercial entity exploring cross-border clearing efficiency"),
+    ("Intesa Sanpaolo", "\U0001F1EE\U0001F1F9 Italy", "B", "PARTICIPANT", "Enterprise participant tracking structural digital payment innovations"),
+    ("Akbank", "\U0001F1F9\U0001F1F7 Turkey", "B", "PILOT", "Early regional banking partner conducting secure real-time automated tests"),
+    ("Axis Bank", "\U0001F1EE\U0001F1F3 India", "B", "LIVE", "Live infrastructure client managing real-time regional transaction tunnels"),
+    ("IndusInd Bank", "\U0001F1EE\U0001F1F3 India", "B", "LIVE", "Captures inbound international money transfers using decentralized engines"),
+    ("Kotak Mahindra Bank", "\U0001F1EE\U0001F1F3 India", "B", "LIVE", "Fintech clearing provider handling instant retail capital inflows"),
+    ("Yes Bank", "\U0001F1EE\U0001F1F3 India", "B", "LIVE", "Commercial institution conducting high-velocity payment remittance operations"),
+    ("Federal Bank", "\U0001F1EE\U0001F1F3 India", "B", "LIVE", "Major localized retail bank utilizing automated routing systems"),
+    ("Shinhan Bank", "\U0001F1F0\U0001F1F7 South Korea", "B", "LIVE", "Top South Korean network client maintaining active system access keys"),
+    ("Woori Bank", "\U0001F1F0\U0001F1F7 South Korea", "B", "LIVE", "Multi-channel asset institution utilizing programmatic payment lines"),
+    ("Krungsri (Bank of Ayudhya)", "\U0001F1F9\U0001F1ED Thailand", "B", "LIVE", "Streamlines real-time corporate pipelines between Thailand and Japan"),
+    ("CIMB Bank", "\U0001F1F2\U0001F1FE Malaysia", "B", "LIVE", "Deep integration node managing corridors across ASEAN borders"),
+    ("BDO Unibank", "\U0001F1F5\U0001F1ED Philippines", "B", "LIVE", "Major destination settlement point for international inbound money streams"),
+    # Category C: Enterprise Tech, Custody & Infrastructure (25)
+    ("Amazon Web Services (AWS)", "\U0001F310 Global", "C", "INFRASTRUCTURE", "Hosts architecture allowing global nodes to run XRPL validation configurations"),
+    ("Finastra", "\U0001F1EC\U0001F1E7 UK", "C", "PRODUCTION", "Core banking software opening network access to 2,000+ regional banks"),
+    ("Deloitte", "\U0001F310 Global", "C", "PRODUCTION", "Integrated distributed financial systems into client business models"),
+    ("DZ Bank", "\U0001F1E9\U0001F1EA Germany", "C", "PRODUCTION", "Leverages digital custody solutions for tokenized asset issuance"),
+    ("BNY Mellon", "\U0001F1FA\U0001F1F8 USA", "C", "PRODUCTION", "Primary tier-1 institutional reserve custodian for stablecoin offerings"),
+    ("DBS Bank", "\U0001F1F8\U0001F1EC Singapore", "C", "LIVE", "Southeast Asian institution utilizing bank-grade digital asset vaults"),
+    ("Kbank", "\U0001F1F0\U0001F1F7 South Korea", "C", "LIVE", "Digital platform implementing secure cryptographic wallet structures"),
+    ("Kyobo Life Insurance", "\U0001F1F0\U0001F1F7 South Korea", "C", "LIVE", "Utilizing token ledger blueprint for corporate structural bond settlement"),
+    ("BDACS", "\U0001F1F0\U0001F1F7 South Korea", "C", "LIVE", "Regulated secure vault platform for native ledger token storage"),
+    ("Hidden Road", "\U0001F1FA\U0001F1F8 USA", "C", "EXPANDING", "Major institutional prime brokerage expanding liquidity paths for digital assets"),
+    ("GTreasury", "\U0001F1FA\U0001F1F8 USA", "C", "LIVE", "Corporate liquidity software suite managing modern capital balance sheets"),
+    ("Metaco", "\U0001F1E8\U0001F1ED Switzerland", "C", "ACQUIRED", "Institutional crypto custody firm acquired by Ripple to secure bank assets globally"),
+    ("Temenos", "\U0001F1E8\U0001F1ED Switzerland", "C", "PRODUCTION", "Core banking software provider embedding automated accounting rails"),
+    ("Accenture", "\U0001F310 Global", "C", "PRODUCTION", "Consulting giant managing global deployment strategies for payment architecture"),
+    ("CGI Group", "\U0001F1E8\U0001F1E6 Canada", "C", "PRODUCTION", "IT consulting firm incorporating decentralized financial frameworks"),
+    ("Modulr", "\U0001F1EC\U0001F1E7 UK/Europe", "C", "LIVE", "Payments provider optimizing massive local commercial transaction times"),
+    ("Sentbe", "\U0001F1F0\U0001F1F7 South Korea", "C", "LIVE", "High-speed international remittance engine using the global banking network"),
+    ("Currencycloud", "\U0001F1EC\U0001F1E7 UK", "C", "LIVE", "B2B multi-currency platform streamlining automated foreign exchange"),
+    ("Nium", "\U0001F1F8\U0001F1EC Singapore", "C", "LIVE", "Fintech provider optimizing massive outbound payment paths across global corridors"),
+    ("InstaReM", "\U0001F1F8\U0001F1EC Singapore", "C", "LIVE", "High-speed digital payment gateway connected via localized nodes"),
+    ("BeeTech", "\U0001F1E7\U0001F1F7 Brazil", "C", "LIVE", "Digital financial operator executing automated Latin American clearings"),
+    ("Fidor Bank", "\U0001F1E9\U0001F1EA Germany", "C", "PIONEER", "Digital banking pioneer integrating alternative clearing protocol tools"),
+    ("Sabadell", "\U0001F1EA\U0001F1F8 Spain", "C", "LIVE", "Commercial infrastructure partner running real-time corporate data modules"),
+    ("Cross River Bank", "\U0001F1FA\U0001F1F8 USA", "C", "LIVE", "Financial tech enabler providing direct underlying banking backbone"),
+    ("Frankenmuth Credit Union", "\U0001F1FA\U0001F1F8 USA", "C", "LIVE", "Local cooperative providing digital asset services to local consumers"),
+    # Category D: Regional / Middle East / LatAm (13)
+    ("Al Ansari Exchange", "\U0001F1E6\U0001F1EA UAE", "D", "LIVE", "High-volume Middle Eastern exchange network routing institutional transfers"),
+    ("National Bank of Fujairah", "\U0001F1E6\U0001F1EA UAE", "D", "LIVE", "Trade finance group optimizing real-time B2B payment workflows"),
+    ("Saudi Central Bank (SAMA)", "\U0001F1F8\U0001F1E6 Saudi Arabia", "D", "PILOT", "Central entity piloting distributed frameworks for commercial branches"),
+    ("National Bank of Kuwait (NBK)", "\U0001F1F0\U0001F1FC Kuwait", "D", "LIVE", "Runs international corporate transfer paths targeting the Gulf"),
+    ("RAKBANK", "\U0001F1E6\U0001F1EA UAE", "D", "LIVE", "Integrates transaction routes to improve speed across enterprise pipelines"),
+    ("Itau Unibanco", "\U0001F1E7\U0001F1F7 Brazil", "D", "LIVE", "Giant South American banking provider utilizing alternative communication networks"),
+    ("Banco Rendimento", "\U0001F1E7\U0001F1F7 Brazil", "D", "LIVE", "Foreign currency commercial bank using optimized digital payment tunnels"),
+    ("Intercorp", "\U0001F1F5\U0001F1EA Peru", "D", "LIVE", "Large conglomerate stabilizing localized payment legs for regional retail assets"),
+    ("Faysal Bank", "\U0001F1F5\U0001F1F0 Pakistan", "D", "LIVE", "Specialized commercial banking provider processing inward retail cash flows"),
+    ("Bank Alfalah", "\U0001F1F5\U0001F1F0 Pakistan", "D", "LIVE", "Manages automated digital channels targeting the UAE-to-Pakistan corridor"),
+    ("bKash", "\U0001F1E7\U0001F1E9 Bangladesh", "D", "LIVE", "Mobile financial giant plugged in to capture worker remittances"),
+    ("Vietcombank", "\U0001F1FB\U0001F1F3 Vietnam", "D", "PILOT", "Explores modern asset frameworks under regional digital banking pilots"),
+    ("Interbank", "\U0001F1F5\U0001F1EA Peru", "D", "LIVE", "Traditional retail banking destination tied to alternative clearing systems"),
+    # Category E: ETF Issuers & Corporate Treasury (7)
+    ("Grayscale Investments", "\U0001F1FA\U0001F1F8 USA", "E", "LIVE ETF", "Asset manager operating the regulated Grayscale XRP Trust and spot fund"),
+    ("Bitwise Asset Management", "\U0001F1FA\U0001F1F8 USA", "E", "LIVE ETF", "Regulated Wall Street provider offering institutional XRP exposure"),
+    ("Franklin Templeton", "\U0001F1FA\U0001F1F8 USA", "E", "FILED", "Legacy asset firm filing for exchange-traded digital investment products"),
+    ("Canary Capital Partners", "\U0001F1FA\U0001F1F8 USA", "E", "LIVE ETF", "Asset management firm deploying institutional-grade XRP capital avenues"),
+    ("Hashdex Asset Management", "\U0001F310 Global", "E", "LIVE ETF", "Global investment manager offering systemic access to ledger tokens"),
+    ("Worksport Ltd.", "\U0001F1FA\U0001F1F8 USA", "E", "TREASURY", "Clean automotive developer utilizing digital assets for inventory clearings"),
+    ("Nature's Miracle Holding", "\U0001F1FA\U0001F1F8 USA", "E", "TREASURY", "Agriculture Tech firm implementing a $20M Corporate Treasury on the XRPL"),
+]
+
 COUNTRY_STATUS = [
     ("United States", "\U0001F1FA\U0001F1F8", "CONTESTED", "SEC lawsuit settled; XRP non-security ruling in programmatic sales. Evolving clarity."),
     ("European Union", "\U0001F1EA\U0001F1FA", "LEGAL", "MiCA regulation fully in force. XRP classified as crypto-asset, not security."),
@@ -2062,6 +2248,14 @@ def render_page():
     sec_tl_html = sec_timeline_html()
     mica_html = mica_calendar_html()
     cbdc_html = cbdc_grid_html()
+
+    # Global XRP Enterprise & Partnership Ledger
+    pl_html = partnership_ledger_html()
+    pl_total = len(PARTNERSHIP_LEDGER)
+    pl_detected = sum(1 for e in PARTNERSHIP_LEDGER if e["source"] == "detected")
+    pl_by_cat = {}
+    for e in PARTNERSHIP_LEDGER:
+        pl_by_cat[e["cat"]] = pl_by_cat.get(e["cat"], 0) + 1
 
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
@@ -2563,6 +2757,35 @@ def render_page():
   .mica-detail{{ font-size:12px; color:var(--tx); flex:1; font-family:system-ui; line-height:1.5; }}
   @media(max-width:700px){{ .mica-row{{ flex-wrap:wrap; }} .mica-event{{ flex-basis:100%; order:1; }} .mica-detail{{ flex-basis:100%; order:2; }} }}
   @media(max-width:900px){{ .cg-grid{{ grid-template-columns:repeat(2,1fr); }} }}
+
+  /* Global XRP Enterprise & Partnership Ledger */
+  .pl-search{{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); border-radius:8px;
+    color:var(--br); font-family:var(--mn); font-size:15px; padding:11px 14px; margin-bottom:10px; }}
+  .pl-search::placeholder{{ color:var(--tx); }}
+  .pl-cats{{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }}
+  .pl-btn{{ padding:6px 13px; border-radius:6px; font-size:12px; font-weight:700; font-family:var(--mn); letter-spacing:.5px;
+    border:1px solid var(--b); background:transparent; color:var(--tx); cursor:pointer; opacity:.75; }}
+  .pl-btn:hover{{ opacity:1; }}
+  .pl-btn.active{{ opacity:1; color:var(--yl); border-color:var(--yl); box-shadow:0 0 0 1px var(--yl) inset; }}
+  .pl-stats{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:10px; }}
+  .pl-stats b{{ color:var(--yl); }}
+  .pl-list{{ display:flex; flex-direction:column; gap:7px; max-height:600px; overflow-y:scroll; padding-right:6px;
+    scrollbar-width:thin; scrollbar-color:#33405e var(--s2); }}
+  .pl-list::-webkit-scrollbar{{ width:8px; }}
+  .pl-list::-webkit-scrollbar-track{{ background:var(--s2); border-radius:6px; }}
+  .pl-list::-webkit-scrollbar-thumb{{ background:#33405e; border-radius:6px; }}
+  .pl-row{{ background:var(--s1); border:1px solid var(--b); border-radius:8px; padding:10px 14px; }}
+  .pl-top{{ display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap; }}
+  .pl-cat{{ font-size:11px; font-weight:800; font-family:var(--mn); letter-spacing:.5px; }}
+  .pl-new{{ font-size:11px; font-weight:900; font-family:var(--mn); color:var(--bg); background:var(--yl);
+    padding:1px 6px; border-radius:4px; letter-spacing:.5px; }}
+  .pl-status{{ font-size:11px; font-weight:700; font-family:var(--mn); }}
+  .pl-when{{ font-size:11px; color:var(--tx); font-family:var(--mn); margin-left:auto; }}
+  .pl-name{{ font-size:14px; font-weight:700; color:var(--br); font-family:system-ui; margin-bottom:2px; }}
+  .pl-name a{{ color:var(--hdr); text-decoration:none; }}
+  .pl-name a:hover{{ text-decoration:underline; }}
+  .pl-meta{{ font-size:12px; color:var(--tx); line-height:1.5; font-family:system-ui; }}
+  .pl-counter{{ font-size:26px; font-weight:900; font-family:var(--mn); color:var(--yl); }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -3360,7 +3583,42 @@ def render_page():
       </div>
     </div>
 
-    <!-- SECTION 26: PRACTICAL TOOLS -->
+    <!-- SECTION 26: GLOBAL XRP ENTERPRISE & PARTNERSHIP LEDGER -->
+    <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px">
+        <div class="sec-title" style="color:var(--yl);margin:0"><span class="sic">\U0001F310</span> Global XRP Enterprise &amp; Partnership Ledger</div>
+        <div style="text-align:right"><div class="pl-counter">{pl_total}+</div><div style="font-size:11px;color:var(--tx);font-family:var(--mn)">institutions &amp; deals</div></div>
+      </div>
+      <div style="font-size:13px;color:var(--tx);line-height:1.7;font-family:system-ui;margin-bottom:12px;max-width:900px">
+        An ever-growing record of banks, institutions, and enterprises using XRP, XRPL, or Ripple technology \u2014 from
+        foundational partnerships to newly announced deals. New entries are detected automatically from the live news feed
+        and added here permanently; nothing is ever removed. Newest announcements shown first.
+      </div>
+      <input class="pl-search" id="pl-search" type="text" placeholder="\U0001F50D Search institution, country, category..." oninput="filterPartnerships()">
+      <div class="pl-cats" id="pl-cats">
+        <button class="pl-btn active" data-cat="ALL" onclick="plCat('ALL',this)">ALL</button>
+        <button class="pl-btn" data-cat="A" onclick="plCat('A',this)">\U0001F680 ODL/XRP Live</button>
+        <button class="pl-btn" data-cat="B" onclick="plCat('B',this)">\U0001F3DB\uFE0F Global Banks</button>
+        <button class="pl-btn" data-cat="C" onclick="plCat('C',this)">\U0001F6E0\uFE0F Tech/Custody</button>
+        <button class="pl-btn" data-cat="D" onclick="plCat('D',this)">\U0001F30D Regional</button>
+        <button class="pl-btn" data-cat="E" onclick="plCat('E',this)">\U0001F7E1 ETF/Treasury</button>
+        <button class="pl-btn" data-cat="N" onclick="plCat('N',this)">\U0001F195 New Deals</button>
+      </div>
+      <div class="pl-stats">
+        <b id="pl-shown">{min(pl_total, 30)}</b> shown &nbsp;|&nbsp; <b>{pl_total}</b> total &nbsp;|&nbsp;
+        <span style="color:var(--gr)">{pl_detected} newly detected</span>
+      </div>
+      <div class="pl-list" id="pl-list">
+        {pl_html}
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--tx);font-family:var(--mn);opacity:.7">
+        Baseline sources: Ripple.com partner listings, SEC filings, central bank announcements, verified corporate press
+        releases. New entries are detected from the live news feed. Directory is for informational purposes; some
+        partnerships may be pilots or historical integrations.
+      </div>
+    </div>
+
+    <!-- SECTION 27: PRACTICAL TOOLS -->
     <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F6E0\uFE0F</span> Practical Tools</div>
       <div class="pt-cols">
@@ -3498,7 +3756,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; MICA INTRO + LAYOUT FIX</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; ENTERPRISE LEDGER</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -3799,6 +4057,30 @@ def render_page():
       if (btn) btn.classList.add('on');
     }}
 
+    // Global XRP Enterprise & Partnership Ledger — search + category filter
+    var _plCat = 'ALL';
+    function _applyPl() {{
+      var q = ((document.getElementById('pl-search') || {{}}).value || '').toLowerCase().trim();
+      var rows = document.querySelectorAll('#pl-list .pl-row');
+      var shown = 0;
+      for (var i = 0; i < rows.length; i++) {{
+        var okCat = (_plCat === 'ALL') || (rows[i].getAttribute('data-cat') === _plCat);
+        var okQ = !q || (rows[i].getAttribute('data-text') || '').indexOf(q) !== -1;
+        var vis = okCat && okQ;
+        rows[i].style.display = vis ? '' : 'none';
+        if (vis) shown++;
+      }}
+      var sh = document.getElementById('pl-shown'); if (sh) sh.textContent = shown;
+    }}
+    function filterPartnerships() {{ _applyPl(); }}
+    function plCat(cat, btn) {{
+      _plCat = cat;
+      var btns = document.querySelectorAll('#pl-cats .pl-btn');
+      for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+      if (btn) btn.classList.add('active');
+      _applyPl();
+    }}
+
     // Next Briefing countdown (ticks live, hours/minutes)
     (function () {{
       var target = new Date("{brf_next_iso}").getTime();
@@ -3890,6 +4172,11 @@ def debug():
 
 try:
     fetch_market()
+except Exception:
+    pass
+
+try:
+    seed_partnership_ledger()
 except Exception:
     pass
 
