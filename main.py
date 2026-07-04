@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 56 — XRPRadar Exclusive Intelligence: final assembly & polish (chunk 5 of 5, complete)
+Version 57 — Copyright archive route added (hidden, frozen, permanent)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "56"
+APP_VERSION = "57"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -4477,7 +4477,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; FLAGSHIP COMPLETE</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; COPYRIGHT ARCHIVE ADDED</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -4932,6 +4932,34 @@ def home():
 @app.route("/ping")
 def ping():
     return jsonify({"status": "ok", "version": APP_VERSION})
+
+
+# ─────────────────────────────────────────────────────────────────────
+# COPYRIGHT ARCHIVE — PERMANENT, DO NOT MODIFY OR REMOVE THIS ROUTE.
+# Serves a static, pre-rendered HTML snapshot captured July 4, 2026 (V56)
+# for copyright documentation. This route must NEVER call render_page()
+# or reference any live MARKET/NEWS/etc. data. It reads one static file
+# and returns it verbatim, unchanged, regardless of any future edits
+# made elsewhere in this app. Not linked from any nav/footer. Hidden via
+# noindex meta tag (baked into the file itself) and via robots.txt below.
+# ─────────────────────────────────────────────────────────────────────
+_COPYRIGHT_ARCHIVE_FILE = "copyright_archive_2026_07_04.html"
+
+@app.route("/copyright7_26")
+def copyright_archive_2026_07_04():
+    try:
+        with open(_COPYRIGHT_ARCHIVE_FILE, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return "Archive temporarily unavailable.", 503
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    return (
+        "User-agent: *\n"
+        "Disallow: /copyright7_26\n"
+    ), 200, {"Content-Type": "text/plain"}
 
 
 @app.route("/debug")
