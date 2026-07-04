@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 55 — XRPRadar Exclusive Intelligence: Narrative Diffusion Map (chunk 4 of 5)
+Version 56 — XRPRadar Exclusive Intelligence: final assembly & polish (chunk 5 of 5, complete)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "55"
+APP_VERSION = "56"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -2794,6 +2794,7 @@ def render_page():
     cc_cells, cc_peak, cc_hourlbls = catalyst_clock_html()
     cc_total = _CATALYST_TOTAL
     nd_cards, nd_fastest = narrative_diffusion_html()
+    flagship_ts = MARKET.get("updated") or NEWS.get("updated") or "\u2014"
 
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
@@ -3368,6 +3369,8 @@ def render_page():
 
   /* Flagship: Institutional Confidence Index */
   .flagship-intro{{ font-size:13px; color:var(--tx); line-height:1.7; font-family:system-ui; margin-bottom:16px; max-width:920px; }}
+  .flagship-list{{ margin:10px 0; padding-left:20px; }}
+  .flagship-list li{{ margin-bottom:4px; }}
   .ici-wrap{{ display:grid; grid-template-columns:220px 1fr; gap:20px; background:linear-gradient(135deg,#0a0a14,#0d0d1a);
     border:1px solid rgba(255,204,0,.25); border-radius:14px; padding:22px; }}
   .ici-dial{{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }}
@@ -4474,7 +4477,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; NARRATIVE DIFFUSION CHUNK 4</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; FLAGSHIP COMPLETE</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -4485,11 +4488,21 @@ def render_page():
 
     <!-- SECTION 30: XRPRADAR EXCLUSIVE INTELLIGENCE (flagship) -->
     <div class="acct" style="border-color:rgba(255,204,0,.4);margin:10px 0">
-      <div class="sec-title" style="color:var(--yl)"><span class="sic">\U0001F3C6</span> XRPRadar Exclusive Intelligence</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div class="sec-title" style="color:var(--yl);margin:0"><span class="sic">\U0001F3C6</span> XRPRadar Exclusive Intelligence</div>
+        <div style="font-size:11px;color:var(--tx);font-family:var(--mn);padding-top:4px">Live as of {flagship_ts}</div>
+      </div>
       <div class="flagship-intro">
         Metrics built entirely from data we track ourselves \u2014 our own growing partnership ledger, our own executive
         statement archive, our own GitHub monitoring, our own news timing history. Nothing here is copied from another
         site's API; it exists because XRPRadar has been watching and recording since deploy.
+        <ul class="flagship-list">
+          <li><b style="color:var(--yl)">Institutional Confidence Index</b> \u2014 one flagship score from five disclosed components.</li>
+          <li><b style="color:var(--yl)">Partnership Momentum</b> \u2014 deals-per-week velocity from our own ledger.</li>
+          <li><b style="color:var(--or)">Catalyst Clock</b> \u2014 when XRP-moving stories actually break, by hour and weekday.</li>
+          <li><b style="color:var(--tq)">Narrative Diffusion Map</b> \u2014 how fast a theme spreads across regions.</li>
+        </ul>
+        Every chart below started empty at deploy and has been filling in honestly ever since \u2014 the longer XRPRadar runs, the sharper this section gets.
       </div>
 
       <div class="ici-wrap">
