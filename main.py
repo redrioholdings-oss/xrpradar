@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "61"
+APP_VERSION = "60"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -611,7 +611,6 @@ NEWS_FEEDS = [
     ("ZyCrypto XRP Direct",         "https://zycrypto.com/tag/xrp/feed/"),
     ("Crypto Daily Direct",         "https://cryptodaily.co.uk/tag/xrp/feed"),
     ("Cointelegraph",               "https://cointelegraph.com/rss"),
-
     # ── INSTITUTIONAL & BANKING (45 feeds) ───────────────────────────────────
     ("GN: XRP ETF",                 "https://news.google.com/rss/search?q=XRP+ETF&hl=en-US&gl=US&ceid=US:en"),
     ("GN: XRP Bank",                "https://news.google.com/rss/search?q=XRP+bank+partnership&hl=en-US&gl=US&ceid=US:en"),
@@ -658,7 +657,6 @@ NEWS_FEEDS = [
     ("Santiment Blog",              "https://santiment.net/blog/feed/"),
     ("GN: XRP Seeking Alpha 2",     "https://news.google.com/rss/search?q=Ripple+XRP+seekingalpha&hl=en-US&gl=US&ceid=US:en"),
     ("GN: XRP Motley Fool",         "https://news.google.com/rss/search?q=XRP+Motley+Fool&hl=en-US&gl=US&ceid=US:en"),
-
     # ── LEGAL & REGULATORY (36 feeds) ────────────────────────────────────────
     ("GN: XRP Legal",               "https://news.google.com/rss/search?q=XRP+legal+ruling&hl=en-US&gl=US&ceid=US:en"),
     ("GN: XRP Congress",            "https://news.google.com/rss/search?q=XRP+Congress+crypto+legislation&hl=en-US&gl=US&ceid=US:en"),
@@ -696,17 +694,16 @@ NEWS_FEEDS = [
     ("GN: XRP ASIC Australia",      "https://news.google.com/rss/search?q=XRP+ASIC+Australia&hl=en&gl=AU&ceid=AU:en"),
     ("GN: XRP FSA Japan Reg",       "https://news.google.com/rss/search?q=XRP+FSA+Japan+regulation&hl=ja&gl=JP&ceid=JP:ja"),
     ("GN: XRP FATF",                "https://news.google.com/rss/search?q=XRP+FATF+crypto&hl=en&gl=GB&ceid=GB:en"),
-
     # ── INTERNATIONAL & REGIONAL (82 feeds) ──────────────────────────────────
     ("GN: XRP SBI",                 "https://news.google.com/rss/search?q=XRP+SBI+Ripple&hl=ja&gl=JP&ceid=JP:ja"),
     ("CoinPost Japan",              "https://coinpost.jp/?feed=rss2"),
     ("CoinPost JP All",             "https://coinpost.jp/feed/"),
     ("Crypto Times JP",             "https://crypto-times.jp/feed/"),
-    ("GN Japan XRP",                "https://news.google.com/rss/search?q=XRP+リップル&hl=ja&gl=JP&ceid=JP:ja"),
+    ("GN Japan XRP",                "https://news.google.com/rss/search?q=XRP+%E3%83%AA%E3%83%83%E3%83%97%E3%83%AB&hl=ja&gl=JP&ceid=JP:ja"),
     ("GN Japan XRP EN",             "https://news.google.com/rss/search?q=XRP+Japan+Ripple&hl=en-US&gl=US&ceid=US:en"),
     ("CoinPost JP XRP",             "https://coinpost.jp/tag/xrp/feed/"),
     ("CoinDesk Japan",              "https://news.google.com/rss/search?q=XRP+CoinDesk+Japan&hl=ja&gl=JP&ceid=JP:ja"),
-    ("GN Korea XRP",                "https://news.google.com/rss/search?q=XRP+리플&hl=ko&gl=KR&ceid=KR:ko"),
+    ("GN Korea XRP",                "https://news.google.com/rss/search?q=XRP+%EB%A6%AC%ED%94%8C&hl=ko&gl=KR&ceid=KR:ko"),
     ("GN Korea XRP EN",             "https://news.google.com/rss/search?q=XRP+Korea+Ripple&hl=en-US&gl=US&ceid=US:en"),
     ("Decenter KR",                 "https://news.google.com/rss/search?q=XRP+decenter+korea&hl=ko&gl=KR&ceid=KR:ko"),
     ("GN UAE XRP",                  "https://news.google.com/rss/search?q=XRP+UAE+Ripple&hl=en&gl=AE&ceid=AE:en"),
@@ -742,7 +739,7 @@ NEWS_FEEDS = [
     ("BlockTempo Taiwan",           "https://news.google.com/rss/search?q=XRP+BlockTempo+Taiwan&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"),
     ("GN: XRP Australia",           "https://news.google.com/rss/search?q=XRP+Australia+Ripple&hl=en&gl=AU&ceid=AU:en"),
     ("GN: XRP Hong Kong",           "https://news.google.com/rss/search?q=XRP+Hong+Kong&hl=en&gl=HK&ceid=HK:en"),
-    ("GN: XRP Taiwan",              "https://news.google.com/rss/search?q=XRP+台灣+ripple&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"),
+    ("GN: XRP Taiwan",              "https://news.google.com/rss/search?q=XRP+Taiwan+ripple&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"),
     ("GN: XRP Indonesia",           "https://news.google.com/rss/search?q=XRP+Indonesia+Ripple&hl=id&gl=ID&ceid=ID:id"),
     ("GN: XRP Malaysia",            "https://news.google.com/rss/search?q=XRP+Malaysia+Ripple&hl=en&gl=MY&ceid=MY:en"),
     ("GN: XRP Philippines",         "https://news.google.com/rss/search?q=XRP+Philippines+Ripple&hl=en&gl=PH&ceid=PH:en"),
@@ -788,7 +785,6 @@ NEWS_FEEDS = [
     ("GN: XRP Bangladesh 2",        "https://news.google.com/rss/search?q=XRP+Bangladesh+Ripple&hl=en&gl=IN&ceid=IN:en"),
     ("GN: XRP Bahrain 2",           "https://news.google.com/rss/search?q=XRP+Bahrain+Ripple&hl=en&gl=AE&ceid=AE:en"),
     ("GN: XRP Israel 2",            "https://news.google.com/rss/search?q=XRP+Israel+Ripple&hl=en&gl=IL&ceid=IL:en"),
-
     # ── ECOSYSTEM & TECHNICAL (22 feeds) ─────────────────────────────────────
     ("GN: XRP Adoption",            "https://news.google.com/rss/search?q=XRP+adoption+use+case&hl=en-US&gl=US&ceid=US:en"),
     ("GN: XRP ODL",                 "https://news.google.com/rss/search?q=XRP+ODL+on-demand+liquidity&hl=en-US&gl=US&ceid=US:en"),
@@ -812,7 +808,6 @@ NEWS_FEEDS = [
     ("GN: XRP AMM Liquidity",       "https://news.google.com/rss/search?q=XRPL+AMM+liquidity+DEX&hl=en-US&gl=US&ceid=US:en"),
     ("GN: XRP Stablecoin Tech",     "https://news.google.com/rss/search?q=RLUSD+stablecoin+XRPL&hl=en-US&gl=US&ceid=US:en"),
     ("GN: XRP Tokenization",        "https://news.google.com/rss/search?q=XRP+tokenization+RWA&hl=en-US&gl=US&ceid=US:en"),
-
     # ── OFFICIAL RIPPLE SOURCES (9 feeds) ────────────────────────────────────
     ("Ripple Insights",             "https://ripple.com/insights/feed/"),
     ("XRPL.org Blog",               "https://xrpl.org/blog/feed.xml"),
@@ -823,7 +818,6 @@ NEWS_FEEDS = [
     ("GN: Monica Long",             "https://news.google.com/rss/search?q=Monica+Long+Ripple+XRP&hl=en-US&gl=US&ceid=US:en"),
     ("GN: Ripple Labs",             "https://news.google.com/rss/search?q=Ripple+Labs+XRP&hl=en-US&gl=US&ceid=US:en"),
     ("GN: XRPLF",                   "https://news.google.com/rss/search?q=XRP+Ledger+Foundation&hl=en-US&gl=US&ceid=US:en"),
-
     # ── XRP PRICE & MARKET (9 feeds) ─────────────────────────────────────────
     ("U.Today XRP",                 "https://u.today/rss"),
     ("Crypto News Flash",           "https://www.crypto-news-flash.com/feed/"),
@@ -834,12 +828,10 @@ NEWS_FEEDS = [
     ("Crypto Potato XRP",           "https://cryptopotato.com/tag/xrp/feed/"),
     ("Crypto Slate Ripple",         "https://cryptoslate.com/tag/ripple/feed/"),
     ("GN: XRP Stablecoin",          "https://news.google.com/rss/search?q=XRP+stablecoin+RLUSD&hl=en-US&gl=US&ceid=US:en"),
-
     # ── WHALE & AGGREGATOR (3 feeds) ─────────────────────────────────────────
     ("GN: XRP Whale",               "https://news.google.com/rss/search?q=XRP+whale+transaction&hl=en-US&gl=US&ceid=US:en"),
     ("GN: XRP Ripple Aggregator",   "https://news.google.com/rss/search?q=XRP+Ripple+news&hl=en-US&gl=US&ceid=US:en"),
     ("GN: XRP Breaking",            "https://news.google.com/rss/search?q=XRP+breaking+news&hl=en-US&gl=US&ceid=US:en"),
-
     # ── COMMUNITY (6 feeds) ──────────────────────────────────────────────────
     ("Reddit r/Ripple",             "https://www.reddit.com/r/Ripple/.rss"),
     ("Reddit r/XRP",                "https://www.reddit.com/r/XRP/.rss"),
@@ -847,7 +839,6 @@ NEWS_FEEDS = [
     ("Reddit r/CryptoCurr",         "https://www.reddit.com/r/CryptoCurrency/.rss"),
     ("Reddit r/XRPtrader 2",        "https://www.reddit.com/r/xrptrader/.rss"),
     ("Reddit r/Ripple 2",           "https://www.reddit.com/r/ripple/.rss"),
-
     # ── MAINSTREAM MEDIA XRP (12 feeds) ──────────────────────────────────────
     ("Forbes Crypto",               "https://www.forbes.com/crypto-blockchain/feed/"),
     ("Yahoo Finance Crypto",        "https://finance.yahoo.com/news/rssindex"),
