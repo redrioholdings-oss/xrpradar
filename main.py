@@ -3910,6 +3910,7 @@ def render_page():
         <span class="dot"></span>
         <span class="run-lbl">LIVE</span>
         <span class="upd" id="uts">{boot_str}</span>
+        <span style="font-size:11px;color:var(--tx);margin-left:8px;letter-spacing:0.5px">v{APP_VERSION}</span>
       </div>
     </div>
 
