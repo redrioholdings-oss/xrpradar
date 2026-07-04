@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 59 — Fix: return-to-XRPRadar button now resilient to back-navigation/tab-switch
+Version 60 — Major data-source repair + 29-item bug fix pass
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "59"
+APP_VERSION = "60"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -94,32 +94,40 @@ def calc_rsi(closes, period=14):
     return round(100 - 100 / (1 + rs), 1)
 
 
-def _binance_klines(interval, limit):
-    r = requests.get(
-        f"https://api.binance.com/api/v3/klines?symbol=XRPUSDT&interval={interval}&limit={limit}",
-        headers={"User-Agent": "XRPRadar/5"}, timeout=6)
+def _coinbase_candles(product_id, granularity=86400, limit=300):
+    """Public Coinbase Exchange candles. Returns oldest->newest as
+    [time, low, high, open, close, volume] floats. No key needed; not
+    subject to Binance's cloud-IP geo-block."""
+    hdr = {"User-Agent": "XRPRadar/4"}
+    r = requests.get(f"https://api.exchange.coinbase.com/products/{product_id}/candles",
+                      params={"granularity": granularity}, headers=hdr, timeout=8)
     data = r.json()
     if not isinstance(data, list):
         return []
-    return data
+    data.sort(key=lambda c: c[0])  # Coinbase returns newest-first; sort oldest->newest
+    return data[-limit:]
 
 def fetch_market():
     active = 0
     hdr = {"User-Agent": "XRPRadar/4"}
+
+    # Price, 24h change, market cap, volume, rank — CoinPaprika (keyless; CoinCap v2 was
+    # deprecated April 2025 and now requires a paid key, so it no longer works here)
     try:
-        r = requests.get("https://api.coincap.io/v2/assets/xrp", headers=hdr, timeout=5)
-        d = r.json().get("data", {})
-        p   = float(d.get("priceUsd", 0) or 0)
-        chg = float(d.get("changePercent24Hr", 0) or 0)
+        r = requests.get("https://api.coinpaprika.com/v1/tickers/xrp-xrp", headers=hdr, timeout=8)
+        d = r.json()
+        q = (d.get("quotes") or {}).get("USD") or {}
+        p = float(q.get("price", 0) or 0)
         if p > 0:
             MARKET["xrp_price"] = p
-            MARKET["xrp_chg"]   = chg
-            MARKET["mcap"]      = float(d.get("marketCapUsd", 0) or 0)
-            MARKET["vol24"]     = float(d.get("volumeUsd24Hr", 0) or 0)
+            MARKET["xrp_chg"]   = float(q.get("percent_change_24h", 0) or 0)
+            MARKET["mcap"]      = float(q.get("market_cap", 0) or 0)
+            MARKET["vol24"]     = float(q.get("volume_24h", 0) or 0)
             MARKET["rank"]      = d.get("rank")
             active += 1
     except Exception:
         pass
+
     try:
         r = requests.get("https://api.alternative.me/fng/?limit=30", headers=hdr, timeout=5)
         arr = r.json().get("data", [])
@@ -131,47 +139,40 @@ def fetch_market():
     except Exception:
         pass
 
-    try:
-        r = requests.get("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=XRPUSDT", headers=hdr, timeout=5)
-        fr = r.json().get("lastFundingRate")
-        if fr is not None:
-            MARKET["funding"] = float(fr)
-    except Exception:
-        pass
+    # Note: funding rate needs a futures/perpetual exchange (Binance fapi was used before).
+    # No safe cloud-reachable replacement is wired up, so this stays None. Smart Money Score
+    # already rescales cleanly across whichever of its components are actually available.
 
+    # Historical daily + hourly candles — Coinbase Exchange (public, no key, and not subject
+    # to Binance.com's block on cloud-hosting IPs). Powers RSI, 52-week range, Price Time
+    # Machine, Support & Resistance, longitudinal performance, and the A/D line.
     try:
-        r = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=XRPBTC", headers=hdr, timeout=5)
-        px = float(r.json().get("price", 0) or 0)
-        if px > 0:
-            MARKET["xrpbtc"] = px
-    except Exception:
-        pass
+        k1h = _coinbase_candles("XRP-USD", granularity=3600, limit=200)
+        k1d = _coinbase_candles("XRP-USD", granularity=86400, limit=300)
 
-    # Binance klines → RSI (1h, 1d), 52-week range, time machine, S&R
-    try:
-        k1h = _binance_klines("1h", 200)
-        k1d = _binance_klines("1d", 365)
         if k1h:
             closes_1h = [float(c[4]) for c in k1h]
             MARKET["rsi_1h"] = calc_rsi(closes_1h)
             last24 = k1h[-24:]
-            MARKET["h24"] = max(float(c[2]) for c in last24)
-            MARKET["l24"] = min(float(c[3]) for c in last24)
+            MARKET["h24"] = max(float(c[2]) for c in last24)  # candle[2] = high
+            MARKET["l24"] = min(float(c[1]) for c in last24)  # candle[1] = low
+
         if k1d:
             closes_1d = [float(c[4]) for c in k1d]
             highs_1d  = [float(c[2]) for c in k1d]
-            lows_1d   = [float(c[3]) for c in k1d]
-            MARKET["rsi_1d"]  = calc_rsi(closes_1d)
-            MARKET["w52_low"]  = min(lows_1d)
-            MARKET["w52_high"] = max(highs_1d)
-            # Price Time Machine
+            lows_1d   = [float(c[1]) for c in k1d]
+            MARKET["rsi_1d"]    = calc_rsi(closes_1d)
+            MARKET["w52_low"]   = min(lows_1d)
+            MARKET["w52_high"]  = max(highs_1d)
+            # Price Time Machine (oldest available candle stands in for "~1 year ago" when
+            # fewer than 365 days are available from a single 300-candle request)
             if len(closes_1d) >= 2:
-                MARKET["tm_1y"] = closes_1d[0]                         # ~1 year ago
+                MARKET["tm_1y"] = closes_1d[0]
             if len(closes_1d) >= 31:
-                MARKET["tm_1m"] = closes_1d[-31]                       # ~1 month ago
-            # Support & Resistance from last 90 days
+                MARKET["tm_1m"] = closes_1d[-31]
+            # Support & Resistance from the last 90 days
             window = k1d[-90:] if len(k1d) >= 90 else k1d
-            MARKET["sr_support"]    = min(float(c[3]) for c in window)
+            MARKET["sr_support"]    = min(float(c[1]) for c in window)
             MARKET["sr_resistance"] = max(float(c[2]) for c in window)
             # Longitudinal performance windows
             cur = closes_1d[-1]
@@ -188,8 +189,8 @@ def fetch_market():
             ad = 0.0
             ad_series = []
             for c in k1d:
-                h, l, cl, v = float(c[2]), float(c[3]), float(c[4]), float(c[5])
-                mfm = ((cl - l) - (h - cl)) / (h - l) if h != l else 0.0
+                lo, hi, cl, v = float(c[1]), float(c[2]), float(c[4]), float(c[5])
+                mfm = ((cl - lo) - (hi - cl)) / (hi - lo) if hi != lo else 0.0
                 ad += mfm * v
                 ad_series.append(ad)
             if len(ad_series) >= 8:
@@ -201,15 +202,27 @@ def fetch_market():
     except Exception:
         pass
 
+    # XRP/BTC cross-rate, computed from each asset's own USD close (Coinbase doesn't
+    # need a direct XRP-BTC pair for this and it keeps one fewer network call in play)
+    try:
+        if MARKET.get("xrp_price"):
+            btc_k = _coinbase_candles("BTC-USD", granularity=86400, limit=2)
+            if btc_k:
+                btc_price = float(btc_k[-1][4])
+                if btc_price:
+                    MARKET["xrpbtc"] = MARKET["xrp_price"] / btc_price
+    except Exception:
+        pass
+
     MARKET["sources_active"] = active
     MARKET["updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
 COMPETITORS = [
-    {"id": "solana",   "symbol": "SOL", "emoji": "\u25CE", "binance": "SOLUSDT"},
-    {"id": "ethereum", "symbol": "ETH", "emoji": "\u27E0", "binance": "ETHUSDT"},
-    {"id": "cardano",  "symbol": "ADA", "emoji": "\u20B3", "binance": "ADAUSDT"},
-    {"id": "stellar",  "symbol": "XLM", "emoji": "\u2726", "binance": "XLMUSDT"},
+    {"id": "solana",   "symbol": "SOL", "emoji": "\u25CE", "paprika": "sol-solana",   "coinbase": "SOL-USD"},
+    {"id": "ethereum", "symbol": "ETH", "emoji": "\u27E0", "paprika": "eth-ethereum", "coinbase": "ETH-USD"},
+    {"id": "cardano",  "symbol": "ADA", "emoji": "\u20B3", "paprika": "ada-cardano",  "coinbase": "ADA-USD"},
+    {"id": "stellar",  "symbol": "XLM", "emoji": "\u2726", "paprika": "xlm-stellar",  "coinbase": "XLM-USD"},
 ]
 COMPETITOR_EDGE = {
     "SOL": "Payment rails vs. smart contract platform \u2014 XRP settles instantly for a near-zero fee.",
@@ -349,29 +362,21 @@ def fetch_github_dev():
 
 def fetch_competitors():
     hdr = {"User-Agent": "XRPRadar/4"}
-    ids = ",".join(c["id"] for c in COMPETITORS)
-    data = {}
-    try:
-        r = requests.get(f"https://api.coincap.io/v2/assets?ids={ids}", headers=hdr, timeout=8)
-        for d in r.json().get("data", []):
-            data[d.get("id")] = d
-    except Exception:
-        pass
     for c in COMPETITORS:
         entry = MARKET["competitors"].setdefault(c["id"], {})
-        d = data.get(c["id"])
-        if d:
-            try:
-                entry["price"] = float(d.get("priceUsd") or 0) or entry.get("price")
-                entry["change_24h"] = float(d.get("changePercent24Hr") or 0)
-                entry["mcap"] = float(d.get("marketCapUsd") or 0)
-            except Exception:
-                pass
         try:
-            kr = requests.get(
-                f"https://api.binance.com/api/v3/klines?symbol={c['binance']}&interval=1d&limit=10",
-                headers=hdr, timeout=8)
-            closes = [float(x[4]) for x in kr.json()]
+            r = requests.get(f"https://api.coinpaprika.com/v1/tickers/{c['paprika']}", headers=hdr, timeout=8)
+            d = r.json()
+            q = (d.get("quotes") or {}).get("USD") or {}
+            price = float(q.get("price", 0) or 0)
+            if price:
+                entry["price"] = price
+                entry["change_24h"] = float(q.get("percent_change_24h", 0) or 0)
+                entry["mcap"] = float(q.get("market_cap", 0) or 0)
+        except Exception:
+            pass
+        try:
+            closes = [float(x[4]) for x in _coinbase_candles(c["coinbase"], granularity=86400, limit=10)]
             if len(closes) > 7 and closes[-8]:
                 entry["change_7d"] = (closes[-1] - closes[-8]) / closes[-8] * 100
         except Exception:
@@ -395,17 +400,15 @@ def _pct_returns(closes):
     return [(closes[i] - closes[i - 1]) / closes[i - 1] for i in range(1, len(closes)) if closes[i - 1]]
 
 def fetch_correlation():
-    hdr = {"User-Agent": "XRPRadar/4"}
-    def _closes(symbol):
+    def _closes(product_id):
         try:
-            r = requests.get(f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=1d&limit=31",
-                              headers=hdr, timeout=8)
-            return [float(c[4]) for c in r.json()]
+            candles = _coinbase_candles(product_id, granularity=86400, limit=31)
+            return [float(c[4]) for c in candles]
         except Exception:
             return []
-    xrp_c = _closes("XRPUSDT")
-    btc_c = _closes("BTCUSDT")
-    eth_c = _closes("ETHUSDT")
+    xrp_c = _closes("XRP-USD")
+    btc_c = _closes("BTC-USD")
+    eth_c = _closes("ETH-USD")
     xrp_r, btc_r, eth_r = _pct_returns(xrp_c), _pct_returns(btc_c), _pct_returns(eth_c)
     if xrp_r and btc_r:
         MARKET["corr_btc"] = _pearson(xrp_r, btc_r)
@@ -416,10 +419,11 @@ def fetch_correlation():
 def fetch_orderbook():
     hdr = {"User-Agent": "XRPRadar/4"}
     try:
-        r = requests.get("https://api.binance.com/api/v3/depth?symbol=XRPUSDT&limit=10", headers=hdr, timeout=8)
+        r = requests.get("https://api.exchange.coinbase.com/products/XRP-USD/book",
+                          params={"level": 2}, headers=hdr, timeout=8)
         d = r.json()
-        bids = [(float(p), float(q)) for p, q in d.get("bids", [])][:8]
-        asks = [(float(p), float(q)) for p, q in d.get("asks", [])][:8]
+        bids = [(float(p), float(q)) for p, q, *_ in d.get("bids", [])][:8]
+        asks = [(float(p), float(q)) for p, q, *_ in d.get("asks", [])][:8]
         if bids and asks:
             MARKET["ob_bids"] = bids
             MARKET["ob_asks"] = asks
@@ -1171,6 +1175,11 @@ def story_rows_html(stories):
     return out
 
 
+_GN_CAT_COLORS = {
+    "ALL": "var(--br)", "PRICE": "var(--yl)", "LEGAL": "var(--rd)", "REG": "var(--or)",
+    "ECOSYSTEM": "var(--gr)", "TECH": "var(--tq)", "WHALE": "var(--bl)", "GENERAL": "var(--tx)",
+}
+
 def global_feed_html(limit=60):
     pool = NEWS.get("pool", [])
     if not pool:
@@ -1182,6 +1191,7 @@ def global_feed_html(limit=60):
         cat = s.get("category", "General")
         sent = s.get("sentiment", "neutral")
         col = sent_col.get(sent, "#8099b3")
+        cat_col = _GN_CAT_COLORS.get(cat.upper(), "var(--tx)")
         title = html.escape(s["title"])
         summary = html.escape(s.get("summary", ""))
         data_text = html.escape((s["title"] + " " + s.get("summary", "")).lower(), quote=True)
@@ -1192,7 +1202,7 @@ def global_feed_html(limit=60):
         out += (
             f'<div class="gn-card" data-cat="{cat.upper()}" data-text="{data_text}">'
             f'<div class="gn-top"><span class="gn-src">{html.escape(s["source"])}</span>'
-            f'<span class="gn-cat">{cat}</span>{breaking}'
+            f'<span class="gn-cat" style="color:{cat_col}">{cat}</span>{breaking}'
             f'<span class="gn-time">{_time_ago(s["dt"])}</span></div>'
             f'<a class="gn-hl" href="{html.escape(s["link"], quote=True)}" target="_blank" rel="noopener">{title}</a>'
             f'{translate}'
@@ -2053,8 +2063,10 @@ def timeline_html():
         yr_col  = "var(--gr)" if major else "var(--yl)"
         out += (
             f'<div class="tl-node">'
+            f'<div class="tl-top">'
             f'<div class="tl-year" style="color:{yr_col}">{year}</div>'
             f'<div class="tl-dot" style="width:{dot_sz};height:{dot_sz};background:{dot_col}"></div>'
+            f'</div>'
             f'<div class="tl-event">{event}</div>'
             f'<div class="tl-detail">{detail}</div>'
             f'</div>'
@@ -2386,8 +2398,10 @@ def sec_timeline_html():
         dot_sz = "16px" if major else "11px"
         out += (
             f'<div class="tl-node" style="flex-basis:170px;min-width:170px">'
+            f'<div class="tl-top">'
             f'<div class="tl-year" style="color:{dot_col};font-size:13px">{date}</div>'
             f'<div class="tl-dot" style="width:{dot_sz};height:{dot_sz};background:{dot_col}"></div>'
+            f'</div>'
             f'<div class="tl-event" style="font-size:13px">{html.escape(event)}</div>'
             f'<div class="tl-detail" style="font-size:12px">{html.escape(detail)}</div>'
             f'</div>'
@@ -2452,6 +2466,8 @@ def render_page():
     checks, passed, total, overall = run_preflight()
     overall_color = "#48ff82" if overall == "PASS" else "#ff4060"
     boot_str = BOOT_TIME.strftime("%Y-%m-%d %H:%M:%S UTC")
+    hdr_feeds_active = NEWS["feeds_active"]
+    hdr_feeds_total = NEWS["feeds_total"]
 
     # Breaking News bar — real breaking stories when present, home-base message otherwise
     _pool = NEWS.get("pool", [])
@@ -2573,7 +2589,8 @@ def render_page():
     gl = global_pulse()
     _sig_col = {"bullish": "var(--gr)", "bearish": "var(--rd)", "neutral": "var(--yl)", "quiet": "var(--tx)"}
     gl_signals_html = "".join(
-        f'<span class="sig-chip" style="color:{_sig_col[gl["signals"][r]]};border-color:{_sig_col[gl["signals"][r]]}">'
+        f'<span class="sig-chip" style="color:{_sig_col[gl["signals"][r]]}">'
+        f'<span class="sig-dot" style="background:{_sig_col[gl["signals"][r]]}"></span>'
         f'{REGION_FLAGS[r]} {r}: {gl["signals"][r]}</span>'
         for r in REGIONS
     )
@@ -2671,7 +2688,10 @@ def render_page():
         is_live = (sid == _live_slot)
         has_data = sid in BRIEF_ARCHIVE
         cls = "live" if is_live else ("ready" if has_data else "pending")
-        click = f' onclick="showBrief(\'{sid}\')"' if has_data else ""
+        if has_data:
+            click = f' onclick="showBrief(\'{sid}\')"'
+        else:
+            click = f' onclick="showPending(\'{sl["edition"]}\')"'
         day_lbl = sl["date"].strftime("%a %-d") if hasattr(sl["date"], "strftime") else str(sl["date"])
         tag = " \u25CF" if is_live else ""
         brf_strip_html += (
@@ -2999,15 +3019,16 @@ def render_page():
 
   /* Integration Timeline (horizontal) */
   .tl-wrap{{ position:relative; padding:6px 0 4px; }}
-  .tl-line{{ position:absolute; top:56px; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--yl),var(--gr),transparent); }}
+  .tl-line{{ position:absolute; top:43px; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--yl),var(--gr),transparent); }}
   .tl-track{{ display:flex; gap:0; overflow-x:auto; padding-bottom:10px; position:relative;
     scrollbar-width:thin; scrollbar-color:#33405e var(--s2); }}
   .tl-track::-webkit-scrollbar{{ height:6px; }}
   .tl-track::-webkit-scrollbar-track{{ background:var(--s2); border-radius:6px; }}
   .tl-track::-webkit-scrollbar-thumb{{ background:#33405e; border-radius:6px; }}
   .tl-node{{ flex:0 0 200px; min-width:200px; text-align:center; padding:0 10px; position:relative; }}
-  .tl-year{{ font-size:16px; font-weight:900; font-family:var(--mn); margin-bottom:8px; }}
-  .tl-dot{{ border-radius:50%; margin:0 auto 10px; box-shadow:0 0 8px currentColor; border:2px solid var(--bg); }}
+  .tl-top{{ height:44px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:12px; }}
+  .tl-year{{ font-size:16px; font-weight:900; font-family:var(--mn); line-height:1; }}
+  .tl-dot{{ border-radius:50%; box-shadow:0 0 8px currentColor; border:2px solid var(--bg); flex-shrink:0; }}
   .tl-event{{ font-size:14px; font-weight:800; color:var(--br); font-family:var(--mn); margin-bottom:5px; }}
   .tl-detail{{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui; }}
 
@@ -3032,8 +3053,9 @@ def render_page():
   .intel-pulse{{ font-size:14px; color:var(--br); line-height:1.55; font-family:system-ui; }}
   .intel-row{{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui; }}
   .intel-row b{{ color:var(--label,#8099b3); font-family:var(--mn); text-transform:uppercase; letter-spacing:1px; font-size:12px; font-weight:800; }}
-  .sig-row{{ display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }}
-  .sig-chip{{ font-size:12px; font-family:var(--mn); font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid; }}
+  .sig-row{{ display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }}
+  .sig-chip{{ font-size:12px; font-family:var(--mn); font-weight:700; cursor:default; display:inline-flex; align-items:center; gap:5px; }}
+  .sig-chip .sig-dot{{ width:7px; height:7px; border-radius:50%; display:inline-block; }}
   .rd-grid{{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }}
   .rd-card{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:12px 14px; }}
   .rd-top{{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }}
@@ -3056,14 +3078,14 @@ def render_page():
 
   /* Global News Feed + right rail */
   .feed-wrap{{ display:grid; grid-template-columns:2fr 1fr; gap:10px; margin:10px 0; align-items:start; }}
-  .gn-search{{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); border-radius:8px;
-    color:var(--br); font-family:var(--mn); font-size:15px; padding:12px 14px; margin-bottom:10px; }}
-  .gn-search::placeholder{{ color:var(--tx); }}
+  .gn-search{{ width:100%; box-sizing:border-box; background:#e9ecf1; border:1px solid #c3c8d1; border-radius:8px;
+    color:#1a2a4a; font-family:var(--mn); font-size:15px; padding:12px 14px; margin-bottom:10px; }}
+  .gn-search::placeholder{{ color:#6b7280; }}
   .gn-cats{{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }}
   .gn-btn{{ padding:6px 14px; border-radius:6px; font-size:13px; font-weight:700; font-family:var(--mn); letter-spacing:1px;
     border:1px solid var(--b); background:transparent; color:var(--tx); cursor:pointer; opacity:.75; }}
   .gn-btn:hover{{ opacity:1; }}
-  .gn-btn.active{{ opacity:1; color:var(--hdr); border-color:var(--hdr); box-shadow:0 0 0 1px var(--hdr) inset; }}
+  .gn-btn.active{{ opacity:1; box-shadow:0 0 0 1px currentColor inset; }}
   .gn-stats{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:10px; }}
   .gn-stats b{{ color:var(--gr); }}
   .gn-list{{ display:flex; flex-direction:column; gap:8px; max-height:920px; overflow-y:scroll; padding-right:6px;
@@ -3157,12 +3179,14 @@ def render_page():
   .brf-slot.ready .brf-slot-ed{{ color:var(--tq); }}
   .brf-slot.live{{ border-color:var(--or); background:rgba(255,153,0,.14); box-shadow:0 0 0 1px var(--or) inset; }}
   .brf-slot.live .brf-slot-ed{{ color:var(--or); }}
-  .brf-slot.pending{{ opacity:.45; }}
+  .brf-slot.pending{{ opacity:.45; cursor:pointer; }}
+  .brf-pending-msg{{ margin-top:8px; padding:8px 12px; background:rgba(255,153,0,.1); border:1px solid rgba(255,153,0,.35);
+    border-radius:6px; font-size:12px; font-family:var(--mn); color:var(--or); }}
   .brf-slot.pending .brf-slot-ed{{ color:var(--tx); }}
   .brf-slot.active-view{{ outline:2px solid var(--br); outline-offset:1px; }}
 
   /* Next Briefing countdown teaser — same footprint as Brief Home, white fill */
-  .brf-teaser{{ background:#f4f6fa; border:1px solid rgba(255,153,0,.3); border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }}
+  .brf-teaser{{ background:#e9ecf1; border:1px solid #c3c8d1; border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }}
   .brf-teaser-icon{{ font-size:26px; line-height:1; margin-bottom:4px; }}
   .brf-teaser-line{{ font-size:14px; font-weight:800; font-family:var(--mn); color:#1a2a4a; }}
   .brf-teaser-line span{{ color:var(--or); font-weight:900; }}
@@ -3298,14 +3322,14 @@ def render_page():
   @media(max-width:900px){{ .cg-grid{{ grid-template-columns:repeat(2,1fr); }} }}
 
   /* Global XRP Enterprise & Partnership Ledger */
-  .pl-search{{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); border-radius:8px;
-    color:var(--br); font-family:var(--mn); font-size:15px; padding:11px 14px; margin-bottom:10px; }}
-  .pl-search::placeholder{{ color:var(--tx); }}
+  .pl-search{{ width:100%; box-sizing:border-box; background:#e9ecf1; border:1px solid #c3c8d1; border-radius:8px;
+    color:#1a2a4a; font-family:var(--mn); font-size:15px; padding:11px 14px; margin-bottom:10px; }}
+  .pl-search::placeholder{{ color:#6b7280; }}
   .pl-cats{{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }}
   .pl-btn{{ padding:6px 13px; border-radius:6px; font-size:12px; font-weight:700; font-family:var(--mn); letter-spacing:.5px;
     border:1px solid var(--b); background:transparent; color:var(--tx); cursor:pointer; opacity:.75; }}
   .pl-btn:hover{{ opacity:1; }}
-  .pl-btn.active{{ opacity:1; color:var(--yl); border-color:var(--yl); box-shadow:0 0 0 1px var(--yl) inset; }}
+  .pl-btn.active{{ opacity:1; box-shadow:0 0 0 1px currentColor inset; }}
   .pl-stats{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:10px; }}
   .pl-stats b{{ color:var(--yl); }}
   .pl-list{{ display:flex; flex-direction:column; gap:7px; max-height:600px; overflow-y:scroll; padding-right:6px;
@@ -3357,6 +3381,24 @@ def render_page():
 
   /* CLARITY Act Tracker */
   .ca-list{{ display:flex; flex-direction:column; gap:7px; max-height:520px; overflow-y:auto; }}
+
+  /* Visible thin scrollbars, applied consistently to every scrollable container on the site */
+  .whale-feed, .ex-feed, .gh-feed, .uc-list, .ca-list {{
+    scrollbar-width:thin; scrollbar-color:#33405e var(--s2);
+  }}
+  .whale-feed::-webkit-scrollbar, .ex-feed::-webkit-scrollbar, .gh-feed::-webkit-scrollbar,
+  .uc-list::-webkit-scrollbar, .ca-list::-webkit-scrollbar {{ width:8px; }}
+  .whale-feed::-webkit-scrollbar-track, .ex-feed::-webkit-scrollbar-track, .gh-feed::-webkit-scrollbar-track,
+  .uc-list::-webkit-scrollbar-track, .ca-list::-webkit-scrollbar-track {{ background:var(--s2); border-radius:6px; }}
+  .whale-feed::-webkit-scrollbar-thumb, .ex-feed::-webkit-scrollbar-thumb, .gh-feed::-webkit-scrollbar-thumb,
+  .uc-list::-webkit-scrollbar-thumb, .ca-list::-webkit-scrollbar-thumb {{ background:#33405e; border-radius:6px; }}
+
+  .flow, .ex-tabs, .cc-panel, .tbl-scroll {{
+    scrollbar-width:thin; scrollbar-color:#33405e var(--s2); overflow-x:auto;
+  }}
+  .flow::-webkit-scrollbar, .ex-tabs::-webkit-scrollbar, .cc-panel::-webkit-scrollbar, .tbl-scroll::-webkit-scrollbar {{ height:8px; }}
+  .flow::-webkit-scrollbar-track, .ex-tabs::-webkit-scrollbar-track, .cc-panel::-webkit-scrollbar-track, .tbl-scroll::-webkit-scrollbar-track {{ background:var(--s2); border-radius:6px; }}
+  .flow::-webkit-scrollbar-thumb, .ex-tabs::-webkit-scrollbar-thumb, .cc-panel::-webkit-scrollbar-thumb, .tbl-scroll::-webkit-scrollbar-thumb {{ background:#33405e; border-radius:6px; }}
   .ca-row{{ display:flex; align-items:flex-start; gap:12px; background:var(--s1); border:1px solid var(--b);
     border-radius:8px; padding:10px 14px; }}
   .ca-rank{{ flex:0 0 26px; text-align:center; font-size:15px; font-weight:900; font-family:var(--mn); color:var(--yl); padding-top:2px; }}
@@ -3447,6 +3489,8 @@ def render_page():
   .pt-input, .pt-select{{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); color:var(--br);
     padding:8px 10px; border-radius:5px; font-size:14px; font-family:var(--mn); outline:none; }}
   .pt-input::placeholder{{ color:var(--tx); }}
+  #wallet-addr{{ background:#e9ecf1; border:1px solid #c3c8d1; color:#1a2a4a; }}
+  #wallet-addr::placeholder{{ color:#6b7280; }}
   .pt-use-live{{ color:var(--tq); cursor:pointer; margin-left:6px; font-size:12px; }}
   .pt-results{{ background:var(--s2); border:1px solid var(--b); border-radius:6px; padding:10px; font-family:var(--mn); font-size:13px; display:none; }}
   .pt-res-row{{ display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.05); }}
@@ -3532,13 +3576,12 @@ def render_page():
         <div>
           <div class="title">{APP_NAME}</div>
           <div class="sub" style="font-size:13px;color:#ffffff;letter-spacing:1.5px">{TAGLINE}</div>
-          <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">\u25CF Frame Live</div>
+          <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">\u25CF {hdr_feeds_active}/{hdr_feeds_total} feeds scanned</div>
         </div>
       </div>
       <div class="hright">
         <span class="dot"></span>
         <span class="run-lbl">LIVE</span>
-        <span class="pill plive" id="feedPill">SHELL OK</span>
         <span class="upd" id="uts">{boot_str}</span>
       </div>
     </div>
@@ -3860,13 +3903,13 @@ def render_page():
         <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5DE\uFE0F</span> Global News Feed &amp; Search</div>
         <input class="gn-search" id="gn-search" type="text" placeholder="\U0001F50D Search XRP news..." oninput="filterFeed()">
         <div class="gn-cats" id="gn-cats">
-          <button class="gn-btn active" data-cat="ALL" onclick="feedCat('ALL',this)">ALL</button>
-          <button class="gn-btn" data-cat="PRICE" onclick="feedCat('PRICE',this)">PRICE</button>
-          <button class="gn-btn" data-cat="LEGAL" onclick="feedCat('LEGAL',this)">LEGAL</button>
-          <button class="gn-btn" data-cat="REG" onclick="feedCat('REG',this)">REG</button>
-          <button class="gn-btn" data-cat="ECOSYSTEM" onclick="feedCat('ECOSYSTEM',this)">ECOSYSTEM</button>
-          <button class="gn-btn" data-cat="TECH" onclick="feedCat('TECH',this)">TECH</button>
-          <button class="gn-btn" data-cat="WHALE" onclick="feedCat('WHALE',this)">WHALE</button>
+          <button class="gn-btn active" data-cat="ALL" style="color:var(--br);border-color:var(--br)" onclick="feedCat('ALL',this)">ALL</button>
+          <button class="gn-btn" data-cat="PRICE" style="color:var(--yl);border-color:var(--yl)" onclick="feedCat('PRICE',this)">PRICE</button>
+          <button class="gn-btn" data-cat="LEGAL" style="color:var(--rd);border-color:var(--rd)" onclick="feedCat('LEGAL',this)">LEGAL</button>
+          <button class="gn-btn" data-cat="REG" style="color:var(--or);border-color:var(--or)" onclick="feedCat('REG',this)">REG</button>
+          <button class="gn-btn" data-cat="ECOSYSTEM" style="color:var(--gr);border-color:var(--gr)" onclick="feedCat('ECOSYSTEM',this)">ECOSYSTEM</button>
+          <button class="gn-btn" data-cat="TECH" style="color:var(--tq);border-color:var(--tq)" onclick="feedCat('TECH',this)">TECH</button>
+          <button class="gn-btn" data-cat="WHALE" style="color:var(--bl);border-color:var(--bl)" onclick="feedCat('WHALE',this)">WHALE</button>
         </div>
         <div class="gn-stats"><b id="gn-shown">{gn_shown}</b> stories shown &nbsp;|&nbsp; {gn_total} total &nbsp;|&nbsp; {sb_feeds} sources online</div>
         <div class="gn-list" id="gn-list">
@@ -3991,6 +4034,7 @@ def render_page():
         <div class="brf-strip" id="brf-strip">
           {brf_strip_html}
         </div>
+        <div class="brf-pending-msg" id="brf-pending-msg" style="display:none"></div>
       </div>
 
       <div class="brf-head">
@@ -4018,7 +4062,7 @@ def render_page():
     <!-- SECTION 18: WORLD BRIEFING CLOCKS -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F310</span> World Briefing Clocks</div>
-      <div class="trk-tag" style="color:var(--tx)">Local time across major crypto hubs, with each city's 1st (12:00 PM CST) and 2nd (9:00 PM CST) briefing time \u2014 yellow by day, gray by night.</div>
+      <div class="trk-tag" style="color:var(--tx)">Local time across major crypto hubs, with each city's 1st (12:00 PM CST) and 2nd (9:00 PM CST) briefing time \u2014 orange by day, gray by night.</div>
       <div class="wc-row">
         {wc_html}
       </div>
@@ -4113,7 +4157,7 @@ def render_page():
       <div class="sec-title" style="color:var(--bl)"><span class="sic">\u2694\uFE0F</span> Competitive Briefing</div>
 
       <div class="trk-tag" style="color:var(--tx)">XRP vs major competitors \u2014 live performance.</div>
-      <div style="overflow-x:auto;margin-bottom:14px">
+      <div class="tbl-scroll" style="margin-bottom:14px">
         <table class="pt-tbl">
           <thead><tr><th>Asset</th><th style="text-align:right">Price</th><th style="text-align:right">24h %</th>
             <th style="text-align:right">7d %</th><th style="text-align:right">Market Cap</th><th>XRP Edge</th></tr></thead>
@@ -4204,7 +4248,7 @@ def render_page():
       </div>
 
       <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">\U0001F4CA XRP ETF / ETP Tracker</div>
-      <div style="overflow-x:auto;margin-bottom:16px">
+      <div class="tbl-scroll" style="margin-bottom:16px">
         <table class="pt-tbl">
           <thead><tr><th>Applicant</th><th>Product</th><th>Market</th><th>Status</th><th>Filed</th><th>Note</th></tr></thead>
           <tbody>{etf_html}</tbody>
@@ -4259,13 +4303,13 @@ def render_page():
       </div>
       <input class="pl-search" id="pl-search" type="text" placeholder="\U0001F50D Search institution, country, category..." oninput="filterPartnerships()">
       <div class="pl-cats" id="pl-cats">
-        <button class="pl-btn active" data-cat="ALL" onclick="plCat('ALL',this)">ALL</button>
-        <button class="pl-btn" data-cat="A" onclick="plCat('A',this)">\U0001F680 ODL/XRP Live</button>
-        <button class="pl-btn" data-cat="B" onclick="plCat('B',this)">\U0001F3DB\uFE0F Global Banks</button>
-        <button class="pl-btn" data-cat="C" onclick="plCat('C',this)">\U0001F6E0\uFE0F Tech/Custody</button>
-        <button class="pl-btn" data-cat="D" onclick="plCat('D',this)">\U0001F30D Regional</button>
-        <button class="pl-btn" data-cat="E" onclick="plCat('E',this)">\U0001F7E1 ETF/Treasury</button>
-        <button class="pl-btn" data-cat="N" onclick="plCat('N',this)">\U0001F195 New Deals</button>
+        <button class="pl-btn active" data-cat="ALL" style="color:var(--br);border-color:var(--br)" onclick="plCat('ALL',this)">ALL</button>
+        <button class="pl-btn" data-cat="A" style="color:var(--gr);border-color:var(--gr)" onclick="plCat('A',this)">\U0001F680 ODL/XRP Live</button>
+        <button class="pl-btn" data-cat="B" style="color:var(--bl);border-color:var(--bl)" onclick="plCat('B',this)">\U0001F3DB\uFE0F Global Banks</button>
+        <button class="pl-btn" data-cat="C" style="color:var(--tq);border-color:var(--tq)" onclick="plCat('C',this)">\U0001F6E0\uFE0F Tech/Custody</button>
+        <button class="pl-btn" data-cat="D" style="color:var(--or);border-color:var(--or)" onclick="plCat('D',this)">\U0001F30D Regional</button>
+        <button class="pl-btn" data-cat="E" style="color:var(--yl);border-color:var(--yl)" onclick="plCat('E',this)">\U0001F7E1 ETF/Treasury</button>
+        <button class="pl-btn" data-cat="N" style="color:var(--yl);border-color:var(--yl)" onclick="plCat('N',this)">\U0001F195 New Deals</button>
       </div>
       <div class="pl-stats">
         <b id="pl-shown">{min(pl_total, 30)}</b> shown &nbsp;|&nbsp; <b>{pl_total}</b> total &nbsp;|&nbsp;
@@ -4610,6 +4654,16 @@ def render_page():
       var _bd = document.getElementById('brief-archive-data');
       briefArchive = _bd ? JSON.parse(_bd.textContent) : {{}};
     }} catch (e) {{ briefArchive = {{}}; }}
+
+    function showPending(edition) {{
+      var msg = document.getElementById('brf-pending-msg');
+      if (!msg) return;
+      msg.textContent = '\U0001F52E ' + edition + ' edition hasn\\'t published yet \\u2014 check back at ' +
+        (edition === 'AM' ? '12:00 PM CST' : '9:00 PM CST') + '.';
+      msg.style.display = 'block';
+      clearTimeout(window._brfPendingTimer);
+      window._brfPendingTimer = setTimeout(function () {{ msg.style.display = 'none'; }}, 4000);
+    }}
 
     function showBrief(slotId) {{
       var d = briefArchive[slotId];
