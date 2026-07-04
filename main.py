@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 58 — Fix: removed stray leftover title/note block above flagship section
+Version 59 — Fix: return-to-XRPRadar button now resilient to back-navigation/tab-switch
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "58"
+APP_VERSION = "59"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -4548,7 +4548,7 @@ def render_page():
     </div>
 
   <!-- FLOATING RETURN / BACK-TO-TOP -->
-  <button id="back-to-top" title="Return to top of site" aria-label="Return to site">&#8679;</button>
+  <button id="back-to-top" title="Return to XRPRadar" aria-label="Return to XRPRadar">&#8679;</button>
 
   <!-- FOOTER -->
   <footer>
@@ -4898,10 +4898,15 @@ def render_page():
 
     (function () {{
       var btn = document.getElementById('back-to-top'); if (!btn) return;
-      function toggle() {{ btn.style.display = (window.scrollY > 200) ? 'flex' : 'none'; }}
+      function toggle() {{ btn.style.display = (window.scrollY > 120 || document.documentElement.scrollTop > 120) ? 'flex' : 'none'; }}
       window.addEventListener('scroll', toggle, {{ passive:true }});
+      document.addEventListener('scroll', toggle, {{ passive:true }});
+      window.addEventListener('pageshow', toggle);       // fires on back/forward-cache restore (mobile Safari, etc.)
+      document.addEventListener('visibilitychange', function () {{ if (!document.hidden) toggle(); }});
       btn.addEventListener('click', function () {{ window.scrollTo({{ top:0, behavior:'smooth' }}); }});
       toggle();
+      setTimeout(toggle, 400);   // safety re-check after late layout shifts (widgets, images loading)
+      setInterval(toggle, 2000); // low-frequency safety net in case a scroll event is ever missed
     }})();
   </script>
 
