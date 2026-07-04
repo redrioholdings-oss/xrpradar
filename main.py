@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 54 — XRPRadar Exclusive Intelligence: Catalyst Clock (chunk 3 of 5)
+Version 55 — XRPRadar Exclusive Intelligence: Narrative Diffusion Map (chunk 4 of 5)
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "54"
+APP_VERSION = "55"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -725,6 +725,34 @@ def fetch_news():
     _track_sentiment_history(pool)
     _detect_partnership_deals(pool)
     _track_catalyst_clock(pool)
+    _track_narrative_diffusion(pool)
+
+
+# ── Narrative Diffusion Map — how fast a theme spreads from first mention to full regional coverage ──
+# Reuses the existing theme keywords (Intelligence Brief) and region tags (news engine) already computed
+# per story. Persistent accumulator, builds up honestly over time.
+NARRATIVE_DIFFUSION = {}   # theme -> {"first_seen": dt, "regions": {region: dt_first_seen_in_region}}
+_DIFFUSION_SEEN_KEYS = set()
+
+def _track_narrative_diffusion(pool):
+    for s in pool:
+        key = s["key"]
+        if key in _DIFFUSION_SEEN_KEYS:
+            continue
+        text = (s["title"] + " " + s.get("summary", "")).lower()
+        matched = [name for name, kws in _BRIEF_THEMES.items() if any(kw in text for kw in kws)]
+        if not matched:
+            continue
+        _DIFFUSION_SEEN_KEYS.add(key)
+        dt = s["dt"]
+        region = s.get("region")
+        for theme in matched:
+            entry = NARRATIVE_DIFFUSION.setdefault(theme, {"first_seen": dt, "regions": {}})
+            if dt < entry["first_seen"]:
+                entry["first_seen"] = dt
+            if region:
+                if region not in entry["regions"] or dt < entry["regions"][region]:
+                    entry["regions"][region] = dt
 
 
 # ── Catalyst Clock — when XRP-moving stories actually break (hour x weekday, UTC) ──
@@ -930,6 +958,51 @@ def clarity_tracker_html():
 
 
 _WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+def narrative_diffusion_html(limit=6):
+    if not NARRATIVE_DIFFUSION:
+        return ('<div class="home-base"><div class="home-base-icon">\U0001F30D</div>'
+                '<div class="home-base-title">Monitoring Narrative Spread</div>'
+                '<div class="home-base-sub">As themes emerge and reach multiple regions, their spread timeline '
+                'will appear here automatically.</div></div>', "\u2014")
+
+    themes = sorted(NARRATIVE_DIFFUSION.items(),
+                     key=lambda kv: (len(kv[1]["regions"]), kv[1]["first_seen"]), reverse=True)[:limit]
+    now = datetime.now(timezone.utc)
+    cards = ""
+    fastest_theme, fastest_span = None, None
+    for theme, data in NARRATIVE_DIFFUSION.items():
+        regs = data["regions"]
+        if len(regs) >= 2:
+            span = max(regs.values()) - min(regs.values())
+            if fastest_span is None or span < fastest_span:
+                fastest_span, fastest_theme = span, theme
+
+    for theme, data in themes:
+        age = _time_ago(data["first_seen"])
+        regs_sorted = sorted(data["regions"].items(), key=lambda kv: kv[1])
+        n_regs = len(regs_sorted)
+        chips = ""
+        for region, dt in regs_sorted:
+            lag_sec = (dt - data["first_seen"]).total_seconds()
+            lag_txt = "first" if lag_sec < 60 else f"+{int(lag_sec // 3600)}h" if lag_sec >= 3600 else f"+{int(lag_sec // 60)}m"
+            chips += (f'<span class="nd-chip">{REGION_FLAGS.get(region, "")} {region} '
+                      f'<span class="nd-lag">{lag_txt}</span></span>')
+        spread_note = (f'Reached {n_regs} regions' if n_regs >= 2 else 'Still regional \u2014 1 region so far')
+        cards += (
+            f'<div class="nd-card"><div class="nd-top"><span class="nd-theme">{html.escape(theme)}</span>'
+            f'<span class="nd-age">first seen {age}</span></div>'
+            f'<div class="nd-chips">{chips}</div>'
+            f'<div class="nd-note">{spread_note}</div></div>'
+        )
+
+    if fastest_theme and fastest_span:
+        h = fastest_span.total_seconds() / 3600
+        fastest_txt = f'"{fastest_theme}" reached multiple regions in {h:.1f}h' if h >= 1 else f'"{fastest_theme}" reached multiple regions in {int(fastest_span.total_seconds()//60)}m'
+    else:
+        fastest_txt = "\u2014 (building up)"
+    return cards, fastest_txt
+
 
 def catalyst_clock_html():
     mx = max(max(row) for row in CATALYST_CLOCK) or 1
@@ -2720,6 +2793,7 @@ def render_page():
     pm_bars, pm_total, pm_this_week, pm_trend, pm_tcol, pm_avg = partnership_momentum_html()
     cc_cells, cc_peak, cc_hourlbls = catalyst_clock_html()
     cc_total = _CATALYST_TOTAL
+    nd_cards, nd_fastest = narrative_diffusion_html()
 
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
@@ -3337,6 +3411,23 @@ def render_page():
   .cc-hourlbls{{ display:flex; gap:2px; margin-top:2px; margin-left:32px; min-width:608px; }}
   .cc-hourlbl{{ flex:1; font-size:9px; color:var(--tx); font-family:var(--mn); text-align:center; min-width:8px; }}
   .cc-scrollnote{{ font-size:11px; color:var(--tx); font-family:var(--mn); margin-top:8px; }}
+
+  /* Narrative Diffusion Map */
+  .nd-panel{{ margin-top:16px; background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px; }}
+  .nd-title{{ font-size:14px; font-weight:800; font-family:var(--mn); color:var(--tq); margin-bottom:4px; display:flex; align-items:center; gap:8px; }}
+  .nd-sub{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-bottom:8px; }}
+  .nd-fastest{{ font-size:13px; font-family:var(--mn); color:var(--br); margin-bottom:12px; }}
+  .nd-fastest b{{ color:var(--tq); }}
+  .nd-list{{ display:flex; flex-direction:column; gap:8px; }}
+  .nd-card{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:10px 14px; }}
+  .nd-top{{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px; }}
+  .nd-theme{{ font-size:13px; font-weight:800; color:var(--br); font-family:var(--mn); }}
+  .nd-age{{ font-size:11px; color:var(--tx); font-family:var(--mn); }}
+  .nd-chips{{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }}
+  .nd-chip{{ font-size:12px; font-family:var(--mn); background:var(--s1); border:1px solid var(--b); border-radius:12px;
+    padding:3px 10px; color:var(--br); }}
+  .nd-lag{{ color:var(--tq); font-weight:700; margin-left:3px; }}
+  .nd-note{{ font-size:11px; color:var(--tx); font-family:var(--mn); }}
 
   /* Practical Tools */
   .pt-cols{{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }}
@@ -4383,7 +4474,7 @@ def render_page():
   <!-- MAIN -->
   <main>
     <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; CATALYST CLOCK CHUNK 3</div>
+    <div class="subtitle">VERSION {APP_VERSION} &middot; NARRATIVE DIFFUSION CHUNK 4</div>
     <div class="note">
       Status rectangles are compact and horizontal again. XRP price is red or
       green by movement; Active Sources uses header blue; Fear &amp; Greed is a
@@ -4442,6 +4533,15 @@ def render_page():
           <div class="cc-hourlbls">{cc_hourlbls}</div>
         </div>
         <div class="cc-scrollnote">Darker = more breaking stories at that hour \u00B7 scroll horizontally on small screens</div>
+      </div>
+
+      <div class="nd-panel">
+        <div class="nd-title">\U0001F30D Narrative Diffusion Map</div>
+        <div class="nd-sub">How fast a story theme spreads from its first mention to full regional coverage \u2014 tracked from our own news timing history.</div>
+        <div class="nd-fastest">Fastest spread so far: <b>{nd_fastest}</b></div>
+        <div class="nd-list">
+          {nd_cards}
+        </div>
       </div>
     </div>
   </main>
