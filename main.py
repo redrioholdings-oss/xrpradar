@@ -1,7 +1,7 @@
 """
 ═══════════════════════════════════════════════════════════════════════
 XRPRadar — Iteration 3
-Version 57 — Copyright archive route added (hidden, frozen, permanent)
+Version 58 — Fix: removed stray leftover title/note block above flagship section
 Red Rio Ventures, LLC
 ═══════════════════════════════════════════════════════════════════════
 
@@ -45,7 +45,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "57"
+APP_VERSION = "58"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3474,7 +3474,7 @@ def render_page():
 
   /* MAIN */
   main{{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }}
-  h1.page-title{{ font-size:22px; font-weight:900; font-style:italic; margin:4px 0; color:var(--br); }}
+ 
   .subtitle{{ color:var(--tx); font-size:13px; font-family:var(--mn); letter-spacing:1px; margin-bottom:22px; }}
   .note{{ border:1px solid var(--b); border-radius:8px; background:var(--s1); padding:16px 20px; color:var(--tx); font-size:14px; }}
 
@@ -4475,17 +4475,6 @@ def render_page():
   </div>
 
   <!-- MAIN -->
-  <main>
-    <h1 class="page-title">{APP_NAME} \u2014 Iteration 3</h1>
-    <div class="subtitle">VERSION {APP_VERSION} &middot; COPYRIGHT ARCHIVE ADDED</div>
-    <div class="note">
-      Status rectangles are compact and horizontal again. XRP price is red or
-      green by movement; Active Sources uses header blue; Fear &amp; Greed is a
-      horizontal color-coded line with a tinted ball showing the number. Labels
-      are white with larger icons. More sections follow, each verified first.
-      ATH, CoinGecko, and access-limited feeds remain permanently excluded.
-    </div>
-
     <!-- SECTION 30: XRPRADAR EXCLUSIVE INTELLIGENCE (flagship) -->
     <div class="acct" style="border-color:rgba(255,204,0,.4);margin:10px 0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
@@ -4557,7 +4546,6 @@ def render_page():
         </div>
       </div>
     </div>
-  </main>
 
   <!-- FLOATING RETURN / BACK-TO-TOP -->
   <button id="back-to-top" title="Return to top of site" aria-label="Return to site">&#8679;</button>
