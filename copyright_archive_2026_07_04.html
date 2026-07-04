@@ -1,11 +1,15 @@
+<!-- 
+  XRPRadar V63 Copyright Archive Snapshot
+  Captured: 2026-07-04 12:04:21 UTC
+  © Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally.
+  This is a frozen snapshot for copyright documentation purposes only.
+  Route: /copyright7_26
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="robots" content="noindex, nofollow, noarchive">
-<meta name="x-archive-date" content="2026-07-04">
-<meta name="x-archive-purpose" content="Copyright documentation snapshot — not a live page">
-
 <meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>XRPRadar — Signals Over Noise 24/7</title>
 <style>
@@ -178,15 +182,16 @@
 
   /* Integration Timeline (horizontal) */
   .tl-wrap{ position:relative; padding:6px 0 4px; }
-  .tl-line{ position:absolute; top:56px; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--yl),var(--gr),transparent); }
+  .tl-line{ position:absolute; top:43px; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--yl),var(--gr),transparent); }
   .tl-track{ display:flex; gap:0; overflow-x:auto; padding-bottom:10px; position:relative;
     scrollbar-width:thin; scrollbar-color:#33405e var(--s2); }
   .tl-track::-webkit-scrollbar{ height:6px; }
   .tl-track::-webkit-scrollbar-track{ background:var(--s2); border-radius:6px; }
   .tl-track::-webkit-scrollbar-thumb{ background:#33405e; border-radius:6px; }
   .tl-node{ flex:0 0 200px; min-width:200px; text-align:center; padding:0 10px; position:relative; }
-  .tl-year{ font-size:16px; font-weight:900; font-family:var(--mn); margin-bottom:8px; }
-  .tl-dot{ border-radius:50%; margin:0 auto 10px; box-shadow:0 0 8px currentColor; border:2px solid var(--bg); }
+  .tl-top{ height:44px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:12px; }
+  .tl-year{ font-size:16px; font-weight:900; font-family:var(--mn); line-height:1; }
+  .tl-dot{ border-radius:50%; box-shadow:0 0 8px currentColor; border:2px solid var(--bg); flex-shrink:0; }
   .tl-event{ font-size:14px; font-weight:800; color:var(--br); font-family:var(--mn); margin-bottom:5px; }
   .tl-detail{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui; }
 
@@ -211,8 +216,9 @@
   .intel-pulse{ font-size:14px; color:var(--br); line-height:1.55; font-family:system-ui; }
   .intel-row{ font-size:13px; color:var(--tx); line-height:1.5; font-family:system-ui; }
   .intel-row b{ color:var(--label,#8099b3); font-family:var(--mn); text-transform:uppercase; letter-spacing:1px; font-size:12px; font-weight:800; }
-  .sig-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
-  .sig-chip{ font-size:12px; font-family:var(--mn); font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid; }
+  .sig-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }
+  .sig-chip{ font-size:12px; font-family:var(--mn); font-weight:700; cursor:default; display:inline-flex; align-items:center; gap:5px; }
+  .sig-chip .sig-dot{ width:7px; height:7px; border-radius:50%; display:inline-block; }
   .rd-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
   .rd-card{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:12px 14px; }
   .rd-top{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }
@@ -235,14 +241,14 @@
 
   /* Global News Feed + right rail */
   .feed-wrap{ display:grid; grid-template-columns:2fr 1fr; gap:10px; margin:10px 0; align-items:start; }
-  .gn-search{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); border-radius:8px;
-    color:var(--br); font-family:var(--mn); font-size:15px; padding:12px 14px; margin-bottom:10px; }
-  .gn-search::placeholder{ color:var(--tx); }
+  .gn-search{ width:100%; box-sizing:border-box; background:#e9ecf1; border:1px solid #c3c8d1; border-radius:8px;
+    color:#1a2a4a; font-family:var(--mn); font-size:15px; padding:12px 14px; margin-bottom:10px; }
+  .gn-search::placeholder{ color:#6b7280; }
   .gn-cats{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
   .gn-btn{ padding:6px 14px; border-radius:6px; font-size:13px; font-weight:700; font-family:var(--mn); letter-spacing:1px;
     border:1px solid var(--b); background:transparent; color:var(--tx); cursor:pointer; opacity:.75; }
   .gn-btn:hover{ opacity:1; }
-  .gn-btn.active{ opacity:1; color:var(--hdr); border-color:var(--hdr); box-shadow:0 0 0 1px var(--hdr) inset; }
+  .gn-btn.active{ opacity:1; box-shadow:0 0 0 1px currentColor inset; }
   .gn-stats{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:10px; }
   .gn-stats b{ color:var(--gr); }
   .gn-list{ display:flex; flex-direction:column; gap:8px; max-height:920px; overflow-y:scroll; padding-right:6px;
@@ -336,12 +342,14 @@
   .brf-slot.ready .brf-slot-ed{ color:var(--tq); }
   .brf-slot.live{ border-color:var(--or); background:rgba(255,153,0,.14); box-shadow:0 0 0 1px var(--or) inset; }
   .brf-slot.live .brf-slot-ed{ color:var(--or); }
-  .brf-slot.pending{ opacity:.45; }
+  .brf-slot.pending{ opacity:.45; cursor:pointer; }
+  .brf-pending-msg{ margin-top:8px; padding:8px 12px; background:rgba(255,153,0,.1); border:1px solid rgba(255,153,0,.35);
+    border-radius:6px; font-size:12px; font-family:var(--mn); color:var(--or); }
   .brf-slot.pending .brf-slot-ed{ color:var(--tx); }
   .brf-slot.active-view{ outline:2px solid var(--br); outline-offset:1px; }
 
   /* Next Briefing countdown teaser — same footprint as Brief Home, white fill */
-  .brf-teaser{ background:#f4f6fa; border:1px solid rgba(255,153,0,.3); border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }
+  .brf-teaser{ background:#e9ecf1; border:1px solid #c3c8d1; border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }
   .brf-teaser-icon{ font-size:26px; line-height:1; margin-bottom:4px; }
   .brf-teaser-line{ font-size:14px; font-weight:800; font-family:var(--mn); color:#1a2a4a; }
   .brf-teaser-line span{ color:var(--or); font-weight:900; }
@@ -477,14 +485,14 @@
   @media(max-width:900px){ .cg-grid{ grid-template-columns:repeat(2,1fr); } }
 
   /* Global XRP Enterprise & Partnership Ledger */
-  .pl-search{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); border-radius:8px;
-    color:var(--br); font-family:var(--mn); font-size:15px; padding:11px 14px; margin-bottom:10px; }
-  .pl-search::placeholder{ color:var(--tx); }
+  .pl-search{ width:100%; box-sizing:border-box; background:#e9ecf1; border:1px solid #c3c8d1; border-radius:8px;
+    color:#1a2a4a; font-family:var(--mn); font-size:15px; padding:11px 14px; margin-bottom:10px; }
+  .pl-search::placeholder{ color:#6b7280; }
   .pl-cats{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
   .pl-btn{ padding:6px 13px; border-radius:6px; font-size:12px; font-weight:700; font-family:var(--mn); letter-spacing:.5px;
     border:1px solid var(--b); background:transparent; color:var(--tx); cursor:pointer; opacity:.75; }
   .pl-btn:hover{ opacity:1; }
-  .pl-btn.active{ opacity:1; color:var(--yl); border-color:var(--yl); box-shadow:0 0 0 1px var(--yl) inset; }
+  .pl-btn.active{ opacity:1; box-shadow:0 0 0 1px currentColor inset; }
   .pl-stats{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-bottom:10px; }
   .pl-stats b{ color:var(--yl); }
   .pl-list{ display:flex; flex-direction:column; gap:7px; max-height:600px; overflow-y:scroll; padding-right:6px;
@@ -536,6 +544,24 @@
 
   /* CLARITY Act Tracker */
   .ca-list{ display:flex; flex-direction:column; gap:7px; max-height:520px; overflow-y:auto; }
+
+  /* Visible thin scrollbars, applied consistently to every scrollable container on the site */
+  .whale-feed, .ex-feed, .gh-feed, .uc-list, .ca-list {
+    scrollbar-width:thin; scrollbar-color:#33405e var(--s2);
+  }
+  .whale-feed::-webkit-scrollbar, .ex-feed::-webkit-scrollbar, .gh-feed::-webkit-scrollbar,
+  .uc-list::-webkit-scrollbar, .ca-list::-webkit-scrollbar { width:8px; }
+  .whale-feed::-webkit-scrollbar-track, .ex-feed::-webkit-scrollbar-track, .gh-feed::-webkit-scrollbar-track,
+  .uc-list::-webkit-scrollbar-track, .ca-list::-webkit-scrollbar-track { background:var(--s2); border-radius:6px; }
+  .whale-feed::-webkit-scrollbar-thumb, .ex-feed::-webkit-scrollbar-thumb, .gh-feed::-webkit-scrollbar-thumb,
+  .uc-list::-webkit-scrollbar-thumb, .ca-list::-webkit-scrollbar-thumb { background:#33405e; border-radius:6px; }
+
+  .flow, .ex-tabs, .cc-panel, .tbl-scroll {
+    scrollbar-width:thin; scrollbar-color:#33405e var(--s2); overflow-x:auto;
+  }
+  .flow::-webkit-scrollbar, .ex-tabs::-webkit-scrollbar, .cc-panel::-webkit-scrollbar, .tbl-scroll::-webkit-scrollbar { height:8px; }
+  .flow::-webkit-scrollbar-track, .ex-tabs::-webkit-scrollbar-track, .cc-panel::-webkit-scrollbar-track, .tbl-scroll::-webkit-scrollbar-track { background:var(--s2); border-radius:6px; }
+  .flow::-webkit-scrollbar-thumb, .ex-tabs::-webkit-scrollbar-thumb, .cc-panel::-webkit-scrollbar-thumb, .tbl-scroll::-webkit-scrollbar-thumb { background:#33405e; border-radius:6px; }
   .ca-row{ display:flex; align-items:flex-start; gap:12px; background:var(--s1); border:1px solid var(--b);
     border-radius:8px; padding:10px 14px; }
   .ca-rank{ flex:0 0 26px; text-align:center; font-size:15px; font-weight:900; font-family:var(--mn); color:var(--yl); padding-top:2px; }
@@ -626,6 +652,8 @@
   .pt-input, .pt-select{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); color:var(--br);
     padding:8px 10px; border-radius:5px; font-size:14px; font-family:var(--mn); outline:none; }
   .pt-input::placeholder{ color:var(--tx); }
+  #wallet-addr{ background:#e9ecf1; border:1px solid #c3c8d1; color:#1a2a4a; }
+  #wallet-addr::placeholder{ color:#6b7280; }
   .pt-use-live{ color:var(--tq); cursor:pointer; margin-left:6px; font-size:12px; }
   .pt-results{ background:var(--s2); border:1px solid var(--b); border-radius:6px; padding:10px; font-family:var(--mn); font-size:13px; display:none; }
   .pt-res-row{ display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.05); }
@@ -653,7 +681,7 @@
 
   /* MAIN */
   main{ max-width:1180px; margin:0 auto; padding:14px 28px 90px; min-height:46vh; }
-  h1.page-title{ font-size:22px; font-weight:900; font-style:italic; margin:4px 0; color:var(--br); }
+ 
   .subtitle{ color:var(--tx); font-size:13px; font-family:var(--mn); letter-spacing:1px; margin-bottom:22px; }
   .note{ border:1px solid var(--b); border-radius:8px; background:var(--s1); padding:16px 20px; color:var(--tx); font-size:14px; }
 
@@ -690,15 +718,6 @@
 </style>
 </head>
 <body id="top">
-<div id="copyright-archive-banner" style="
-  position:sticky; top:0; z-index:99999; width:100%;
-  background:#1a0f00; border-bottom:2px solid #ffcc00;
-  color:#ffcc00; font-family:'Courier New',monospace; font-size:13px;
-  font-weight:800; text-align:center; padding:8px 12px; letter-spacing:.5px;">
-  📋 ARCHIVED COPYRIGHT SNAPSHOT &mdash; Captured July 4, 2026 &mdash; XRPRadar Iteration 3, Version 56.
-  This page is a frozen historical record and will not change. It is not the live site.
-</div>
-
 
   <!-- BREAKING NEWS BAR -->
   <div id="breaking">
@@ -706,7 +725,7 @@
       <div class="bkrow">
         <span class="bklbl"><span class="bk-bolt">⚡</span>BREAKING NEWS</span>
         <div class="bkscroll">
-          <div class="bktext" id="bktext">CoinGape: XRP Ledger Overtakes Ethereum in RLUSD Supply</div>
+          <div class="bktext" id="bktext">🛰️ Connecting to news feeds — breaking alerts appear here automatically.</div>
         </div>
       </div>
     </div>
@@ -720,14 +739,14 @@
         <div>
           <div class="title">XRPRadar</div>
           <div class="sub" style="font-size:13px;color:#ffffff;letter-spacing:1.5px">Signals Over Noise 24/7</div>
-          <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">● Frame Live</div>
+          <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">● 0/314 feeds scanned</div>
         </div>
       </div>
       <div class="hright">
         <span class="dot"></span>
         <span class="run-lbl">LIVE</span>
-        <span class="pill plive" id="feedPill">SHELL OK</span>
-        <span class="upd" id="uts">2026-07-04 00:26:29 UTC</span>
+        <span class="upd" id="uts">2026-07-04 12:04:21 UTC</span>
+        <span style="font-size:11px;color:var(--tx);margin-left:8px;letter-spacing:0.5px">v63</span>
       </div>
     </div>
 
@@ -736,8 +755,8 @@
       <div class="si">
         <span class="si-lbl"><span class="ic" style="color:var(--gr);font-weight:900">$</span> XRP / USD</span>
         <span>
-          <span class="sv" id="st-price" style="color:#ff4060;display:block">$1.0428</span>
-          <span class="sv-sub" id="st-chg" style="color:#ff4060;text-align:right;display:block">▼ 1.85%</span>
+          <span class="sv" id="st-price" style="color:#8099b3;display:block">—</span>
+          <span class="sv-sub" id="st-chg" style="color:#8099b3;text-align:right;display:block"></span>
         </span>
       </div>
       <div class="si">
@@ -746,7 +765,7 @@
       </div>
       <div class="si">
         <span class="si-lbl"><span class="ic">😰</span> Fear &amp; Greed</span>
-        <div class="fng-wrap"><div class="fng-bar"></div><div class="fng-ball" style="left:32%;background:#ea8c00">32</div></div>
+        <div class="fng-wrap"><div class="fng-bar"></div><div class="fng-ball" style="left:50%;background:#555">--</div></div>
       </div>
     </div>
 
@@ -759,26 +778,26 @@
           <div style="margin-bottom:14px">
             <div class="rsi-head">
               <span style="color:var(--tx)">1H RSI</span>
-              <span style="font-weight:700;color:#75bcff">44.2</span>
-              <span style="color:#75bcff">Neutral</span>
+              <span style="font-weight:700;color:var(--tx)">--</span>
+              <span style="color:var(--tx)">--</span>
             </div>
             <div class="rsi-track">
               <div class="rsi-tick" style="left:30%"></div>
               <div class="rsi-tick" style="left:70%"></div>
-              <div class="rsi-fill" style="width:44.2%;background:#75bcff"></div>
+              <div class="rsi-fill" style="width:50%;background:var(--tx)"></div>
             </div>
             <div class="rsi-scale"><span>0 — Oversold</span><span>30</span><span>50</span><span>70</span><span>Overbought — 100</span></div>
           </div>
           <div>
             <div class="rsi-head">
               <span style="color:var(--tx)">1D RSI</span>
-              <span style="font-weight:700;color:#75bcff">38.5</span>
-              <span style="color:#75bcff">Neutral</span>
+              <span style="font-weight:700;color:var(--tx)">--</span>
+              <span style="color:var(--tx)">--</span>
             </div>
             <div class="rsi-track">
               <div class="rsi-tick" style="left:30%"></div>
               <div class="rsi-tick" style="left:70%"></div>
-              <div class="rsi-fill" style="width:38.5%;background:#75bcff"></div>
+              <div class="rsi-fill" style="width:50%;background:var(--tx)"></div>
             </div>
             <div class="rsi-scale"><span>0 — Oversold</span><span>30</span><span>50</span><span>70</span><span>Overbought — 100</span></div>
           </div>
@@ -787,17 +806,17 @@
         <div class="acct grow" style="border-color:rgba(3,177,252,.35)">
           <div class="sec-title" style="color:var(--hdr)"><span class="sic">📅</span> 52-Week Range</div>
           <div class="w52-row">
-            <span>Low: <strong style="color:var(--rd)">$0.4200</strong></span>
-            <span style="color:var(--tx)">Current: <strong style="color:var(--br)">$1.0428</strong></span>
-            <span>High: <strong style="color:var(--gr)">$3.6500</strong></span>
+            <span>Low: <strong style="color:var(--rd)">--</strong></span>
+            <span style="color:var(--tx)">Current: <strong style="color:var(--br)">--</strong></span>
+            <span>High: <strong style="color:var(--gr)">--</strong></span>
           </div>
           <div class="w52-bar">
-            <div class="w52-needle" style="left:19.28173374613003%"></div>
+            <div class="w52-needle" style="left:50%"></div>
           </div>
           <div class="w52-row">
-            <span style="color:var(--tx)">From low: <strong style="color:var(--gr)">+148.3%</strong></span>
-            <span style="color:var(--tx)">Position: <strong style="color:var(--yl)">19%</strong></span>
-            <span style="color:var(--tx)">From high: <strong style="color:var(--rd)">-71.4%</strong></span>
+            <span style="color:var(--tx)">From low: <strong style="color:var(--gr)">--</strong></span>
+            <span style="color:var(--tx)">Position: <strong style="color:var(--yl)">--</strong></span>
+            <span style="color:var(--tx)">From high: <strong style="color:var(--rd)">--</strong></span>
           </div>
         </div>
       </div>
@@ -806,18 +825,18 @@
       <div class="col">
         <div class="acct" style="border-color:rgba(255,64,96,.35)">
           <div class="sec-title" style="color:var(--hdr)"><span class="sic">🎯</span> Support &amp; Resistance</div>
-          <div class="sr-line"><span style="color:var(--rd)">Resistance</span><span style="color:var(--rd);font-weight:700">$1.1500</span></div><div class="sr-line"><span style="color:var(--tx)">Current</span><span style="color:var(--br);font-weight:700">$1.0428</span></div><div class="sr-line"><span style="color:var(--gr)">Support</span><span style="color:var(--gr);font-weight:700">$0.9800</span></div>
+          <div class="empty">Calculating from 90-day price history...</div>
         </div>
 
         <div class="acct grow" style="border-color:rgba(3,177,252,.35)">
           <div class="sec-title" style="color:var(--hdr)"><span class="sic">📆</span> Price Time Machine</div>
           <div class="agrid2">
-            <div class="abox"><div class="albl">1 Year Ago</div><div class="aval">$0.5800</div><div class="asub" style="color:#48ff82">▲ 79.8%</div></div>
-            <div class="abox"><div class="albl">1 Month Ago</div><div class="aval">$1.2100</div><div class="asub" style="color:#ff4060">▼ 13.8%</div></div>
+            <div class="abox"><div class="albl">1 Year Ago</div><div class="aval">--</div><div class="asub">--</div></div>
+            <div class="abox"><div class="albl">1 Month Ago</div><div class="aval">--</div><div class="asub">--</div></div>
           </div>
           <div class="tvs">
             <div class="tvs-lbl">Today vs 1 Year Ago</div>
-            <div class="tvs-txt" id="pt-narrative">XRP is up 79.8% versus one year ago ($0.5800 then vs $1.0428 now).</div>
+            <div class="tvs-txt" id="pt-narrative">Loading...</div>
           </div>
         </div>
       </div>
@@ -878,10 +897,10 @@
       <div class="panel" style="border-color:rgba(255,204,0,.35)">
         <div class="ph">
           <span class="pt" style="color:var(--hdr)"><span class="sic">🐳</span> Whale Alert Feed</span>
-          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="whale-ts">6h ago</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="whale-ts">—</span>
         </div>
         <div class="whale-feed" id="whale-feed">
-          <div class="wa-row"><span class="wa-src">U.Today</span><a class="wa-hl" href="https://example.com/n3" target="_blank" rel="noopener">Whale Moves 40 Million XRP to Cold Storage</a><span class="wa-time">6h ago</span></div>
+          <div class="home-base"><div class="home-base-icon">🐳</div><div class="home-base-title">Monitoring On-Chain Movements</div><div class="home-base-sub">Whale-sized transfers surface here automatically as soon as they appear in the live news feed — no action needed.</div></div>
         </div>
       </div>
     </div>
@@ -970,7 +989,7 @@
       <div class="tl-wrap">
         <div class="tl-line"></div>
         <div class="tl-track">
-          <div class="tl-node"><div class="tl-year" style="color:var(--yl)">2012</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div><div class="tl-event">Ripple Founded</div><div class="tl-detail">OpenCoin (later Ripple) created with a mission to replace correspondent banking.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2018</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">First Bank Partnerships</div><div class="tl-detail">Santander One Pay FX and American Express FX International Payments launch on RippleNet.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2019</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">ODL Goes Live</div><div class="tl-detail">On-Demand Liquidity launches commercially. XRP used as a bridge currency at scale for the first time.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--yl)">2020</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div><div class="tl-event">SEC Lawsuit</div><div class="tl-detail">SEC files suit — temporarily freezing institutional adoption in the US. Global expansion continues.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2021</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">SBI + Tranglo</div><div class="tl-detail">SBI Holdings scales Japan operations. Ripple acquires 40% of Tranglo — an SE Asia ODL hub.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2022</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">SWIFT ISO 20022</div><div class="tl-detail">SWIFT mandates ISO 20022 migration — the same standard XRPL natively supports. Alignment begins.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2023</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">Bhutan CBDC Live</div><div class="tl-detail">Bank of Bhutan launches a national digital currency on XRPL. First sovereign CBDC on the ledger.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2023</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">Partial Legal Victory</div><div class="tl-detail">Judge Torres: XRP is not a security in programmatic sales. US institutional adoption starts thawing.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2024</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">XRPL EVM Sidechain</div><div class="tl-detail">An Ethereum-compatible sidechain launches on XRPL — opening DeFi and smart-contract integration.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2025</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">SEC Settlement</div><div class="tl-detail">SEC drops the case. $50M settlement. Full US regulatory clarity arrives; institutional floodgates open.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2025</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">ETF Filings Wave</div><div class="tl-detail">Bitwise, WisdomTree, and Canary Capital file US spot XRP ETF applications. European ETPs already live.</div></div><div class="tl-node"><div class="tl-year" style="color:var(--gr)">2026</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event">TradFi Integration Era</div><div class="tl-detail">Banks, asset managers, and payment networks actively building on XRPL. Post-lawsuit adoption accelerating.</div></div>
+          <div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--yl)">2012</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div></div><div class="tl-event">Ripple Founded</div><div class="tl-detail">OpenCoin (later Ripple) created with a mission to replace correspondent banking.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2018</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">First Bank Partnerships</div><div class="tl-detail">Santander One Pay FX and American Express FX International Payments launch on RippleNet.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2019</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">ODL Goes Live</div><div class="tl-detail">On-Demand Liquidity launches commercially. XRP used as a bridge currency at scale for the first time.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--yl)">2020</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div></div><div class="tl-event">SEC Lawsuit</div><div class="tl-detail">SEC files suit — temporarily freezing institutional adoption in the US. Global expansion continues.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2021</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">SBI + Tranglo</div><div class="tl-detail">SBI Holdings scales Japan operations. Ripple acquires 40% of Tranglo — an SE Asia ODL hub.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2022</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">SWIFT ISO 20022</div><div class="tl-detail">SWIFT mandates ISO 20022 migration — the same standard XRPL natively supports. Alignment begins.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2023</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">Bhutan CBDC Live</div><div class="tl-detail">Bank of Bhutan launches a national digital currency on XRPL. First sovereign CBDC on the ledger.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2023</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">Partial Legal Victory</div><div class="tl-detail">Judge Torres: XRP is not a security in programmatic sales. US institutional adoption starts thawing.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2024</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">XRPL EVM Sidechain</div><div class="tl-detail">An Ethereum-compatible sidechain launches on XRPL — opening DeFi and smart-contract integration.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2025</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">SEC Settlement</div><div class="tl-detail">SEC drops the case. $50M settlement. Full US regulatory clarity arrives; institutional floodgates open.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2025</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">ETF Filings Wave</div><div class="tl-detail">Bitwise, WisdomTree, and Canary Capital file US spot XRP ETF applications. European ETPs already live.</div></div><div class="tl-node"><div class="tl-top"><div class="tl-year" style="color:var(--gr)">2026</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event">TradFi Integration Era</div><div class="tl-detail">Banks, asset managers, and payment networks actively building on XRPL. Post-lawsuit adoption accelerating.</div></div>
         </div>
       </div>
     </div>
@@ -980,11 +999,11 @@
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">🏆</span> Top 20 XRP Stories</div>
       <div class="eco-sub-h" style="padding:0"><span style="font-size:20px">📰</span> Top 20 Current Stories</div>
       <div class="story-list">
-        <a class="story" href="https://example.com/n1" target="_blank" rel="noopener"><span class="story-num">1</span><span class="story-body"><span class="story-hl">XRP Ledger Overtakes Ethereum in RLUSD Supply</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · CoinGape · 1h ago</span></span></a><a class="story" href="https://example.com/n2" target="_blank" rel="noopener"><span class="story-num">2</span><span class="story-body"><span class="story-hl">SEC Settlement Brings Long-Awaited Clarity for XRP</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · CoinDesk · 4h ago</span></span></a><a class="story" href="https://example.com/n7" target="_blank" rel="noopener"><span class="story-num">3</span><span class="story-body"><span class="story-hl">CLARITY Act Faces Ethics Provision Standoff in Senate</span><span class="story-meta"><span style="color:var(--tx);font-weight:700">neutral</span> · The Hill · 5h ago</span></span></a><a class="story" href="https://example.com/n3" target="_blank" rel="noopener"><span class="story-num">4</span><span class="story-body"><span class="story-hl">Whale Moves 40 Million XRP to Cold Storage</span><span class="story-meta"><span style="color:var(--tx);font-weight:700">neutral</span> · U.Today · 6h ago</span></span></a><a class="story" href="https://example.com/n4" target="_blank" rel="noopener"><span class="story-num">5</span><span class="story-body"><span class="story-hl">Ripple Expands RLUSD Stablecoin to New Markets</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · Cointelegraph · 8h ago</span></span></a><a class="story" href="https://example.com/n5" target="_blank" rel="noopener"><span class="story-num">6</span><span class="story-body"><span class="story-hl">XRP Price Consolidates Near Key Support Level</span><span class="story-meta"><span style="color:var(--tx);font-weight:700">neutral</span> · NewsBTC · 10h ago</span></span></a><a class="story" href="https://example.com/n6" target="_blank" rel="noopener"><span class="story-num">7</span><span class="story-body"><span class="story-hl">Bank of Korea Explores XRPL for Settlement Pilot</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · AMBCrypto · 14h ago</span></span></a><a class="story" href="https://example.com/n8" target="_blank" rel="noopener"><span class="story-num">8</span><span class="story-body"><span class="story-hl">XRPL Validator Count Reaches New High</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · CryptoSlate · 20h ago</span></span></a><a class="story" href="https://example.com/n9" target="_blank" rel="noopener"><span class="story-num">9</span><span class="story-body"><span class="story-hl">India Regulator Signals Openness to Crypto Framework</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · Bitcoinist · 1d ago</span></span></a><a class="story" href="https://example.com/n10" target="_blank" rel="noopener"><span class="story-num">10</span><span class="story-body"><span class="story-hl">XRP Trading Volume Surges on Middle East Exchange</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · CryptoPotato · 1d ago</span></span></a>
+        <div class="empty">Connecting to news feeds… headlines populate on deploy.</div>
       </div>
       <div class="eco-sub-h" style="padding:0"><span style="font-size:20px">🔥</span> Top 20 Most Influential Articles of the Week</div>
       <div class="story-list">
-        <a class="story" href="https://example.com/n1" target="_blank" rel="noopener"><span class="story-num">1</span><span class="story-body"><span class="story-hl">XRP Ledger Overtakes Ethereum in RLUSD Supply</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · CoinGape · 1h ago</span></span></a><a class="story" href="https://example.com/n2" target="_blank" rel="noopener"><span class="story-num">2</span><span class="story-body"><span class="story-hl">SEC Settlement Brings Long-Awaited Clarity for XRP</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · CoinDesk · 4h ago</span></span></a><a class="story" href="https://example.com/n7" target="_blank" rel="noopener"><span class="story-num">3</span><span class="story-body"><span class="story-hl">CLARITY Act Faces Ethics Provision Standoff in Senate</span><span class="story-meta"><span style="color:var(--tx);font-weight:700">neutral</span> · The Hill · 5h ago</span></span></a><a class="story" href="https://example.com/n4" target="_blank" rel="noopener"><span class="story-num">4</span><span class="story-body"><span class="story-hl">Ripple Expands RLUSD Stablecoin to New Markets</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · Cointelegraph · 8h ago</span></span></a><a class="story" href="https://example.com/n6" target="_blank" rel="noopener"><span class="story-num">5</span><span class="story-body"><span class="story-hl">Bank of Korea Explores XRPL for Settlement Pilot</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · AMBCrypto · 14h ago</span></span></a><a class="story" href="https://example.com/n3" target="_blank" rel="noopener"><span class="story-num">6</span><span class="story-body"><span class="story-hl">Whale Moves 40 Million XRP to Cold Storage</span><span class="story-meta"><span style="color:var(--tx);font-weight:700">neutral</span> · U.Today · 6h ago</span></span></a><a class="story" href="https://example.com/n9" target="_blank" rel="noopener"><span class="story-num">7</span><span class="story-body"><span class="story-hl">India Regulator Signals Openness to Crypto Framework</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · Bitcoinist · 1d ago</span></span></a><a class="story" href="https://example.com/n10" target="_blank" rel="noopener"><span class="story-num">8</span><span class="story-body"><span class="story-hl">XRP Trading Volume Surges on Middle East Exchange</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · CryptoPotato · 1d ago</span></span></a><a class="story" href="https://example.com/n8" target="_blank" rel="noopener"><span class="story-num">9</span><span class="story-body"><span class="story-hl">XRPL Validator Count Reaches New High</span><span class="story-meta"><span style="color:var(--gr);font-weight:700">bullish</span> · CryptoSlate · 20h ago</span></span></a><a class="story" href="https://example.com/n5" target="_blank" rel="noopener"><span class="story-num">10</span><span class="story-body"><span class="story-hl">XRP Price Consolidates Near Key Support Level</span><span class="story-meta"><span style="color:var(--tx);font-weight:700">neutral</span> · NewsBTC · 10h ago</span></span></a>
+        <div class="empty">Connecting to news feeds… headlines populate on deploy.</div>
       </div>
     </div>
 
@@ -993,23 +1012,23 @@
       <div class="intel" style="border-color:rgba(3,177,252,.35)">
         <div class="intel-h">
           <span class="intel-t" style="color:var(--hdr)"><span class="sic">🇺🇸</span> US Intelligence</span>
-          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">2026-07-04 00:26:34 UTC</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">2026-07-04 12:04:22 UTC</span>
         </div>
         <div class="intel-b">
-          <div class="intel-pulse">3 US-focused XRP stories this cycle; sentiment reads bullish (2 bullish, 0 bearish), centered on regulatory clarity and institutional access.</div>
-          <div class="intel-row"><b>Regulatory</b><br>2 stories touch US regulation (SEC / CFTC / legislation).</div>
-          <div class="intel-row"><b>Institutional</b><br>No notable US institutional moves this cycle.</div>
+          <div class="intel-pulse">Awaiting US market signals — the news feed is still loading.</div>
+          <div class="intel-row"><b>Regulatory</b><br>No US regulatory headlines in the current cycle.</div>
+          <div class="intel-row"><b>Institutional</b><br>No US institutional headlines in the current cycle.</div>
         </div>
       </div>
       <div class="intel" style="border-color:rgba(72,255,130,.35)">
         <div class="intel-h">
           <span class="intel-t" style="color:var(--hdr)"><span class="sic">🌐</span> Global Pulse</span>
-          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">2026-07-04 00:26:34 UTC</span>
+          <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">2026-07-04 12:04:22 UTC</span>
         </div>
         <div class="intel-b">
-          <div class="intel-pulse">10 XRP stories across 5 active regions; the global tape reads risk-on (7 bullish, 0 bearish).</div>
-          <div class="intel-row"><b>Thesis</b><br>Positive momentum is concentrated in Korea, UAE, Europe, India. Broad positive flow supports continuation — watch US regulatory catalysts for confirmation.</div>
-          <div class="sig-row"><span class="sig-chip" style="color:var(--yl);border-color:var(--yl)">🇯🇵 Japan: neutral</span><span class="sig-chip" style="color:var(--gr);border-color:var(--gr)">🇰🇷 Korea: bullish</span><span class="sig-chip" style="color:var(--gr);border-color:var(--gr)">🇦🇪 UAE: bullish</span><span class="sig-chip" style="color:var(--gr);border-color:var(--gr)">🇪🇺 Europe: bullish</span><span class="sig-chip" style="color:var(--gr);border-color:var(--gr)">🇮🇳 India: bullish</span><span class="sig-chip" style="color:var(--tx);border-color:var(--tx)">🌎 LatAm: quiet</span><span class="sig-chip" style="color:var(--tx);border-color:var(--tx)">🌍 Africa: quiet</span><span class="sig-chip" style="color:var(--tx);border-color:var(--tx)">🌏 SEA: quiet</span></div>
+          <div class="intel-pulse">Awaiting global signals — the news feed is still loading.</div>
+          <div class="intel-row"><b>Thesis</b><br>Region signals populate as feeds report in.</div>
+          <div class="sig-row"><span class="sig-chip" style="color:var(--tx)"><span class="sig-dot" style="background:var(--tx)"></span>🇯🇵 Japan: quiet</span><span class="sig-chip" style="color:var(--tx)"><span class="sig-dot" style="background:var(--tx)"></span>🇰🇷 Korea: quiet</span><span class="sig-chip" style="color:var(--tx)"><span class="sig-dot" style="background:var(--tx)"></span>🇦🇪 UAE: quiet</span><span class="sig-chip" style="color:var(--tx)"><span class="sig-dot" style="background:var(--tx)"></span>🇪🇺 Europe: quiet</span><span class="sig-chip" style="color:var(--tx)"><span class="sig-dot" style="background:var(--tx)"></span>🇮🇳 India: quiet</span><span class="sig-chip" style="color:var(--tx)"><span class="sig-dot" style="background:var(--tx)"></span>🌎 LatAm: quiet</span><span class="sig-chip" style="color:var(--tx)"><span class="sig-dot" style="background:var(--tx)"></span>🌍 Africa: quiet</span><span class="sig-chip" style="color:var(--tx)"><span class="sig-dot" style="background:var(--tx)"></span>🌏 SEA: quiet</span></div>
         </div>
       </div>
     </div>
@@ -1018,7 +1037,7 @@
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">🗺️</span> Regional Discourse</div>
       <div class="rd-grid">
-        <div class="rd-card"><div class="rd-top"><span class="rd-name">🇯🇵 Japan</span><span class="rd-sig" style="color:var(--yl);border-color:var(--yl)">neutral</span></div><div class="rd-count">1 story</div><div class="rd-hl">Whale Moves 40 Million XRP to Cold Storage</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🇰🇷 Korea</span><span class="rd-sig" style="color:var(--gr);border-color:var(--gr)">bullish</span></div><div class="rd-count">1 story</div><div class="rd-hl">Bank of Korea Explores XRPL for Settlement Pilot</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🇦🇪 UAE</span><span class="rd-sig" style="color:var(--gr);border-color:var(--gr)">bullish</span></div><div class="rd-count">1 story</div><div class="rd-hl">XRP Trading Volume Surges on Middle East Exchange</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🇪🇺 Europe</span><span class="rd-sig" style="color:var(--gr);border-color:var(--gr)">bullish</span></div><div class="rd-count">1 story</div><div class="rd-hl">Ripple Expands RLUSD Stablecoin to New Markets</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🇮🇳 India</span><span class="rd-sig" style="color:var(--gr);border-color:var(--gr)">bullish</span></div><div class="rd-count">1 story</div><div class="rd-hl">India Regulator Signals Openness to Crypto Framework</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🌎 LatAm</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🌍 Africa</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🌏 SEA</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div>
+        <div class="rd-card"><div class="rd-top"><span class="rd-name">🇯🇵 Japan</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🇰🇷 Korea</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🇦🇪 UAE</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🇪🇺 Europe</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🇮🇳 India</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🌎 LatAm</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🌍 Africa</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div><div class="rd-card"><div class="rd-top"><span class="rd-name">🌏 SEA</span><span class="rd-sig" style="color:var(--tx);border-color:var(--tx)">quiet</span></div><div class="rd-count">0 stories</div><div class="rd-hl">No regional stories yet — feeds are loading.</div></div>
       </div>
     </div>
 
@@ -1026,20 +1045,20 @@
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">📡</span> Signal Scoreboard</div>
       <div class="sb-grid">
-        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">10</div><div class="sb-lbl">Stories Tracked</div><div class="sb-sub">10/11 sources</div></div>
-        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">7</div><div class="sb-lbl">Bullish</div><div class="sb-sub">70%</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">0</div><div class="sb-lbl">Stories Tracked</div><div class="sb-sub">0/314 sources</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">0</div><div class="sb-lbl">Bullish</div><div class="sb-sub">0%</div></div>
         <div class="sb-box"><div class="sb-num" style="color:var(--rd)">0</div><div class="sb-lbl">Bearish</div><div class="sb-sub">0%</div></div>
-        <div class="sb-box"><div class="sb-num">3</div><div class="sb-lbl">Neutral</div><div class="sb-sub" style="color:var(--gr)">Net: +7</div></div>
-        <div class="sb-box"><div class="sb-num" style="color:var(--yl)">32</div><div class="sb-lbl">Fear &amp; Greed</div><div class="sb-sub">Fear</div></div>
-        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">#6</div><div class="sb-lbl">Global Rank</div><div class="sb-sub">CoinCap</div></div>
+        <div class="sb-box"><div class="sb-num">0</div><div class="sb-lbl">Neutral</div><div class="sb-sub" style="color:var(--gr)">Net: +0</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--yl)">—</div><div class="sb-lbl">Fear &amp; Greed</div><div class="sb-sub">—</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">#—</div><div class="sb-lbl">Global Rank</div><div class="sb-sub">CoinCap</div></div>
       </div>
       <div class="sb-grid4">
-        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">$61.20B</div><div class="sb-lbl">Market Cap</div></div>
-        <div class="sb-box"><div class="sb-num" style="color:var(--yl)">$2.21B</div><div class="sb-lbl">24h Volume</div></div>
-        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">$1.0870</div><div class="sb-lbl">24h High</div></div>
-        <div class="sb-box"><div class="sb-num" style="color:var(--rd)">$1.0180</div><div class="sb-lbl">24h Low</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">—</div><div class="sb-lbl">Market Cap</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--yl)">—</div><div class="sb-lbl">24h Volume</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">—</div><div class="sb-lbl">24h High</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--rd)">—</div><div class="sb-lbl">24h Low</div></div>
       </div>
-      <div class="sb-bar"><div class="sb-fill" style="width:70%"></div></div>
+      <div class="sb-bar"><div class="sb-fill" style="width:0%"></div></div>
     </div>
 
     <!-- SECTION 14: GLOBAL NEWS FEED + RIGHT RAIL -->
@@ -1048,17 +1067,17 @@
         <div class="sec-title" style="color:var(--hdr)"><span class="sic">🗞️</span> Global News Feed &amp; Search</div>
         <input class="gn-search" id="gn-search" type="text" placeholder="🔍 Search XRP news..." oninput="filterFeed()">
         <div class="gn-cats" id="gn-cats">
-          <button class="gn-btn active" data-cat="ALL" onclick="feedCat('ALL',this)">ALL</button>
-          <button class="gn-btn" data-cat="PRICE" onclick="feedCat('PRICE',this)">PRICE</button>
-          <button class="gn-btn" data-cat="LEGAL" onclick="feedCat('LEGAL',this)">LEGAL</button>
-          <button class="gn-btn" data-cat="REG" onclick="feedCat('REG',this)">REG</button>
-          <button class="gn-btn" data-cat="ECOSYSTEM" onclick="feedCat('ECOSYSTEM',this)">ECOSYSTEM</button>
-          <button class="gn-btn" data-cat="TECH" onclick="feedCat('TECH',this)">TECH</button>
-          <button class="gn-btn" data-cat="WHALE" onclick="feedCat('WHALE',this)">WHALE</button>
+          <button class="gn-btn active" data-cat="ALL" style="color:var(--br);border-color:var(--br)" onclick="feedCat('ALL',this)">ALL</button>
+          <button class="gn-btn" data-cat="PRICE" style="color:var(--yl);border-color:var(--yl)" onclick="feedCat('PRICE',this)">PRICE</button>
+          <button class="gn-btn" data-cat="LEGAL" style="color:var(--rd);border-color:var(--rd)" onclick="feedCat('LEGAL',this)">LEGAL</button>
+          <button class="gn-btn" data-cat="REG" style="color:var(--or);border-color:var(--or)" onclick="feedCat('REG',this)">REG</button>
+          <button class="gn-btn" data-cat="ECOSYSTEM" style="color:var(--gr);border-color:var(--gr)" onclick="feedCat('ECOSYSTEM',this)">ECOSYSTEM</button>
+          <button class="gn-btn" data-cat="TECH" style="color:var(--tq);border-color:var(--tq)" onclick="feedCat('TECH',this)">TECH</button>
+          <button class="gn-btn" data-cat="WHALE" style="color:var(--bl);border-color:var(--bl)" onclick="feedCat('WHALE',this)">WHALE</button>
         </div>
-        <div class="gn-stats"><b id="gn-shown">10</b> stories shown &nbsp;|&nbsp; 10 total &nbsp;|&nbsp; 10/11 sources online</div>
+        <div class="gn-stats"><b id="gn-shown">0</b> stories shown &nbsp;|&nbsp; 0 total &nbsp;|&nbsp; 0/314 sources online</div>
         <div class="gn-list" id="gn-list">
-          <div class="gn-card" data-cat="ECOSYSTEM" data-text="xrp ledger overtakes ethereum in rlusd supply xrp ledger overtakes ethereum in rlusd supply — full coverage and analysis."><div class="gn-top"><span class="gn-src">CoinGape</span><span class="gn-cat">Ecosystem</span><span class="gn-break">⚡ BREAKING</span><span class="gn-time">1h ago</span></div><a class="gn-hl" href="https://example.com/n1" target="_blank" rel="noopener">XRP Ledger Overtakes Ethereum in RLUSD Supply</a><div class="gn-sum">XRP Ledger Overtakes Ethereum in RLUSD Supply — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:var(--gr)"></span><span style="color:var(--gr);text-transform:capitalize">bullish</span></div></div><div class="gn-card" data-cat="LEGAL" data-text="sec settlement brings long-awaited clarity for xrp sec settlement brings long-awaited clarity for xrp — full coverage and analysis."><div class="gn-top"><span class="gn-src">CoinDesk</span><span class="gn-cat">Legal</span><span class="gn-break">⚡ BREAKING</span><span class="gn-time">4h ago</span></div><a class="gn-hl" href="https://example.com/n2" target="_blank" rel="noopener">SEC Settlement Brings Long-Awaited Clarity for XRP</a><div class="gn-sum">SEC Settlement Brings Long-Awaited Clarity for XRP — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:var(--gr)"></span><span style="color:var(--gr);text-transform:capitalize">bullish</span></div></div><div class="gn-card" data-cat="LEGAL" data-text="clarity act faces ethics provision standoff in senate clarity act faces ethics provision standoff in senate — full coverage and analysis."><div class="gn-top"><span class="gn-src">The Hill</span><span class="gn-cat">Legal</span><span class="gn-time">5h ago</span></div><a class="gn-hl" href="https://example.com/n7" target="_blank" rel="noopener">CLARITY Act Faces Ethics Provision Standoff in Senate</a><div class="gn-sum">CLARITY Act Faces Ethics Provision Standoff in Senate — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:#8099b3"></span><span style="color:#8099b3;text-transform:capitalize">neutral</span></div></div><div class="gn-card" data-cat="WHALE" data-text="whale moves 40 million xrp to cold storage whale moves 40 million xrp to cold storage — full coverage and analysis."><div class="gn-top"><span class="gn-src">U.Today</span><span class="gn-cat">Whale</span><span class="gn-time">6h ago</span></div><a class="gn-hl" href="https://example.com/n3" target="_blank" rel="noopener">Whale Moves 40 Million XRP to Cold Storage</a><div class="gn-sum">Whale Moves 40 Million XRP to Cold Storage — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:#8099b3"></span><span style="color:#8099b3;text-transform:capitalize">neutral</span></div></div><div class="gn-card" data-cat="ECOSYSTEM" data-text="ripple expands rlusd stablecoin to new markets ripple expands rlusd stablecoin to new markets — full coverage and analysis."><div class="gn-top"><span class="gn-src">Cointelegraph</span><span class="gn-cat">Ecosystem</span><span class="gn-time">8h ago</span></div><a class="gn-hl" href="https://example.com/n4" target="_blank" rel="noopener">Ripple Expands RLUSD Stablecoin to New Markets</a><div class="gn-sum">Ripple Expands RLUSD Stablecoin to New Markets — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:var(--gr)"></span><span style="color:var(--gr);text-transform:capitalize">bullish</span></div></div><div class="gn-card" data-cat="PRICE" data-text="xrp price consolidates near key support level xrp price consolidates near key support level — full coverage and analysis."><div class="gn-top"><span class="gn-src">NewsBTC</span><span class="gn-cat">Price</span><span class="gn-time">10h ago</span></div><a class="gn-hl" href="https://example.com/n5" target="_blank" rel="noopener">XRP Price Consolidates Near Key Support Level</a><div class="gn-sum">XRP Price Consolidates Near Key Support Level — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:#8099b3"></span><span style="color:#8099b3;text-transform:capitalize">neutral</span></div></div><div class="gn-card" data-cat="ECOSYSTEM" data-text="bank of korea explores xrpl for settlement pilot bank of korea explores xrpl for settlement pilot — full coverage and analysis."><div class="gn-top"><span class="gn-src">AMBCrypto</span><span class="gn-cat">Ecosystem</span><span class="gn-time">14h ago</span></div><a class="gn-hl" href="https://example.com/n6" target="_blank" rel="noopener">Bank of Korea Explores XRPL for Settlement Pilot</a><div class="gn-sum">Bank of Korea Explores XRPL for Settlement Pilot — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:var(--gr)"></span><span style="color:var(--gr);text-transform:capitalize">bullish</span></div></div><div class="gn-card" data-cat="TECH" data-text="xrpl validator count reaches new high xrpl validator count reaches new high — full coverage and analysis."><div class="gn-top"><span class="gn-src">CryptoSlate</span><span class="gn-cat">Tech</span><span class="gn-time">20h ago</span></div><a class="gn-hl" href="https://example.com/n8" target="_blank" rel="noopener">XRPL Validator Count Reaches New High</a><div class="gn-sum">XRPL Validator Count Reaches New High — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:var(--gr)"></span><span style="color:var(--gr);text-transform:capitalize">bullish</span></div></div><div class="gn-card" data-cat="REG" data-text="india regulator signals openness to crypto framework india regulator signals openness to crypto framework — full coverage and analysis."><div class="gn-top"><span class="gn-src">Bitcoinist</span><span class="gn-cat">Reg</span><span class="gn-time">1d ago</span></div><a class="gn-hl" href="https://example.com/n9" target="_blank" rel="noopener">India Regulator Signals Openness to Crypto Framework</a><div class="gn-sum">India Regulator Signals Openness to Crypto Framework — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:var(--gr)"></span><span style="color:var(--gr);text-transform:capitalize">bullish</span></div></div><div class="gn-card" data-cat="ECOSYSTEM" data-text="xrp trading volume surges on middle east exchange xrp trading volume surges on middle east exchange — full coverage and analysis."><div class="gn-top"><span class="gn-src">CryptoPotato</span><span class="gn-cat">Ecosystem</span><span class="gn-time">1d ago</span></div><a class="gn-hl" href="https://example.com/n10" target="_blank" rel="noopener">XRP Trading Volume Surges on Middle East Exchange</a><div class="gn-sum">XRP Trading Volume Surges on Middle East Exchange — full coverage and analysis.</div><div class="gn-foot"><span class="gn-dot" style="background:var(--gr)"></span><span style="color:var(--gr);text-transform:capitalize">bullish</span></div></div>
+          <div class="empty">Connecting to news feeds… stories populate on deploy.</div>
         </div>
         <div class="gn-empty" id="gn-empty" style="display:none">No stories match your filter.</div>
       </div>
@@ -1076,15 +1095,15 @@
         </div>
         <div class="rail-panel">
           <div class="rail-h"><span class="sic">📊</span> Market Structure</div>
-          <div class="rail-row"><span class="rail-k">Price</span><span class="rail-v">$1.0428</span></div>
-          <div class="rail-row"><span class="rail-k">24h Change</span><span class="rail-v" style="color:var(--rd)">-1.85%</span></div>
-          <div class="rail-row"><span class="rail-k">Global Rank</span><span class="rail-v" style="color:var(--bl)">#6</span></div>
-          <div class="rail-row"><span class="rail-k">Market Cap</span><span class="rail-v">$61.20B</span></div>
-          <div class="rail-row"><span class="rail-k">24h Volume</span><span class="rail-v">$2.21B</span></div>
-          <div class="rail-row"><span class="rail-k">Vol / MCap</span><span class="rail-v" style="color:var(--yl)">3.61%</span></div>
-          <div class="rail-row"><span class="rail-k">24h High</span><span class="rail-v" style="color:var(--gr)">$1.0870</span></div>
-          <div class="rail-row"><span class="rail-k">24h Low</span><span class="rail-v" style="color:var(--rd)">$1.0180</span></div>
-          <div class="rail-row"><span class="rail-k">XRP/BTC</span><span class="rail-v">0.00001742</span></div>
+          <div class="rail-row"><span class="rail-k">Price</span><span class="rail-v">—</span></div>
+          <div class="rail-row"><span class="rail-k">24h Change</span><span class="rail-v" style="color:var(--tx)">—</span></div>
+          <div class="rail-row"><span class="rail-k">Global Rank</span><span class="rail-v" style="color:var(--bl)">—</span></div>
+          <div class="rail-row"><span class="rail-k">Market Cap</span><span class="rail-v">—</span></div>
+          <div class="rail-row"><span class="rail-k">24h Volume</span><span class="rail-v">—</span></div>
+          <div class="rail-row"><span class="rail-k">Vol / MCap</span><span class="rail-v" style="color:var(--yl)">—</span></div>
+          <div class="rail-row"><span class="rail-k">24h High</span><span class="rail-v" style="color:var(--gr)">—</span></div>
+          <div class="rail-row"><span class="rail-k">24h Low</span><span class="rail-v" style="color:var(--rd)">—</span></div>
+          <div class="rail-row"><span class="rail-k">XRP/BTC</span><span class="rail-v">—</span></div>
         </div>
         <div class="rail-panel">
           <div class="rail-h"><span class="sic">⏳</span> Ripple Escrow</div>
@@ -1100,26 +1119,26 @@
       <div class="lab3">
         <div class="labp">
           <div class="labt"><span style="font-size:20px">📈</span> Signal Metrics</div>
-          <div class="bstat"><span class="bk">Stories Today</span><span class="bv" style="color:var(--bl)">10</span></div>
-          <div class="bstat"><span class="bk">Bullish Signals</span><span class="bv" style="color:var(--gr)">7</span></div>
+          <div class="bstat"><span class="bk">Stories Today</span><span class="bv" style="color:var(--bl)">0</span></div>
+          <div class="bstat"><span class="bk">Bullish Signals</span><span class="bv" style="color:var(--gr)">0</span></div>
           <div class="bstat"><span class="bk">Bearish Signals</span><span class="bv" style="color:var(--rd)">0</span></div>
-          <div class="bstat"><span class="bk">Neutral</span><span class="bv">3</span></div>
-          <div class="bstat"><span class="bk">Net Sentiment</span><span class="bv" style="color:var(--gr)">+7</span></div>
-          <div class="bstat"><span class="bk">Bull/Bear Ratio</span><span class="bv" style="color:var(--yl)">∞ bull/bear</span></div>
+          <div class="bstat"><span class="bk">Neutral</span><span class="bv">0</span></div>
+          <div class="bstat"><span class="bk">Net Sentiment</span><span class="bv" style="color:var(--gr)">+0</span></div>
+          <div class="bstat"><span class="bk">Bull/Bear Ratio</span><span class="bv" style="color:var(--yl)">0:0</span></div>
         </div>
         <div class="labp">
           <div class="labt"><span style="font-size:20px">📊</span> Market Analytics</div>
-          <div class="bstat"><span class="bk">Global Rank</span><span class="bv" style="color:var(--bl)">#6</span></div>
-          <div class="bstat"><span class="bk">Market Cap</span><span class="bv">$61.20B</span></div>
-          <div class="bstat"><span class="bk">24h Volume</span><span class="bv" style="color:var(--yl)">$2.21B</span></div>
-          <div class="bstat"><span class="bk">Vol / MCap %</span><span class="bv" style="color:var(--bl)">3.61%</span></div>
-          <div class="bstat"><span class="bk">Fear &amp; Greed</span><span class="bv" style="color:var(--yl)">32 — Fear</span></div>
-          <div class="bstat"><span class="bk">24h Change</span><span class="bv" style="color:var(--rd)">-1.85%</span></div>
+          <div class="bstat"><span class="bk">Global Rank</span><span class="bv" style="color:var(--bl)">—</span></div>
+          <div class="bstat"><span class="bk">Market Cap</span><span class="bv">—</span></div>
+          <div class="bstat"><span class="bk">24h Volume</span><span class="bv" style="color:var(--yl)">—</span></div>
+          <div class="bstat"><span class="bk">Vol / MCap %</span><span class="bv" style="color:var(--bl)">—</span></div>
+          <div class="bstat"><span class="bk">Fear &amp; Greed</span><span class="bv" style="color:var(--yl)">—</span></div>
+          <div class="bstat"><span class="bk">24h Change</span><span class="bv" style="color:var(--tx)">—</span></div>
         </div>
         <div class="labp">
           <div class="labt"><span style="font-size:20px">🔍</span> Feed Intelligence</div>
-          <div class="bstat"><span class="bk">Total Sources</span><span class="bv" style="color:var(--bl)">11</span></div>
-          <div class="bstat"><span class="bk">Active Feeds</span><span class="bv" style="color:var(--gr)">10</span></div>
+          <div class="bstat"><span class="bk">Total Sources</span><span class="bv" style="color:var(--bl)">314</span></div>
+          <div class="bstat"><span class="bk">Active Feeds</span><span class="bv" style="color:var(--gr)">0</span></div>
           <div class="bstat"><span class="bk">Foreign Feeds</span><span class="bv">0 stories</span></div>
           <div class="bstat"><span class="bk">Refresh</span><span class="bv">5 min</span></div>
           <div class="bstat"><span class="bk">Regions Tracked</span><span class="bv" style="color:var(--yl)">8 regions</span></div>
@@ -1127,10 +1146,10 @@
         </div>
       </div>
       <div class="sb-grid4">
-        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">10</div><div class="sb-lbl">Total Stories</div><div class="sb-sub">In memory</div></div>
-        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">70%</div><div class="sb-lbl">Bullish</div><div class="sb-sub">of tracked</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--bl)">0</div><div class="sb-lbl">Total Stories</div><div class="sb-sub">In memory</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">0%</div><div class="sb-lbl">Bullish</div><div class="sb-sub">of tracked</div></div>
         <div class="sb-box"><div class="sb-num" style="color:var(--rd)">0%</div><div class="sb-lbl">Bearish</div><div class="sb-sub">of tracked</div></div>
-        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">+7</div><div class="sb-lbl">Net Sentiment</div><div class="sb-sub">bull − bear</div></div>
+        <div class="sb-box"><div class="sb-num" style="color:var(--gr)">+0</div><div class="sb-lbl">Net Sentiment</div><div class="sb-sub">bull − bear</div></div>
       </div>
     </div>
 
@@ -1141,23 +1160,23 @@
       <div class="lb-grid">
         <div class="lb-panel">
           <div class="lb-t" style="color:var(--yl)">📡 Top Sources Today</div>
-          <div class="lb-row"><span class="lb-rank">1</span><span class="lb-name">CoinGape</span><span class="lb-cnt">1</span></div><div class="lb-row"><span class="lb-rank">2</span><span class="lb-name">CoinDesk</span><span class="lb-cnt">1</span></div><div class="lb-row"><span class="lb-rank">3</span><span class="lb-name">U.Today</span><span class="lb-cnt">1</span></div><div class="lb-row"><span class="lb-rank">4</span><span class="lb-name">Cointelegraph</span><span class="lb-cnt">1</span></div><div class="lb-row"><span class="lb-rank">5</span><span class="lb-name">NewsBTC</span><span class="lb-cnt">1</span></div><div class="lb-row"><span class="lb-rank">6</span><span class="lb-name">AMBCrypto</span><span class="lb-cnt">1</span></div>
+          <div class="lb-empty">Feeds loading…</div>
         </div>
         <div class="lb-panel">
           <div class="lb-t" style="color:var(--bl)">🗺️ Most Active Regions</div>
-          <div class="lb-row"><span class="lb-rank">1</span><span class="lb-name">🇯🇵 Japan</span><span class="lb-cnt">1</span></div><div class="lb-row"><span class="lb-rank">2</span><span class="lb-name">🇪🇺 Europe</span><span class="lb-cnt">1</span></div><div class="lb-row"><span class="lb-rank">3</span><span class="lb-name">🇰🇷 Korea</span><span class="lb-cnt">1</span></div><div class="lb-row"><span class="lb-rank">4</span><span class="lb-name">🇮🇳 India</span><span class="lb-cnt">1</span></div><div class="lb-row"><span class="lb-rank">5</span><span class="lb-name">🇦🇪 UAE</span><span class="lb-cnt">1</span></div>
+          <div class="lb-empty">Feeds loading…</div>
         </div>
         <div class="lb-panel">
           <div class="lb-t" style="color:var(--gr)">🔥 Live Intelligence</div>
           <div class="lb-score">
-            <div class="lb-score-num" style="color:var(--gr)">77</div>
+            <div class="lb-score-num" style="color:var(--yl)">47</div>
             <div class="lb-score-cap">Signal Score / 100</div>
-            <div class="lb-score-lbl" style="color:var(--gr)">STRONG</div>
+            <div class="lb-score-lbl" style="color:var(--yl)">NEUTRAL</div>
           </div>
           <div class="lb-mini">
-            <div class="lb-mini-row"><span>Feeds Active</span><span style="color:var(--gr)">10/11</span></div>
-            <div class="lb-mini-row"><span>Stories Today</span><span style="color:var(--bl)">10</span></div>
-            <div class="lb-mini-row"><span>Bullish Share</span><span style="color:var(--yl)">70%</span></div>
+            <div class="lb-mini-row"><span>Feeds Active</span><span style="color:var(--gr)">0/314</span></div>
+            <div class="lb-mini-row"><span>Stories Today</span><span style="color:var(--bl)">0</span></div>
+            <div class="lb-mini-row"><span>Bullish Share</span><span style="color:var(--yl)">0%</span></div>
           </div>
         </div>
       </div>
@@ -1177,18 +1196,19 @@
         <div class="brf-home-t">📍 This Week's Editions — New Briefs Post Here</div>
         <div class="brf-home-sub">Two new editions every day, always in this spot: AM at 12:00 PM CST, PM at 9:00 PM CST.</div>
         <div class="brf-strip" id="brf-strip">
-          <div class="brf-slot live" data-slot="2026-07-03-AM" onclick="showBrief('2026-07-03-AM')"><div class="brf-slot-day">Fri 3</div><div class="brf-slot-ed">AM ●</div></div><div class="brf-slot pending" data-slot="2026-07-02-PM"><div class="brf-slot-day">Thu 2</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-07-02-AM"><div class="brf-slot-day">Thu 2</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-07-01-PM"><div class="brf-slot-day">Wed 1</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-07-01-AM"><div class="brf-slot-day">Wed 1</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-06-30-PM"><div class="brf-slot-day">Tue 30</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-06-30-AM"><div class="brf-slot-day">Tue 30</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-06-29-PM"><div class="brf-slot-day">Mon 29</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-06-29-AM"><div class="brf-slot-day">Mon 29</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-06-28-PM"><div class="brf-slot-day">Sun 28</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-06-28-AM"><div class="brf-slot-day">Sun 28</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-06-27-PM"><div class="brf-slot-day">Sat 27</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-06-27-AM"><div class="brf-slot-day">Sat 27</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-06-26-PM"><div class="brf-slot-day">Fri 26</div><div class="brf-slot-ed">PM</div></div>
+          <div class="brf-slot live" data-slot="2026-07-03-PM" onclick="showBrief('2026-07-03-PM')"><div class="brf-slot-day">Fri 3</div><div class="brf-slot-ed">PM ●</div></div><div class="brf-slot pending" data-slot="2026-07-03-AM" onclick="showPending('AM')"><div class="brf-slot-day">Fri 3</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-07-02-PM" onclick="showPending('PM')"><div class="brf-slot-day">Thu 2</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-07-02-AM" onclick="showPending('AM')"><div class="brf-slot-day">Thu 2</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-07-01-PM" onclick="showPending('PM')"><div class="brf-slot-day">Wed 1</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-07-01-AM" onclick="showPending('AM')"><div class="brf-slot-day">Wed 1</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-06-30-PM" onclick="showPending('PM')"><div class="brf-slot-day">Tue 30</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-06-30-AM" onclick="showPending('AM')"><div class="brf-slot-day">Tue 30</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-06-29-PM" onclick="showPending('PM')"><div class="brf-slot-day">Mon 29</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-06-29-AM" onclick="showPending('AM')"><div class="brf-slot-day">Mon 29</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-06-28-PM" onclick="showPending('PM')"><div class="brf-slot-day">Sun 28</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-06-28-AM" onclick="showPending('AM')"><div class="brf-slot-day">Sun 28</div><div class="brf-slot-ed">AM</div></div><div class="brf-slot pending" data-slot="2026-06-27-PM" onclick="showPending('PM')"><div class="brf-slot-day">Sat 27</div><div class="brf-slot-ed">PM</div></div><div class="brf-slot pending" data-slot="2026-06-27-AM" onclick="showPending('AM')"><div class="brf-slot-day">Sat 27</div><div class="brf-slot-ed">AM</div></div>
         </div>
+        <div class="brf-pending-msg" id="brf-pending-msg" style="display:none"></div>
       </div>
 
       <div class="brf-head">
         <div>
-          <div class="brf-sub" id="brf-archive-note" style="display:none;color:var(--or)">📁 Viewing an earlier edition — <span class="pt-use-live" onclick="showBrief('2026-07-03-AM')">Back to Live</span></div>
+          <div class="brf-sub" id="brf-archive-note" style="display:none;color:var(--or)">📁 Viewing an earlier edition — <span class="pt-use-live" onclick="showBrief('2026-07-03-PM')">Back to Live</span></div>
         </div>
         <div class="brf-meta">
-          <span class="brf-badge" id="brf-edition-badge">AM EDITION</span>
-          <div class="brf-when" id="brf-generated-line">Published Jul 03, 2026 · 7:26 PM CST</div>
-          <div class="brf-when" id="brf-next-line">Next edition Jul 03, 9:00 PM CST</div>
+          <span class="brf-badge" id="brf-edition-badge">PM EDITION</span>
+          <div class="brf-when" id="brf-generated-line">Published Jul 04, 2026 · 7:04 AM CST</div>
+          <div class="brf-when" id="brf-next-line">Next edition Jul 04, 12:00 PM CST</div>
         </div>
       </div>
       <div class="brf-grid">
@@ -1201,12 +1221,12 @@
       </div>
       <div class="brf-note">⚠️ Informational only — not financial advice. Editions publish at 12:00 PM and 9:00 PM CST and are derived from the live news feed.</div>
     </div>
-    <script type="application/json" id="brief-archive-data">{"2026-07-03-AM": {"edition": "AM", "generated": "Jul 03, 2026 \u00b7 7:26 PM CST", "sections": {"pulse": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "connections": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "domino": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "regional": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "watchlist": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "tradfi": "Awaiting the news feed \u2014 this edition publishes once stories are in."}}}</script>
+    <script type="application/json" id="brief-archive-data">{"2026-07-03-PM": {"edition": "PM", "generated": "Jul 04, 2026 \u00b7 7:04 AM CST", "sections": {"pulse": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "connections": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "domino": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "regional": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "watchlist": "Awaiting the news feed \u2014 this edition publishes once stories are in.", "tradfi": "Awaiting the news feed \u2014 this edition publishes once stories are in."}}}</script>
 
     <!-- SECTION 18: WORLD BRIEFING CLOCKS -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">🌐</span> World Briefing Clocks</div>
-      <div class="trk-tag" style="color:var(--tx)">Local time across major crypto hubs, with each city's 1st (12:00 PM CST) and 2nd (9:00 PM CST) briefing time — yellow by day, gray by night.</div>
+      <div class="trk-tag" style="color:var(--tx)">Local time across major crypto hubs, with each city's 1st (12:00 PM CST) and 2nd (9:00 PM CST) briefing time — orange by day, gray by night.</div>
       <div class="wc-row">
         <div class="wc"><div class="wc-city">UTC</div><div class="wc-clock" data-tz="UTC"><span class="wc-hand wc-hr"></span><span class="wc-hand wc-min"></span><span class="wc-hand wc-sec"></span><span class="wc-center"></span></div><div class="wc-off">UTC ±0</div><div class="wc-b">1st 5:00 PM</div><div class="wc-b">2nd 2:00 AM</div></div><div class="wc"><div class="wc-city">New York</div><div class="wc-clock" data-tz="America/New_York"><span class="wc-hand wc-hr"></span><span class="wc-hand wc-min"></span><span class="wc-hand wc-sec"></span><span class="wc-center"></span></div><div class="wc-off">UTC −4</div><div class="wc-b">1st 1:00 PM</div><div class="wc-b">2nd 10:00 PM</div></div><div class="wc"><div class="wc-city">London</div><div class="wc-clock" data-tz="Europe/London"><span class="wc-hand wc-hr"></span><span class="wc-hand wc-min"></span><span class="wc-hand wc-sec"></span><span class="wc-center"></span></div><div class="wc-off">UTC +1</div><div class="wc-b">1st 6:00 PM</div><div class="wc-b">2nd 3:00 AM</div></div><div class="wc"><div class="wc-city">Dubai</div><div class="wc-clock" data-tz="Asia/Dubai"><span class="wc-hand wc-hr"></span><span class="wc-hand wc-min"></span><span class="wc-hand wc-sec"></span><span class="wc-center"></span></div><div class="wc-off">UTC +4</div><div class="wc-b">1st 9:00 PM</div><div class="wc-b">2nd 6:00 AM</div></div><div class="wc"><div class="wc-city">Singapore</div><div class="wc-clock" data-tz="Asia/Singapore"><span class="wc-hand wc-hr"></span><span class="wc-hand wc-min"></span><span class="wc-hand wc-sec"></span><span class="wc-center"></span></div><div class="wc-off">UTC +8</div><div class="wc-b">1st 1:00 AM</div><div class="wc-b">2nd 10:00 AM</div></div><div class="wc"><div class="wc-city">Hong Kong</div><div class="wc-clock" data-tz="Asia/Hong_Kong"><span class="wc-hand wc-hr"></span><span class="wc-hand wc-min"></span><span class="wc-hand wc-sec"></span><span class="wc-center"></span></div><div class="wc-off">UTC +8</div><div class="wc-b">1st 1:00 AM</div><div class="wc-b">2nd 10:00 AM</div></div><div class="wc"><div class="wc-city">Tokyo</div><div class="wc-clock" data-tz="Asia/Tokyo"><span class="wc-hand wc-hr"></span><span class="wc-hand wc-min"></span><span class="wc-hand wc-sec"></span><span class="wc-center"></span></div><div class="wc-off">UTC +9</div><div class="wc-b">1st 2:00 AM</div><div class="wc-b">2nd 11:00 AM</div></div><div class="wc"><div class="wc-city">Seoul</div><div class="wc-clock" data-tz="Asia/Seoul"><span class="wc-hand wc-hr"></span><span class="wc-hand wc-min"></span><span class="wc-hand wc-sec"></span><span class="wc-center"></span></div><div class="wc-off">UTC +9</div><div class="wc-b">1st 2:00 AM</div><div class="wc-b">2nd 11:00 AM</div></div>
       </div>
@@ -1218,14 +1238,14 @@
       <div class="ud-grid">
         <div class="ud-panel">
           <div class="fg-title"><span style="font-size:20px">🧠</span> Smart Money Score</div>
-          <div><span class="sm-score" style="color:var(--gr)">72</span><span class="sm-cap"> /100</span></div>
-          <div class="sm-label" style="color:var(--gr)">Strong Accumulation</div>
-          <div class="sm-bar"><div class="sm-fill" style="width:72%"></div></div>
-          <div class="sm-row"><span class="sm-k">RSI 1D</span><span class="sm-v">38.5</span></div><div class="sm-row"><span class="sm-k">Sentiment</span><span class="sm-v">70% bullish</span></div>
+          <div><span class="sm-score" style="color:var(--yl)">50</span><span class="sm-cap"> /100</span></div>
+          <div class="sm-label" style="color:var(--yl)">Neutral / Mixed</div>
+          <div class="sm-bar"><div class="sm-fill" style="width:50%"></div></div>
+          <div class="sm-row"><span class="sm-k">Awaiting live signals…</span><span class="sm-v">—</span></div>
         </div>
         <div class="ud-panel">
           <div class="fg-title"><span style="font-size:20px">😰</span> Fear &amp; Greed Index — 30-Day History</div>
-          <div class="fg-chart"><div class="fg-bar" style="height:45%;background:var(--or)" title="45"></div><div class="fg-bar" style="height:42%;background:var(--or)" title="42"></div><div class="fg-bar" style="height:30%;background:var(--or)" title="30"></div><div class="fg-bar" style="height:28%;background:var(--or)" title="28"></div><div class="fg-bar" style="height:22%;background:var(--rd)" title="22"></div><div class="fg-bar" style="height:25%;background:var(--rd)" title="25"></div><div class="fg-bar" style="height:20%;background:var(--rd)" title="20"></div><div class="fg-bar" style="height:18%;background:var(--rd)" title="18"></div><div class="fg-bar" style="height:19%;background:var(--rd)" title="19"></div><div class="fg-bar" style="height:21%;background:var(--rd)" title="21"></div><div class="fg-bar" style="height:24%;background:var(--rd)" title="24"></div><div class="fg-bar" style="height:26%;background:var(--or)" title="26"></div><div class="fg-bar" style="height:30%;background:var(--or)" title="30"></div><div class="fg-bar" style="height:28%;background:var(--or)" title="28"></div><div class="fg-bar" style="height:25%;background:var(--rd)" title="25"></div><div class="fg-bar" style="height:22%;background:var(--rd)" title="22"></div><div class="fg-bar" style="height:20%;background:var(--rd)" title="20"></div><div class="fg-bar" style="height:18%;background:var(--rd)" title="18"></div><div class="fg-bar" style="height:16%;background:var(--rd)" title="16"></div><div class="fg-bar" style="height:19%;background:var(--rd)" title="19"></div><div class="fg-bar" style="height:21%;background:var(--rd)" title="21"></div><div class="fg-bar" style="height:23%;background:var(--rd)" title="23"></div><div class="fg-bar" style="height:25%;background:var(--rd)" title="25"></div><div class="fg-bar" style="height:27%;background:var(--or)" title="27"></div><div class="fg-bar" style="height:29%;background:var(--or)" title="29"></div><div class="fg-bar" style="height:31%;background:var(--or)" title="31"></div><div class="fg-bar" style="height:28%;background:var(--or)" title="28"></div><div class="fg-bar" style="height:24%;background:var(--rd)" title="24"></div><div class="fg-bar" style="height:20%;background:var(--rd)" title="20"></div><div class="fg-bar fg-today" style="height:32%;background:var(--or)" title="32"></div></div>
+          <div class="fg-chart"><div class="empty">Fear &amp; Greed history populates on deploy.</div></div>
           <div class="fg-axis"><span>30 days ago</span><span>20 days ago</span><span>10 days ago</span><span>today</span></div>
           <div class="fg-legend">
             <span><span class="fg-key" style="background:var(--rd)"></span>Extreme Fear (0-25)</span>
@@ -1243,7 +1263,7 @@
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">📈</span> Longitudinal Value Markers</div>
       <div class="trk-tag" style="color:var(--tx)">XRP/USD price performance across key windows.</div>
       <div class="lvm-grid">
-        <div class="lvm-card"><div class="lvm-win">1 Week</div><div class="lvm-val" style="color:var(--rd)">▼ 6.2%</div><div class="lvm-sub">price change</div></div><div class="lvm-card"><div class="lvm-win">30 Day</div><div class="lvm-val" style="color:var(--rd)">▼ 14.5%</div><div class="lvm-sub">price change</div></div><div class="lvm-card"><div class="lvm-win">90 Day</div><div class="lvm-val" style="color:var(--gr)">▲ 9.8%</div><div class="lvm-sub">price change</div></div><div class="lvm-card"><div class="lvm-win">6 Month</div><div class="lvm-val" style="color:var(--gr)">▲ 38.4%</div><div class="lvm-sub">price change</div></div>
+        <div class="lvm-card"><div class="lvm-win">1 Week</div><div class="lvm-val" style="color:var(--tx)">—</div><div class="lvm-sub">price change</div></div><div class="lvm-card"><div class="lvm-win">30 Day</div><div class="lvm-val" style="color:var(--tx)">—</div><div class="lvm-sub">price change</div></div><div class="lvm-card"><div class="lvm-win">90 Day</div><div class="lvm-val" style="color:var(--tx)">—</div><div class="lvm-sub">price change</div></div><div class="lvm-card"><div class="lvm-win">6 Month</div><div class="lvm-val" style="color:var(--tx)">—</div><div class="lvm-sub">price change</div></div>
       </div>
     </div>
 
@@ -1252,7 +1272,7 @@
       <div class="sec-title" style="color:var(--hdr)"><span class="sic">🗺️</span> Regional News Activity Heatmap</div>
       <div class="trk-tag" style="color:var(--tx)">XRP stories by region today — brighter means more coverage.</div>
       <div class="rh-grid">
-        <div class="rh-card" style="background:rgba(72,255,130,0.28);border-color:rgba(72,255,130,0.70)"><div class="rh-flag">🇯🇵</div><div class="rh-name">Japan</div><div class="rh-num" style="color:var(--gr)">1</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:rgba(72,255,130,0.28);border-color:rgba(72,255,130,0.70)"><div class="rh-flag">🇰🇷</div><div class="rh-name">Korea</div><div class="rh-num" style="color:var(--gr)">1</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:rgba(72,255,130,0.28);border-color:rgba(72,255,130,0.70)"><div class="rh-flag">🇦🇪</div><div class="rh-name">UAE/Middle East</div><div class="rh-num" style="color:var(--gr)">1</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:rgba(72,255,130,0.28);border-color:rgba(72,255,130,0.70)"><div class="rh-flag">🇪🇺</div><div class="rh-name">Europe</div><div class="rh-num" style="color:var(--gr)">1</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:rgba(72,255,130,0.28);border-color:rgba(72,255,130,0.70)"><div class="rh-flag">🇮🇳</div><div class="rh-name">India</div><div class="rh-num" style="color:var(--gr)">1</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🌎</div><div class="rh-name">Latin America</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🌍</div><div class="rh-name">Africa</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🌏</div><div class="rh-name">SE Asia</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div>
+        <div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🇯🇵</div><div class="rh-name">Japan</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🇰🇷</div><div class="rh-name">Korea</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🇦🇪</div><div class="rh-name">UAE/Middle East</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🇪🇺</div><div class="rh-name">Europe</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🇮🇳</div><div class="rh-name">India</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🌎</div><div class="rh-name">Latin America</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🌍</div><div class="rh-name">Africa</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div><div class="rh-card" style="background:var(--s2);border-color:var(--b)"><div class="rh-flag">🌏</div><div class="rh-name">SE Asia</div><div class="rh-num" style="color:var(--tx)">0</div><div class="rh-lbl">stories today</div></div>
       </div>
     </div>
 
@@ -1263,21 +1283,21 @@
       <div class="sent-top">
         <div class="ud-panel" style="text-align:center">
           <div class="fg-title" style="justify-content:center"><span style="font-size:18px">📡</span> XRP Interest Score</div>
-          <div class="sm-score" style="color:var(--yl)">28</div>
-          <div class="sm-label" style="color:var(--yl)">😴 Quiet</div>
-          <div class="sm-bar"><div class="sm-fill" style="width:28%"></div></div>
+          <div class="sm-score" style="color:var(--yl)">0</div>
+          <div class="sm-label" style="color:var(--yl)">💤 Minimal</div>
+          <div class="sm-bar"><div class="sm-fill" style="width:0%"></div></div>
           <div class="pt-note" style="margin-top:8px">Derived from live feed velocity</div>
         </div>
         <div class="ud-panel">
           <div class="fg-title"><span style="font-size:18px">📰</span> News Velocity — Stories per Hour (24h)</div>
-          <div class="vel-chart"><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:100%" title="1 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:100%" title="1 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:100%" title="1 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:100%" title="1 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:100%" title="1 stories"></div><div class="vel-bar" style="height:100%" title="1 stories"></div><div class="vel-bar" style="height:100%" title="1 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:100%" title="1 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div></div>
+          <div class="vel-chart"><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div><div class="vel-bar" style="height:6%" title="0 stories"></div></div>
           <div class="fg-axis"><span>24h ago</span><span>12h ago</span><span>now</span></div>
         </div>
       </div>
 
       <div class="ud-panel" style="margin-bottom:14px">
         <div class="fg-title"><span style="font-size:18px">📈</span> Sentiment Trend — Since Deploy (up to 30 days)</div>
-        <div class="sdt-chart"><div class="sdt-bar" style="height:11%;background:var(--gr)" title="2026-07-02: 1 bull / 0 bear / 0 neutral"></div><div class="sdt-bar" style="height:100%;background:var(--gr)" title="2026-07-03: 6 bull / 0 bear / 3 neutral"></div></div>
+        <div class="sdt-chart"><div class="empty">Sentiment history builds day by day as the server runs — check back soon.</div></div>
         <div class="fg-legend" style="margin-top:8px">
           <span><span class="fg-key" style="background:var(--gr)"></span>Bullish day</span>
           <span><span class="fg-key" style="background:var(--rd)"></span>Bearish day</span>
@@ -1291,7 +1311,7 @@
           <thead><tr><th>#</th><th>Source</th><th style="text-align:center">Stories</th>
             <th style="text-align:center">Bull</th><th style="text-align:center">Bear</th>
             <th>Sentiment</th><th style="text-align:center">Breaking</th></tr></thead>
-          <tbody><tr><td>1</td><td style="color:var(--br);font-weight:700">CoinGape</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">1</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:100%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">1</td></tr><tr><td>2</td><td style="color:var(--br);font-weight:700">CoinDesk</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">1</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:100%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">1</td></tr><tr><td>3</td><td style="color:var(--br);font-weight:700">U.Today</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">0</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:0%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">—</td></tr><tr><td>4</td><td style="color:var(--br);font-weight:700">Cointelegraph</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">1</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:100%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">—</td></tr><tr><td>5</td><td style="color:var(--br);font-weight:700">NewsBTC</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">0</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:0%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">—</td></tr><tr><td>6</td><td style="color:var(--br);font-weight:700">AMBCrypto</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">1</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:100%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">—</td></tr><tr><td>7</td><td style="color:var(--br);font-weight:700">The Hill</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">0</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:0%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">—</td></tr><tr><td>8</td><td style="color:var(--br);font-weight:700">CryptoSlate</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">1</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:100%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">—</td></tr><tr><td>9</td><td style="color:var(--br);font-weight:700">Bitcoinist</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">1</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:100%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">—</td></tr><tr><td>10</td><td style="color:var(--br);font-weight:700">CryptoPotato</td><td style="text-align:center">1</td><td style="text-align:center;color:var(--gr)">1</td><td style="text-align:center;color:var(--rd)">0</td><td><div class="sent-bar-mini"><span style="width:100%;background:var(--gr)"></span><span style="width:0%;background:var(--rd)"></span></div></td><td style="text-align:center;color:var(--yl)">—</td></tr></tbody>
+          <tbody><tr><td colspan="6" class="empty">Feeds loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1301,11 +1321,11 @@
       <div class="sec-title" style="color:var(--bl)"><span class="sic">⚔️</span> Competitive Briefing</div>
 
       <div class="trk-tag" style="color:var(--tx)">XRP vs major competitors — live performance.</div>
-      <div style="overflow-x:auto;margin-bottom:14px">
+      <div class="tbl-scroll" style="margin-bottom:14px">
         <table class="pt-tbl">
           <thead><tr><th>Asset</th><th style="text-align:right">Price</th><th style="text-align:right">24h %</th>
             <th style="text-align:right">7d %</th><th style="text-align:right">Market Cap</th><th>XRP Edge</th></tr></thead>
-          <tbody><tr style="background:rgba(117,188,255,.06);border-left:3px solid var(--bl)"><td><span style="margin-right:6px">🪙</span><span style="font-weight:900;color:var(--bl)">XRP</span></td><td style="text-align:right">$1.04</td><td style="text-align:right;color:var(--rd)">-1.85%</td><td style="text-align:right;color:var(--rd)">-6.20%</td><td style="text-align:right;color:var(--tx)">$61.20B</td><td style="color:var(--bl);max-width:260px">🎯 Tracking live</td></tr><tr style=""><td><span style="margin-right:6px">◎</span><span style="font-weight:900;color:var(--br)">SOL</span></td><td style="text-align:right">$145.20</td><td style="text-align:right;color:var(--gr)">+3.10%</td><td style="text-align:right;color:var(--rd)">-5.20%</td><td style="text-align:right;color:var(--tx)">$68.00B</td><td style="color:var(--tx);max-width:260px">Payment rails vs. smart contract platform — XRP settles instantly for a near-zero fee.</td></tr><tr style=""><td><span style="margin-right:6px">⟠</span><span style="font-weight:900;color:var(--br)">ETH</span></td><td style="text-align:right">$3,200.50</td><td style="text-align:right;color:var(--rd)">-1.20%</td><td style="text-align:right;color:var(--gr)">+2.10%</td><td style="text-align:right;color:var(--tx)">$385.00B</td><td style="color:var(--tx);max-width:260px">XRP settles far cheaper per transaction with faster finality — purpose-built for payments.</td></tr><tr style=""><td><span style="margin-right:6px">₳</span><span style="font-weight:900;color:var(--br)">ADA</span></td><td style="text-align:right">$0.4200</td><td style="text-align:right;color:var(--gr)">+0.50%</td><td style="text-align:right;color:var(--rd)">-1.10%</td><td style="text-align:right;color:var(--tx)">$15.00B</td><td style="color:var(--tx);max-width:260px">XRP has live ODL corridors, bank partnerships and regulatory clarity vs. a research-first roadmap.</td></tr><tr style=""><td><span style="margin-right:6px">✦</span><span style="font-weight:900;color:var(--br)">XLM</span></td><td style="text-align:right">$0.1100</td><td style="text-align:right;color:var(--rd)">-0.80%</td><td style="text-align:right;color:var(--gr)">+0.90%</td><td style="text-align:right;color:var(--tx)">$3.20B</td><td style="color:var(--tx);max-width:260px">XRP carries deeper liquidity, more active corridors and broader institutional adoption.</td></tr></tbody>
+          <tbody><tr style="background:rgba(117,188,255,.06);border-left:3px solid var(--bl)"><td><span style="margin-right:6px">🪙</span><span style="font-weight:900;color:var(--bl)">XRP</span></td><td style="text-align:right">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--tx)">—</td><td style="color:var(--bl);max-width:260px">🎯 Tracking live</td></tr><tr style=""><td><span style="margin-right:6px">◎</span><span style="font-weight:900;color:var(--br)">SOL</span></td><td style="text-align:right">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--tx)">—</td><td style="color:var(--tx);max-width:260px">Payment rails vs. smart contract platform — XRP settles instantly for a near-zero fee.</td></tr><tr style=""><td><span style="margin-right:6px">⟠</span><span style="font-weight:900;color:var(--br)">ETH</span></td><td style="text-align:right">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--tx)">—</td><td style="color:var(--tx);max-width:260px">XRP settles far cheaper per transaction with faster finality — purpose-built for payments.</td></tr><tr style=""><td><span style="margin-right:6px">₳</span><span style="font-weight:900;color:var(--br)">ADA</span></td><td style="text-align:right">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--tx)">—</td><td style="color:var(--tx);max-width:260px">XRP has live ODL corridors, bank partnerships and regulatory clarity vs. a research-first roadmap.</td></tr><tr style=""><td><span style="margin-right:6px">✦</span><span style="font-weight:900;color:var(--br)">XLM</span></td><td style="text-align:right">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--gr)">—</td><td style="text-align:right;color:var(--tx)">—</td><td style="color:var(--tx);max-width:260px">XRP carries deeper liquidity, more active corridors and broader institutional adoption.</td></tr></tbody>
         </table>
       </div>
 
@@ -1344,7 +1364,7 @@
       <div class="ed-panel" style="border-color:rgba(255,153,0,.25)">
         <div class="ed-head">
           <span class="ed-title" style="color:var(--or)">🎤 Ripple Exec Tracker</span>
-          <span style="font-size:12px;font-family:var(--mn);color:var(--tx)">00:26 UTC</span>
+          <span style="font-size:12px;font-family:var(--mn);color:var(--tx)">12:04 UTC</span>
         </div>
         <div class="ex-tabs" id="ex-tabs">
           <button class="ex-tab on" data-tab="ALL" onclick="execTab('ALL',this)">ALL</button>
@@ -1354,28 +1374,28 @@
           <button class="ex-tab" data-tab="STUART" onclick="execTab('STUART',this)">STUART</button>
         </div>
         <div class="ex-feed" id="ex-feed">
-          <div class="ex-row" data-tab="BRAD"><div class="ex-top"><span class="ex-name">Brad Garlinghouse</span><span class="ex-title">CEO, Ripple</span><span class="ex-time">3h ago</span></div><a class="ex-hl" href="https://example.com/e1" target="_blank" rel="noopener">Garlinghouse: XRP Adoption Accelerating Post-Settlement</a></div><div class="ex-row" data-tab="DAVID"><div class="ex-top"><span class="ex-name">David Schwartz</span><span class="ex-title">CTO, Ripple</span><span class="ex-time">9h ago</span></div><a class="ex-hl" href="https://example.com/e2" target="_blank" rel="noopener">Schwartz Discusses XRPL Roadmap for 2026</a></div><div class="ex-row" data-tab="STUART"><div class="ex-top"><span class="ex-name">Stuart Alderoty</span><span class="ex-title">Chief Legal Officer, Ripple</span><span class="ex-time">18h ago</span></div><a class="ex-hl" href="https://example.com/e3" target="_blank" rel="noopener">Alderoty: Regulatory Clarity a Turning Point for Industry</a></div>
+          <div class="home-base"><div class="home-base-icon">🎤</div><div class="home-base-title">Monitoring Executive Statements</div><div class="home-base-sub">Public statements from Ripple’s leadership team surface here automatically as they’re published.</div></div>
         </div>
       </div>
 
       <div class="ed-panel" style="border-color:rgba(72,255,130,.2)">
         <div class="ed-head">
           <span class="ed-title" style="color:var(--gr)">💻 XRPL Dev Activity</span>
-          <span style="font-size:12px;font-family:var(--mn);color:var(--tx)">00:26 UTC</span>
+          <span style="font-size:12px;font-family:var(--mn);color:var(--tx)">12:04 UTC</span>
         </div>
         <div class="gh-stats">
-          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--gr)">11</div><div class="gh-stat-lbl">rippled commits<br>7 days</div></div>
-          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--bl)">7</div><div class="gh-stat-lbl">other repos<br>7 days</div></div>
-          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--yl)">4,832</div><div class="gh-stat-lbl">GitHub stars<br>3 repos</div></div>
-          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--or)">118</div><div class="gh-stat-lbl">open issues<br>3 repos</div></div>
+          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--gr)">0</div><div class="gh-stat-lbl">rippled commits<br>7 days</div></div>
+          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--bl)">0</div><div class="gh-stat-lbl">other repos<br>7 days</div></div>
+          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--yl)">0</div><div class="gh-stat-lbl">GitHub stars<br>3 repos</div></div>
+          <div class="gh-stat"><div class="gh-stat-num" style="color:var(--or)">0</div><div class="gh-stat-lbl">open issues<br>3 repos</div></div>
         </div>
         <div class="gh-latest">
           <div class="gh-latest-lbl">Latest commit</div>
-          <div class="gh-latest-msg">Improve consensus timing under load</div>
-          <div class="gh-latest-meta">dev1 · 2026-07-04</div>
+          <div class="gh-latest-msg">Awaiting first sync…</div>
+          <div class="gh-latest-meta">—</div>
         </div>
         <div class="gh-feed" id="gh-feed">
-          <div class="gh-row"><span class="gh-repo">rippled</span><a class="gh-msg" href="https://github.com/XRPLF/rippled/commit/1" target="_blank" rel="noopener">Improve consensus timing under load</a><span class="gh-meta">dev1 · 2026-07-04</span></div><div class="gh-row"><span class="gh-repo">xrpl.js</span><a class="gh-msg" href="https://github.com/XRPLF/xrpl.js/commit/2" target="_blank" rel="noopener">Add support for new transaction type</a><span class="gh-meta">dev2 · 2026-07-03</span></div><div class="gh-row"><span class="gh-repo">xrpl-dev-portal</span><a class="gh-msg" href="https://github.com/XRPLF/xrpl-dev-portal/commit/3" target="_blank" rel="noopener">Update AMM documentation</a><span class="gh-meta">dev3 · 2026-07-02</span></div>
+          <div class="home-base"><div class="home-base-icon">💻</div><div class="home-base-title">Monitoring XRPL Development</div><div class="home-base-sub">Commits across rippled, xrpl-dev-portal and xrpl.js surface here automatically.</div></div>
         </div>
       </div>
     </div>
@@ -1392,7 +1412,7 @@
       </div>
 
       <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">📊 XRP ETF / ETP Tracker</div>
-      <div style="overflow-x:auto;margin-bottom:16px">
+      <div class="tbl-scroll" style="margin-bottom:16px">
         <table class="pt-tbl">
           <thead><tr><th>Applicant</th><th>Product</th><th>Market</th><th>Status</th><th>Filed</th><th>Note</th></tr></thead>
           <tbody><tr><td style="font-weight:700;color:var(--br)">21Shares</td><td>XRP ETP</td><td style="color:var(--tx)">Europe</td><td><span class="odl-status" style="background:var(--gr)26;color:var(--gr)">LIVE</span></td><td style="color:var(--tx)">2019</td><td style="color:var(--tx);max-width:220px">Actively trading on SIX Swiss Exchange. AUM growing.</td></tr><tr><td style="font-weight:700;color:var(--br)">CoinShares</td><td>XRP ETP</td><td style="color:var(--tx)">Europe</td><td><span class="odl-status" style="background:var(--gr)26;color:var(--gr)">LIVE</span></td><td style="color:var(--tx)">2020</td><td style="color:var(--tx);max-width:220px">Listed on multiple European exchanges. Institutional grade.</td></tr><tr><td style="font-weight:700;color:var(--br)">WisdomTree</td><td>XRP ETP</td><td style="color:var(--tx)">Europe</td><td><span class="odl-status" style="background:var(--gr)26;color:var(--gr)">LIVE</span></td><td style="color:var(--tx)">2021</td><td style="color:var(--tx);max-width:220px">FCA and EU regulated. Available in UK and Europe.</td></tr><tr><td style="font-weight:700;color:var(--br)">VanEck</td><td>XRP ETP</td><td style="color:var(--tx)">Europe</td><td><span class="odl-status" style="background:var(--gr)26;color:var(--gr)">LIVE</span></td><td style="color:var(--tx)">2021</td><td style="color:var(--tx);max-width:220px">Deutsche Börse listed. Physically backed.</td></tr><tr><td style="font-weight:700;color:var(--br)">Bitwise</td><td>XRP ETF</td><td style="color:var(--tx)">USA</td><td><span class="odl-status" style="background:var(--yl)26;color:var(--yl)">FILED</span></td><td style="color:var(--tx)">2025</td><td style="color:var(--tx);max-width:220px">SEC review pending. Filed as a spot XRP ETF.</td></tr><tr><td style="font-weight:700;color:var(--br)">WisdomTree</td><td>XRP ETF</td><td style="color:var(--tx)">USA</td><td><span class="odl-status" style="background:var(--yl)26;color:var(--yl)">FILED</span></td><td style="color:var(--tx)">2025</td><td style="color:var(--tx);max-width:220px">US spot ETF filing submitted to the SEC.</td></tr><tr><td style="font-weight:700;color:var(--br)">ProShares</td><td>XRP Futures ETF</td><td style="color:var(--tx)">USA</td><td><span class="odl-status" style="background:var(--or)26;color:var(--or)">REVIEW</span></td><td style="color:var(--tx)">2025</td><td style="color:var(--tx);max-width:220px">Futures-based product under SEC consideration.</td></tr><tr><td style="font-weight:700;color:var(--br)">Canary Capital</td><td>XRP ETF</td><td style="color:var(--tx)">USA</td><td><span class="odl-status" style="background:var(--yl)26;color:var(--yl)">FILED</span></td><td style="color:var(--tx)">2024</td><td style="color:var(--tx);max-width:220px">First US spot XRP ETF filing. Pioneer application.</td></tr></tbody>
@@ -1400,7 +1420,7 @@
       </div>
 
       <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">⚖️ SEC Case Timeline</div>
-      <div class="tl-wrap" style="margin-bottom:16px"><div class="tl-line"></div><div class="tl-track"><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-year" style="color:var(--yl);font-size:13px">Dec 2020</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div><div class="tl-event" style="font-size:13px">SEC Files Lawsuit</div><div class="tl-detail" style="font-size:12px">SEC sues Ripple Labs and its CEO for a $1.3B unregistered securities offering.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-year" style="color:var(--yl);font-size:13px">Nov 2022</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div><div class="tl-event" style="font-size:13px">Judge Sides on Documents</div><div class="tl-detail" style="font-size:12px">Court orders release of the Hinman speech documents.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-year" style="color:var(--gr);font-size:13px">Jul 2023</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event" style="font-size:13px">Historic Partial Victory</div><div class="tl-detail" style="font-size:12px">Judge Torres rules XRP is NOT a security in programmatic exchange sales.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-year" style="color:var(--yl);font-size:13px">Aug 2023</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div><div class="tl-event" style="font-size:13px">SEC Appeals</div><div class="tl-detail" style="font-size:12px">SEC files notice of appeal on the programmatic sales ruling.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-year" style="color:var(--gr);font-size:13px">Oct 2024</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event" style="font-size:13px">SEC Drops Charges</div><div class="tl-detail" style="font-size:12px">SEC drops charges against Ripple&#x27;s leadership personally.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-year" style="color:var(--gr);font-size:13px">Mar 2025</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event" style="font-size:13px">Settlement Reached</div><div class="tl-detail" style="font-size:12px">Ripple and SEC settle. $50M fine paid vs. the original $2B demand.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-year" style="color:var(--gr);font-size:13px">2026</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div><div class="tl-event" style="font-size:13px">Post-Settlement Era</div><div class="tl-detail" style="font-size:12px">XRP operating in post-lawsuit clarity under a crypto-friendlier SEC.</div></div></div></div>
+      <div class="tl-wrap" style="margin-bottom:16px"><div class="tl-line"></div><div class="tl-track"><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-top"><div class="tl-year" style="color:var(--yl);font-size:13px">Dec 2020</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div></div><div class="tl-event" style="font-size:13px">SEC Files Lawsuit</div><div class="tl-detail" style="font-size:12px">SEC sues Ripple Labs and its CEO for a $1.3B unregistered securities offering.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-top"><div class="tl-year" style="color:var(--yl);font-size:13px">Nov 2022</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div></div><div class="tl-event" style="font-size:13px">Judge Sides on Documents</div><div class="tl-detail" style="font-size:12px">Court orders release of the Hinman speech documents.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-top"><div class="tl-year" style="color:var(--gr);font-size:13px">Jul 2023</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event" style="font-size:13px">Historic Partial Victory</div><div class="tl-detail" style="font-size:12px">Judge Torres rules XRP is NOT a security in programmatic exchange sales.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-top"><div class="tl-year" style="color:var(--yl);font-size:13px">Aug 2023</div><div class="tl-dot" style="width:11px;height:11px;background:var(--yl)"></div></div><div class="tl-event" style="font-size:13px">SEC Appeals</div><div class="tl-detail" style="font-size:12px">SEC files notice of appeal on the programmatic sales ruling.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-top"><div class="tl-year" style="color:var(--gr);font-size:13px">Oct 2024</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event" style="font-size:13px">SEC Drops Charges</div><div class="tl-detail" style="font-size:12px">SEC drops charges against Ripple&#x27;s leadership personally.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-top"><div class="tl-year" style="color:var(--gr);font-size:13px">Mar 2025</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event" style="font-size:13px">Settlement Reached</div><div class="tl-detail" style="font-size:12px">Ripple and SEC settle. $50M fine paid vs. the original $2B demand.</div></div><div class="tl-node" style="flex-basis:170px;min-width:170px"><div class="tl-top"><div class="tl-year" style="color:var(--gr);font-size:13px">2026</div><div class="tl-dot" style="width:16px;height:16px;background:var(--gr)"></div></div><div class="tl-event" style="font-size:13px">Post-Settlement Era</div><div class="tl-detail" style="font-size:12px">XRP operating in post-lawsuit clarity under a crypto-friendlier SEC.</div></div></div></div>
 
       <div class="trk-tag" style="color:var(--tx);margin-bottom:8px">🇪🇺 MiCA Implementation</div>
       <div style="font-size:13px;color:var(--tx);line-height:1.7;font-family:system-ui;margin-bottom:10px;max-width:820px">
@@ -1420,7 +1440,7 @@
     <div class="acct" style="border-color:rgba(255,153,0,.35);margin:10px 0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px">
         <div class="sec-title" style="color:var(--or);margin:0"><span class="sic">🏛️</span> CLARITY Act Tracker</div>
-        <div style="text-align:right"><div class="pl-counter" style="color:var(--or)">6/10</div>
+        <div style="text-align:right"><div class="pl-counter" style="color:var(--or)">0/10</div>
           <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">most influential stories</div></div>
       </div>
       <div style="font-size:13px;color:var(--tx);line-height:1.7;font-family:system-ui;margin-bottom:12px;max-width:900px">
@@ -1430,7 +1450,7 @@
         news breaks. A fixed top 10, always current.
       </div>
       <div class="ca-list">
-        <div class="ca-row"><div class="ca-rank">#1</div><div class="ca-body"><div class="ca-top"><span class="ca-src">CoinDesk</span><span class="ca-time">8d ago</span></div><a class="ca-hl" href="https://example.com/clarity0" target="_blank" rel="noopener">CLARITY Act Clears Senate Banking Committee 15-9</a></div></div><div class="ca-row"><div class="ca-rank">#2</div><div class="ca-body"><div class="ca-top"><span class="ca-src">The Hill</span><span class="ca-time">6d ago</span></div><a class="ca-hl" href="https://example.com/clarity1" target="_blank" rel="noopener">Ethics Provision Remains Key Sticking Point</a></div></div><div class="ca-row"><div class="ca-rank">#3</div><div class="ca-body"><div class="ca-top"><span class="ca-src">CoinDesk</span><span class="ca-time">4d ago</span></div><a class="ca-hl" href="https://example.com/clarity2" target="_blank" rel="noopener">Industry Groups Push for July Floor Vote</a></div></div><div class="ca-row"><div class="ca-rank">#4</div><div class="ca-body"><div class="ca-top"><span class="ca-src">CryptoTimes</span><span class="ca-time">2d ago</span></div><a class="ca-hl" href="https://example.com/clarity3" target="_blank" rel="noopener">Senate Calendar Crowded Ahead of August Recess</a></div></div><div class="ca-row"><div class="ca-rank">#5</div><div class="ca-body"><div class="ca-top"><span class="ca-src">CoinDesk</span><span class="ca-time">1d ago</span></div><a class="ca-hl" href="https://example.com/clarity4" target="_blank" rel="noopener">Lummis Urges Colleagues to Advance Bill</a></div></div><div class="ca-row"><div class="ca-rank">#6</div><div class="ca-body"><div class="ca-top"><span class="ca-src">The Hill</span><span class="ca-time">10h ago</span></div><a class="ca-hl" href="https://example.com/clarity5" target="_blank" rel="noopener">Democrats Seek CFTC Commissioner Nominations</a></div></div>
+        <div class="home-base"><div class="home-base-icon">🏛️</div><div class="home-base-title">Monitoring the CLARITY Act</div><div class="home-base-sub">The 10 most influential stories on the bill’s progress through the Senate will appear here automatically as they’re published.</div></div>
       </div>
     </div>
 
@@ -1447,13 +1467,13 @@
       </div>
       <input class="pl-search" id="pl-search" type="text" placeholder="🔍 Search institution, country, category..." oninput="filterPartnerships()">
       <div class="pl-cats" id="pl-cats">
-        <button class="pl-btn active" data-cat="ALL" onclick="plCat('ALL',this)">ALL</button>
-        <button class="pl-btn" data-cat="A" onclick="plCat('A',this)">🚀 ODL/XRP Live</button>
-        <button class="pl-btn" data-cat="B" onclick="plCat('B',this)">🏛️ Global Banks</button>
-        <button class="pl-btn" data-cat="C" onclick="plCat('C',this)">🛠️ Tech/Custody</button>
-        <button class="pl-btn" data-cat="D" onclick="plCat('D',this)">🌍 Regional</button>
-        <button class="pl-btn" data-cat="E" onclick="plCat('E',this)">🟡 ETF/Treasury</button>
-        <button class="pl-btn" data-cat="N" onclick="plCat('N',this)">🆕 New Deals</button>
+        <button class="pl-btn active" data-cat="ALL" style="color:var(--br);border-color:var(--br)" onclick="plCat('ALL',this)">ALL</button>
+        <button class="pl-btn" data-cat="A" style="color:var(--gr);border-color:var(--gr)" onclick="plCat('A',this)">🚀 ODL/XRP Live</button>
+        <button class="pl-btn" data-cat="B" style="color:var(--bl);border-color:var(--bl)" onclick="plCat('B',this)">🏛️ Global Banks</button>
+        <button class="pl-btn" data-cat="C" style="color:var(--tq);border-color:var(--tq)" onclick="plCat('C',this)">🛠️ Tech/Custody</button>
+        <button class="pl-btn" data-cat="D" style="color:var(--or);border-color:var(--or)" onclick="plCat('D',this)">🌍 Regional</button>
+        <button class="pl-btn" data-cat="E" style="color:var(--yl);border-color:var(--yl)" onclick="plCat('E',this)">🟡 ETF/Treasury</button>
+        <button class="pl-btn" data-cat="N" style="color:var(--yl);border-color:var(--yl)" onclick="plCat('N',this)">🆕 New Deals</button>
       </div>
       <div class="pl-stats">
         <b id="pl-shown">30</b> shown &nbsp;|&nbsp; <b>100</b> total &nbsp;|&nbsp;
@@ -1498,15 +1518,15 @@
           <div class="am-sub">Chaikin A/D Line — computed from price, volume, and daily range (no wallet tracking involved)</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div class="abox" style="border-left-color:var(--tq)"><div class="abox-lbl">7-Day Signal</div>
-              <div class="abox-val" style="color:var(--gr)">🟢 Accumulation</div></div>
+              <div class="abox-val" style="color:var(--tx)">—</div></div>
             <div class="abox" style="border-left-color:var(--bl)"><div class="abox-lbl">30-Day Signal</div>
-              <div class="abox-val" style="color:var(--rd)">🔴 Distribution</div></div>
+              <div class="abox-val" style="color:var(--tx)">—</div></div>
           </div>
         </div>
         <div class="am-panel">
           <div class="am-title" style="color:var(--tq)">🔢 XRP Correlation Matrix</div>
           <div class="am-sub">30-day return correlation (Pearson) — how closely XRP tracks each asset</div>
-          <div class="corr-row"><span>XRP vs BTC</span><span style="color:var(--gr)">+0.68 <small style="color:var(--tx)">(positive)</small></span></div><div class="corr-row"><span>XRP vs ETH</span><span style="color:var(--gr)">+0.52 <small style="color:var(--tx)">(positive)</small></span></div>
+          <div class="corr-row"><span>XRP vs BTC</span><span style="color:var(--tx)">—</span></div><div class="corr-row"><span>XRP vs ETH</span><span style="color:var(--tx)">—</span></div>
           <div style="margin-top:4px;font-size:11px;color:var(--tx);font-family:var(--mn)">
             +1.0 = moves identically · 0 = unrelated · -1.0 = moves opposite
           </div>
@@ -1517,13 +1537,13 @@
         <div class="am-panel" style="grid-column:1/3">
           <div class="am-title" style="color:var(--gr)">📊 XRP Order Book Depth</div>
           <div class="am-sub">Live bid/ask walls on Binance XRP/USDT — top 8 levels each side</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><div style="font-size:13px;font-weight:700;color:var(--gr);font-family:var(--mn);margin-bottom:6px;text-align:center">🟢 BUY WALLS (BIDS)</div><div class="ob-row"><span class="ob-price gr">$1.0420</span><div class="ob-bar-wrap"><div class="ob-bar gr" style="width:92%"></div></div><span class="ob-qty">4,800</span></div><div class="ob-row"><span class="ob-price gr">$1.0415</span><div class="ob-bar-wrap"><div class="ob-bar gr" style="width:69%"></div></div><span class="ob-qty">3,600</span></div><div class="ob-row"><span class="ob-price gr">$1.0410</span><div class="ob-bar-wrap"><div class="ob-bar gr" style="width:100%"></div></div><span class="ob-qty">5,200</span></div><div class="ob-row"><span class="ob-price gr">$1.0405</span><div class="ob-bar-wrap"><div class="ob-bar gr" style="width:56%"></div></div><span class="ob-qty">2,900</span></div><div style="margin-top:8px;padding:6px;background:rgba(72,255,130,.1);border:1px solid rgba(72,255,130,.2);border-radius:4px;text-align:center"><span style="font-size:12px;color:var(--tx)">Total Bid Depth: </span><span style="font-size:14px;font-weight:700;color:var(--gr);font-family:var(--mn)">$17.8K</span></div></div><div><div style="font-size:13px;font-weight:700;color:var(--rd);font-family:var(--mn);margin-bottom:6px;text-align:center">🔴 SELL WALLS (ASKS)</div><div class="ob-row"><span class="ob-price rd">$1.0430</span><div class="ob-bar-wrap"><div class="ob-bar rd" style="width:79%"></div></div><span class="ob-qty">4,100</span></div><div class="ob-row"><span class="ob-price rd">$1.0435</span><div class="ob-bar-wrap"><div class="ob-bar rd" style="width:63%"></div></div><span class="ob-qty">3,300</span></div><div class="ob-row"><span class="ob-price rd">$1.0440</span><div class="ob-bar-wrap"><div class="ob-bar rd" style="width:90%"></div></div><span class="ob-qty">4,700</span></div><div class="ob-row"><span class="ob-price rd">$1.0445</span><div class="ob-bar-wrap"><div class="ob-bar rd" style="width:50%"></div></div><span class="ob-qty">2,600</span></div><div style="margin-top:8px;padding:6px;background:rgba(255,64,96,.1);border:1px solid rgba(255,64,96,.2);border-radius:4px;text-align:center"><span style="font-size:12px;color:var(--tx)">Total Ask Depth: </span><span style="font-size:14px;font-weight:700;color:var(--rd);font-family:var(--mn)">$15.6K</span></div></div></div>
+          <div class="home-base"><div class="home-base-icon">📊</div><div class="home-base-title">Loading Order Book</div><div class="home-base-sub">Live bid/ask depth from Binance populates on deploy.</div></div>
         </div>
       </div>
       <div class="am-panel" style="margin-top:10px">
         <div class="am-title" style="color:var(--tq)">💧 Liquidity Map</div>
         <div class="am-sub">Bid vs. ask value in the visible order book</div>
-        <div class="liq-bar"><div class="liq-fill" style="width:53%"></div></div><div class="liq-labels"><span style="color:var(--gr)">53% bids</span><span style="color:var(--rd)">47% asks</span></div><div class="liq-skew">Balanced</div><div class="liq-note">Top 8 levels each side · Binance XRP/USDT</div>
+        <div class="empty">Liquidity data populates on deploy.</div>
       </div>
     </div>
 
@@ -1560,17 +1580,17 @@
 
           <!-- Multi-Currency -->
           <div class="pt-panel" style="border-color:rgba(0,229,204,.2)">
-            <div class="pt-head"><span class="pt-title" style="color:var(--tq)">💱 XRP Price — Multi-Currency</span><span class="pt-note">2026-07-04 00:26:34 UTC</span></div>
+            <div class="pt-head"><span class="pt-title" style="color:var(--tq)">💱 XRP Price — Multi-Currency</span><span class="pt-note">2026-07-04 12:04:22 UTC</span></div>
             <div class="fx-grid">
-              <div class="fx-box hi"><div class="fx-lbl">USD 🇺🇸</div><div class="fx-val">$1.0428</div></div>
-              <div class="fx-box"><div class="fx-lbl">EUR 🇪🇺</div><div class="fx-val">€0.9594</div></div>
-              <div class="fx-box"><div class="fx-lbl">GBP 🇬🇧</div><div class="fx-val">£0.8238</div></div>
-              <div class="fx-box"><div class="fx-lbl">JPY 🇯🇵</div><div class="fx-val" style="font-size:16px">¥155.69</div></div>
-              <div class="fx-box"><div class="fx-lbl">AUD 🇦🇺</div><div class="fx-val">A$1.5851</div></div>
-              <div class="fx-box"><div class="fx-lbl">CAD 🇨🇦</div><div class="fx-val">C$1.4182</div></div>
-              <div class="fx-box"><div class="fx-lbl">SGD 🇸🇬</div><div class="fx-val">S$1.3974</div></div>
-              <div class="fx-box"><div class="fx-lbl">INR 🇮🇳</div><div class="fx-val" style="font-size:16px">₹86.66</div></div>
-              <div class="fx-box"><div class="fx-lbl">BRL 🇧🇷</div><div class="fx-val">R$5.6520</div></div>
+              <div class="fx-box hi"><div class="fx-lbl">USD 🇺🇸</div><div class="fx-val">$—</div></div>
+              <div class="fx-box"><div class="fx-lbl">EUR 🇪🇺</div><div class="fx-val">€—</div></div>
+              <div class="fx-box"><div class="fx-lbl">GBP 🇬🇧</div><div class="fx-val">£—</div></div>
+              <div class="fx-box"><div class="fx-lbl">JPY 🇯🇵</div><div class="fx-val" style="font-size:16px">¥—</div></div>
+              <div class="fx-box"><div class="fx-lbl">AUD 🇦🇺</div><div class="fx-val">A$—</div></div>
+              <div class="fx-box"><div class="fx-lbl">CAD 🇨🇦</div><div class="fx-val">C$—</div></div>
+              <div class="fx-box"><div class="fx-lbl">SGD 🇸🇬</div><div class="fx-val">S$—</div></div>
+              <div class="fx-box"><div class="fx-lbl">INR 🇮🇳</div><div class="fx-val" style="font-size:16px">₹—</div></div>
+              <div class="fx-box"><div class="fx-lbl">BRL 🇧🇷</div><div class="fx-val">R$—</div></div>
             </div>
           </div>
         </div>
@@ -1663,22 +1683,11 @@
   </div>
 
   <!-- MAIN -->
-  <main>
-    <h1 class="page-title">XRPRadar — Iteration 3</h1>
-    <div class="subtitle">VERSION 56 &middot; FLAGSHIP COMPLETE</div>
-    <div class="note">
-      Status rectangles are compact and horizontal again. XRP price is red or
-      green by movement; Active Sources uses header blue; Fear &amp; Greed is a
-      horizontal color-coded line with a tinted ball showing the number. Labels
-      are white with larger icons. More sections follow, each verified first.
-      ATH, CoinGecko, and access-limited feeds remain permanently excluded.
-    </div>
-
     <!-- SECTION 30: XRPRADAR EXCLUSIVE INTELLIGENCE (flagship) -->
     <div class="acct" style="border-color:rgba(255,204,0,.4);margin:10px 0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div class="sec-title" style="color:var(--yl);margin:0"><span class="sic">🏆</span> XRPRadar Exclusive Intelligence</div>
-        <div style="font-size:11px;color:var(--tx);font-family:var(--mn);padding-top:4px">Live as of 2026-07-04 00:26:34 UTC</div>
+        <div style="font-size:11px;color:var(--tx);font-family:var(--mn);padding-top:4px">Live as of 2026-07-04 12:04:22 UTC</div>
       </div>
       <div class="flagship-intro">
         Metrics built entirely from data we track ourselves — our own growing partnership ledger, our own executive
@@ -1695,13 +1704,13 @@
 
       <div class="ici-wrap">
         <div class="ici-dial">
-          <div class="ici-score" style="color:var(--gr)">66</div>
+          <div class="ici-score" style="color:var(--or)">35</div>
           <div class="ici-cap">/ 100</div>
-          <div class="ici-label" style="color:var(--gr)">Strong Confidence</div>
-          <div class="ici-bar"><div class="ici-fill" style="width:66%"></div></div>
+          <div class="ici-label" style="color:var(--or)">Cautious</div>
+          <div class="ici-bar"><div class="ici-fill" style="width:35%"></div></div>
         </div>
         <div class="ici-comps">
-          <div class="ici-comp-row"><span class="ici-comp-name">Partnership Momentum</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:25%"></div></div><span class="ici-comp-pts">5/20</span></div><div class="ici-comp-detail">0 new deals detected</div><div class="ici-comp-row"><span class="ici-comp-name">Developer Activity</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:100%"></div></div><span class="ici-comp-pts">20/20</span></div><div class="ici-comp-detail">18 commits/7d</div><div class="ici-comp-row"><span class="ici-comp-name">Smart Money Positioning</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:70%"></div></div><span class="ici-comp-pts">14/20</span></div><div class="ici-comp-detail">72/100 — Strong Accumulation</div><div class="ici-comp-row"><span class="ici-comp-name">Executive Tone</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:65%"></div></div><span class="ici-comp-pts">13/20</span></div><div class="ici-comp-detail">1 positive / 0 negative of 3</div><div class="ici-comp-row"><span class="ici-comp-name">Regulatory Momentum</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:70%"></div></div><span class="ici-comp-pts">14/20</span></div><div class="ici-comp-detail">6/10 CLARITY Act stories tracked</div>
+          <div class="ici-comp-row"><span class="ici-comp-name">Partnership Momentum</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:25%"></div></div><span class="ici-comp-pts">5/20</span></div><div class="ici-comp-detail">0 new deals detected</div><div class="ici-comp-row"><span class="ici-comp-name">Developer Activity</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:25%"></div></div><span class="ici-comp-pts">5/20</span></div><div class="ici-comp-detail">0 commits/7d</div><div class="ici-comp-row"><span class="ici-comp-name">Smart Money Positioning</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:50%"></div></div><span class="ici-comp-pts">10/20</span></div><div class="ici-comp-detail">50/100 — Neutral / Mixed</div><div class="ici-comp-row"><span class="ici-comp-name">Executive Tone</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:50%"></div></div><span class="ici-comp-pts">10/20</span></div><div class="ici-comp-detail">Awaiting statements</div><div class="ici-comp-row"><span class="ici-comp-name">Regulatory Momentum</span><div class="ici-comp-track"><div class="ici-comp-fill" style="width:25%"></div></div><span class="ici-comp-pts">5/20</span></div><div class="ici-comp-detail">0/10 CLARITY Act stories tracked</div>
         </div>
       </div>
       <div class="ici-foot">
@@ -1728,9 +1737,9 @@
       <div class="cc-panel">
         <div class="cc-title">⏰ Catalyst Clock</div>
         <div class="cc-sub">When XRP-moving stories actually break — hour (UTC) × weekday, built from our own breaking-story history since deploy.</div>
-        <div class="cc-peak">Peak so far: <b>20:00 UTC on Fris</b> &nbsp;|&nbsp; 2 breaking stories tracked</div>
+        <div class="cc-peak">Peak so far: <b>— (building up)</b> &nbsp;|&nbsp; 0 breaking stories tracked</div>
         <div class="cc-grid">
-          <div class="cc-row"><span class="cc-daylbl">Mon</span><div class="cc-cell" style="background:var(--s2)" title="Mon 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Tue</span><div class="cc-cell" style="background:var(--s2)" title="Tue 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Wed</span><div class="cc-cell" style="background:var(--s2)" title="Wed 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Thu</span><div class="cc-cell" style="background:var(--s2)" title="Thu 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Fri</span><div class="cc-cell" style="background:var(--s2)" title="Fri 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:rgba(255,153,0,0.90)" title="Fri 20:00 UTC — 1 breaking story"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:rgba(255,153,0,0.90)" title="Fri 23:00 UTC — 1 breaking story"></div></div><div class="cc-row"><span class="cc-daylbl">Sat</span><div class="cc-cell" style="background:var(--s2)" title="Sat 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Sun</span><div class="cc-cell" style="background:var(--s2)" title="Sun 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 23:00 UTC — 0 breaking stories"></div></div>
+          <div class="cc-row"><span class="cc-daylbl">Mon</span><div class="cc-cell" style="background:var(--s2)" title="Mon 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Mon 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Tue</span><div class="cc-cell" style="background:var(--s2)" title="Tue 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Tue 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Wed</span><div class="cc-cell" style="background:var(--s2)" title="Wed 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Wed 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Thu</span><div class="cc-cell" style="background:var(--s2)" title="Thu 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Thu 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Fri</span><div class="cc-cell" style="background:var(--s2)" title="Fri 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Fri 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Sat</span><div class="cc-cell" style="background:var(--s2)" title="Sat 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sat 23:00 UTC — 0 breaking stories"></div></div><div class="cc-row"><span class="cc-daylbl">Sun</span><div class="cc-cell" style="background:var(--s2)" title="Sun 00:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 01:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 02:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 03:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 04:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 05:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 06:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 07:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 08:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 09:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 10:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 11:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 12:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 13:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 14:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 15:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 16:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 17:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 18:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 19:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 20:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 21:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 22:00 UTC — 0 breaking stories"></div><div class="cc-cell" style="background:var(--s2)" title="Sun 23:00 UTC — 0 breaking stories"></div></div>
           <div class="cc-hourlbls"><span class="cc-hourlbl">0</span><span class="cc-hourlbl"></span><span class="cc-hourlbl"></span><span class="cc-hourlbl">3</span><span class="cc-hourlbl"></span><span class="cc-hourlbl"></span><span class="cc-hourlbl">6</span><span class="cc-hourlbl"></span><span class="cc-hourlbl"></span><span class="cc-hourlbl">9</span><span class="cc-hourlbl"></span><span class="cc-hourlbl"></span><span class="cc-hourlbl">12</span><span class="cc-hourlbl"></span><span class="cc-hourlbl"></span><span class="cc-hourlbl">15</span><span class="cc-hourlbl"></span><span class="cc-hourlbl"></span><span class="cc-hourlbl">18</span><span class="cc-hourlbl"></span><span class="cc-hourlbl"></span><span class="cc-hourlbl">21</span><span class="cc-hourlbl"></span><span class="cc-hourlbl"></span></div>
         </div>
         <div class="cc-scrollnote">Darker = more breaking stories at that hour · scroll horizontally on small screens</div>
@@ -1739,23 +1748,22 @@
       <div class="nd-panel">
         <div class="nd-title">🌍 Narrative Diffusion Map</div>
         <div class="nd-sub">How fast a story theme spreads from its first mention to full regional coverage — tracked from our own news timing history.</div>
-        <div class="nd-fastest">Fastest spread so far: <b>— (building up)</b></div>
+        <div class="nd-fastest">Fastest spread so far: <b>—</b></div>
         <div class="nd-list">
-          <div class="nd-card"><div class="nd-top"><span class="nd-theme">Whale Flows</span><span class="nd-age">first seen 6h ago</span></div><div class="nd-chips"><span class="nd-chip">🇯🇵 Japan <span class="nd-lag">first</span></span></div><div class="nd-note">Still regional — 1 region so far</div></div><div class="nd-card"><div class="nd-top"><span class="nd-theme">RLUSD / Stablecoin</span><span class="nd-age">first seen 8h ago</span></div><div class="nd-chips"><span class="nd-chip">🇪🇺 Europe <span class="nd-lag">first</span></span></div><div class="nd-note">Still regional — 1 region so far</div></div><div class="nd-card"><div class="nd-top"><span class="nd-theme">SEC / Legal</span><span class="nd-age">first seen 14h ago</span></div><div class="nd-chips"><span class="nd-chip">🇰🇷 Korea <span class="nd-lag">first</span></span></div><div class="nd-note">Still regional — 1 region so far</div></div><div class="nd-card"><div class="nd-top"><span class="nd-theme">Bank Partnerships</span><span class="nd-age">first seen 14h ago</span></div><div class="nd-chips"><span class="nd-chip">🇰🇷 Korea <span class="nd-lag">first</span></span></div><div class="nd-note">Still regional — 1 region so far</div></div><div class="nd-card"><div class="nd-top"><span class="nd-theme">XRPL Tech</span><span class="nd-age">first seen 20h ago</span></div><div class="nd-chips"><span class="nd-chip">🇰🇷 Korea <span class="nd-lag">+6h</span></span></div><div class="nd-note">Still regional — 1 region so far</div></div>
+          <div class="home-base"><div class="home-base-icon">🌍</div><div class="home-base-title">Monitoring Narrative Spread</div><div class="home-base-sub">As themes emerge and reach multiple regions, their spread timeline will appear here automatically.</div></div>
         </div>
       </div>
     </div>
-  </main>
 
   <!-- FLOATING RETURN / BACK-TO-TOP -->
-  <button id="back-to-top" title="Return to top of site" aria-label="Return to site">&#8679;</button>
+  <button id="back-to-top" title="Return to XRPRadar" aria-label="Return to XRPRadar">&#8679;</button>
 
   <!-- FOOTER -->
   <footer>
     <div class="f-line">
       🛰️ <em class="brand-em">XRPRadar</em>
-      &nbsp;|&nbsp; Version: <span class="val">56</span>
-      &nbsp;|&nbsp; Updated: <span class="val" id="ft-last">2026-07-04 00:26:29 UTC</span>
+      &nbsp;|&nbsp; Version: <span class="val">63</span>
+      &nbsp;|&nbsp; Updated: <span class="val" id="ft-last">2026-07-04 12:04:21 UTC</span>
       &nbsp;|&nbsp; Uptime: <span class="val" id="ft-uptime">0s</span>
       <a class="footer-btn debug-btn" href="/debug" target="_blank" rel="noopener">DEBUG</a>
     </div>
@@ -1763,7 +1771,7 @@
       ⚠️ Not Financial Advice — XRPRadar is for informational purposes only. DYOR.
     </div>
     <div class="f-line">
-      Feeds: <span class="val" id="ft-feeds">10/11</span>
+      Feeds: <span class="val" id="ft-feeds">0/314</span>
       &nbsp;|&nbsp; Maintenance: <span class="val" id="ft-maint">None</span>
       &nbsp;|&nbsp; Preflight: <span style="color:#48ff82;font-weight:800" id="ft-qa">PASS</span>
       <button class="footer-btn details-btn" onclick="openPFModal()">🔍 DETAILS</button>
@@ -1780,15 +1788,15 @@
       </div>
       <div class="pf-body">
         <div class="pf-overall">OVERALL: PASS &nbsp;(4/4 checks passed)</div>
-        <div class="pf-row"><span class="pf-row-label">Flask app responding</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">Server handled the request</span></div><div class="pf-row"><span class="pf-row-label">Version string present</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">Reporting version 56</span></div><div class="pf-row"><span class="pf-row-label">Uptime clock running</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">5 seconds since boot</span></div><div class="pf-row"><span class="pf-row-label">Port configured</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">PORT=8080</span></div><div class="pf-row"><span class="pf-row-label">Live data sources</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">0/3 connected</span></div>
-        <div style="margin-top:10px;color:var(--tx);font-size:12px">Last run: 2026-07-04 00:26:29 UTC</div>
+        <div class="pf-row"><span class="pf-row-label">Flask app responding</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">Server handled the request</span></div><div class="pf-row"><span class="pf-row-label">Version string present</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">Reporting version 63</span></div><div class="pf-row"><span class="pf-row-label">Uptime clock running</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">11 seconds since boot</span></div><div class="pf-row"><span class="pf-row-label">Port configured</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">PORT=8080</span></div><div class="pf-row"><span class="pf-row-label">Live data sources</span><span class="pf-row-badge" style="color:#48ff82">PASS</span><span class="pf-row-detail">0/3 connected</span></div>
+        <div style="margin-top:10px;color:var(--tx);font-size:12px">Last run: 2026-07-04 12:04:21 UTC</div>
       </div>
     </div>
   </div>
 
   <script>
     (function () {
-      var bootMs = 1783124789564;
+      var bootMs = 1783166661892;
       var el = document.getElementById('ft-uptime');
       function tick() {
         if (!el) return;
@@ -1804,12 +1812,22 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePFModal(); });
 
     // XRP Intelligence Brief — This Week's Editions (client-side swap, never reloads)
-    var briefLiveSlot = "2026-07-03-AM";
+    var briefLiveSlot = "2026-07-03-PM";
     var briefArchive = {};
     try {
       var _bd = document.getElementById('brief-archive-data');
       briefArchive = _bd ? JSON.parse(_bd.textContent) : {};
     } catch (e) { briefArchive = {}; }
+
+    function showPending(edition) {
+      var msg = document.getElementById('brf-pending-msg');
+      if (!msg) return;
+      msg.textContent = '🔮 ' + edition + ' edition hasn\'t published yet \u2014 check back at ' +
+        (edition === 'AM' ? '12:00 PM CST' : '9:00 PM CST') + '.';
+      msg.style.display = 'block';
+      clearTimeout(window._brfPendingTimer);
+      window._brfPendingTimer = setTimeout(function () { msg.style.display = 'none'; }, 4000);
+    }
 
     function showBrief(slotId) {
       var d = briefArchive[slotId];
@@ -1836,7 +1854,7 @@
     }
 
     // Practical Tools — client-side calculators (never block the page load)
-    var currentXRPPrice = 1.0428;
+    var currentXRPPrice = 0;
 
     function calcPL() {
       var buy = parseFloat((document.getElementById('pl-buy') || {}).value || 0);
@@ -2064,7 +2082,7 @@
 
     // Next Briefing countdown (ticks live, hours/minutes)
     (function () {
-      var target = new Date("2026-07-04T02:00:00Z").getTime();
+      var target = new Date("2026-07-04T17:00:00Z").getTime();
       var el = document.getElementById('brf-countdown');
       function tickBrf() {
         if (!el) return;
@@ -2098,10 +2116,15 @@
 
     (function () {
       var btn = document.getElementById('back-to-top'); if (!btn) return;
-      function toggle() { btn.style.display = (window.scrollY > 200) ? 'flex' : 'none'; }
+      function toggle() { btn.style.display = (window.scrollY > 120 || document.documentElement.scrollTop > 120) ? 'flex' : 'none'; }
       window.addEventListener('scroll', toggle, { passive:true });
+      document.addEventListener('scroll', toggle, { passive:true });
+      window.addEventListener('pageshow', toggle);       // fires on back/forward-cache restore (mobile Safari, etc.)
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) toggle(); });
       btn.addEventListener('click', function () { window.scrollTo({ top:0, behavior:'smooth' }); });
       toggle();
+      setTimeout(toggle, 400);   // safety re-check after late layout shifts (widgets, images loading)
+      setInterval(toggle, 2000); // low-frequency safety net in case a scroll event is ever missed
     })();
   </script>
 
