@@ -32,6 +32,7 @@ import html
 import json
 import re
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from email.utils import parsedate_to_datetime
 try:
     from zoneinfo import ZoneInfo
@@ -45,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "60"
+APP_VERSION = "63"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -985,48 +986,61 @@ def _clean_summary(raw, limit=240):
 def _translate_url(link):
     return "https://translate.google.com/translate?sl=auto&tl=en&u=" + html.escape(link, quote=True)
 
+def _fetch_one_feed(name, url):
+    """Fetch a single feed via network only. No shared state. Thread-safe."""
+    try:
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0 XRPRadar/26"}, timeout=6)
+        if r.status_code != 200:
+            return name, []
+        return name, _parse_feed(r.content)
+    except Exception:
+        return name, []
+
 def fetch_news():
     now = datetime.now(timezone.utc)
     active = 0
     seen = set()
     pool = []
+    # Fetch all feeds in parallel — network I/O only, no shared state in threads
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = {executor.submit(_fetch_one_feed, name, url): name for name, url in NEWS_FEEDS}
+        results = {}
+        for future in as_completed(futures):
+            name, entries = future.result()
+            results[name] = entries
+    # Process results serially — all state updates single-threaded
     for name, url in NEWS_FEEDS:
-        try:
-            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0 XRPRadar/26"}, timeout=6)
-            if r.status_code != 200:
+        entries = results.get(name, [])
+        got = False
+        for e in entries:
+            title = e["title"]
+            if not title:
                 continue
-            got = False
-            for e in _parse_feed(r.content):
-                title = e["title"]
-                if not title:
-                    continue
-                text = title + " " + e["summary"]
-                low = text.lower()
-                if "xrp" not in low and "ripple" not in low and "\u30ea\u30c3\u30d7\u30eb" not in text:
-                    continue
-                key = title.lower()[:80]
-                if key in seen:
-                    continue
-                seen.add(key)
-                dt = _parse_date(e["date_str"]) or now
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
-                infl = _influence(text, name)
-                summary = _clean_summary(e["summary"])
-                pool.append({
-                    "key": key, "title": title, "link": e["link"] or "#", "source": name, "dt": dt,
-                    "sentiment": _sentiment(text), "influence": infl,
-                    "region": _classify_region(low),
-                    "summary": summary,
-                    "category": _category(title + " " + summary),
-                    "foreign": _is_foreign(title),
-                    "breaking": _is_breaking(text, infl),
-                })
-                got = True
-            if got:
-                active += 1
-        except Exception:
-            continue
+            text = title + " " + e["summary"]
+            low = text.lower()
+            if "xrp" not in low and "ripple" not in low and "\u30ea\u30c3\u30d7\u30eb" not in text:
+                continue
+            key = title.lower()[:80]
+            if key in seen:
+                continue
+            seen.add(key)
+            dt = _parse_date(e["date_str"]) or now
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            infl = _influence(text, name)
+            summary = _clean_summary(e["summary"])
+            pool.append({
+                "key": key, "title": title, "link": e["link"] or "#", "source": name, "dt": dt,
+                "sentiment": _sentiment(text), "influence": infl,
+                "region": _classify_region(low),
+                "summary": summary,
+                "category": _category(title + " " + summary),
+                "foreign": _is_foreign(title),
+                "breaking": _is_breaking(text, infl),
+            })
+            got = True
+        if got:
+            active += 1
 
     NEWS["pool"] = pool
     # Influential = the week's 20 most influential (takes priority so it always fills to 20)
