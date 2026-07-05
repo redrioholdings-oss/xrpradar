@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "67"
+APP_VERSION = "68"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -5041,10 +5041,10 @@ def render_page():
     </div>
 
   <!-- REGULATORY & LEDGER WATCH (V66) -->
-    <div class="sec">
-      <div class="sec-head">
-        <div class="sec-title" style="color:var(--hdr);margin:0"><span class="sic">\U0001F4E1</span> Regulatory &amp; Ledger Watch</div>
-        <div class="sec-ts">Updated: {rw_updated}</div>
+    <div class="acct" style="border-color:rgba(0,229,204,.4);margin:10px 0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div class="sec-title" style="color:var(--tq);margin:0"><span class="sic">\U0001F4E1</span> Regulatory &amp; Ledger Watch</div>
+        <div style="font-size:11px;color:var(--tx);font-family:var(--mn);padding-top:4px">Updated: {rw_updated}</div>
       </div>
       <div style="font-size:12px;color:var(--tx);margin-bottom:14px;line-height:1.6">
         Direct-from-source monitoring: XRPL protocol amendments in validator voting, official SEC filings mentioning Ripple/XRP, and live US federal rulemaking on digital assets. Government and ledger-level sources only.
@@ -5069,9 +5069,9 @@ def render_page():
     </div>
 
   <!-- XRP COMMUNITY HUB (V67) -->
-    <div class="sec">
-      <div class="sec-head">
-        <div class="sec-title" style="color:var(--hdr);margin:0"><span class="sic">\U0001F465</span> XRP Community Hub</div>
+    <div class="acct" style="border-color:rgba(0,229,204,.4);margin:10px 0 40px 0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div class="sec-title" style="color:var(--tq);margin:0"><span class="sic">\U0001F465</span> XRP Community Hub</div>
       </div>
       <div style="font-size:12px;color:var(--tx);margin-bottom:14px;line-height:1.6">
         The top 20 XRP-dedicated blogs, newsletters, social accounts, and forums \u2014 curated for signal over noise. External links open in a new tab.
