@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "68"
+APP_VERSION = "70"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -4059,7 +4059,7 @@ def render_page():
       <!-- LEFT COLUMN: RSI + 52-Week -->
       <div class="col">
         <div class="acct" style="border-color:rgba(3,177,252,.35)">
-          <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4D0</span> RSI Signals</div>
+          <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4D0</span> RSI Signals</div>
           <div style="margin-bottom:14px">
             <div class="rsi-head">
               <span style="color:var(--tx)">1H RSI</span>
@@ -4089,7 +4089,7 @@ def render_page():
         </div>
 
         <div class="acct grow" style="border-color:rgba(3,177,252,.35)">
-          <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C5</span> 52-Week Range</div>
+          <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4C5</span> 52-Week Range</div>
           <div class="w52-row">
             <span>Low: <strong style="color:var(--rd)">{w52_low_s}</strong></span>
             <span style="color:var(--tx)">Current: <strong style="color:var(--br)">{w52_cur_s}</strong></span>
@@ -4109,12 +4109,12 @@ def render_page():
       <!-- RIGHT COLUMN: Support/Resistance + Time Machine -->
       <div class="col">
         <div class="acct" style="border-color:rgba(255,64,96,.35)">
-          <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3AF</span> Support &amp; Resistance</div>
+          <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F3AF</span> Support &amp; Resistance</div>
           {sr_html}
         </div>
 
         <div class="acct grow" style="border-color:rgba(3,177,252,.35)">
-          <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C6</span> Price Time Machine</div>
+          <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4C6</span> Price Time Machine</div>
           <div class="agrid2">
             <div class="abox">{tm_1y_html}</div>
             <div class="abox">{tm_1m_html}</div>
@@ -4129,7 +4129,7 @@ def render_page():
 
     <!-- SECTION 4: LIVE XRP/USD CHART -->
     <div class="acct" style="padding:10px;border-color:rgba(3,177,252,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4CA</span> Live XRP/USD Chart</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4CA</span> Live XRP/USD Chart</div>
       <div style="height:440px;border-radius:8px;overflow:hidden;border:1px solid var(--b)">
         <div class="tradingview-widget-container" style="width:100%;height:100%">
           <div class="tradingview-widget-container__widget" style="width:100%;height:100%"></div>
@@ -4143,7 +4143,7 @@ def render_page():
     <!-- SECTION 5: ON-CHAIN INTELLIGENCE + WHALE ALERT FEED -->
     <div class="oc-grid">
       <div class="acct" style="border-color:rgba(0,229,204,.35)">
-        <div class="sec-title" style="color:var(--hdr)"><span class="sic">\u26D3\uFE0F</span> On-Chain Intelligence</div>
+        <div class="sec-title" style="color:var(--tq)"><span class="sic">\u26D3\uFE0F</span> On-Chain Intelligence</div>
         <div class="ocbox-grid">
           <div class="ocbox tq">
             <div class="oclbl">RLUSD Supply</div>
@@ -4247,7 +4247,7 @@ def render_page():
 
     <!-- SECTION 7: MAINSTREAM INTEGRATION MONITOR (title + tagline + legend key) -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001FA9A</span> Mainstream Integration Monitor</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001FA9A</span> Mainstream Integration Monitor</div>
       <div class="trk-tag">XRP is no longer knocking on the door of traditional finance \u2014 it's building new springboards for growth and utilization.</div>
       <div class="trk-legend">
         <button class="trk-btn active" data-filter="ALL" onclick="filterTracker('ALL',this)" style="color:#ffffff;border-color:rgba(255,255,255,.5)">ALL</button>
@@ -4261,7 +4261,7 @@ def render_page():
 
     <!-- SECTION 8: INSTITUTIONAL PARTNERSHIP TRACKER (separate section: 20 institutions, 5 rows of 4) -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3DB\uFE0F</span> Institutional Partnership Tracker</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F3DB\uFE0F</span> Institutional Partnership Tracker</div>
       <div class="trk-grid">
         {inst_html}
       </div>
@@ -4270,7 +4270,7 @@ def render_page():
 
     <!-- SECTION 9: XRP × TRADITIONAL FINANCE — INTEGRATION TIMELINE -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C5</span> XRP \u00D7 Traditional Finance \u2014 Integration Timeline</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4C5</span> XRP \u00D7 Traditional Finance \u2014 Integration Timeline</div>
       <div class="tl-wrap">
         <div class="tl-line"></div>
         <div class="tl-track">
@@ -4281,7 +4281,7 @@ def render_page():
 
     <!-- SECTION 10: TOP 20 XRP STORIES (two subsections) -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3C6</span> Top 20 XRP Stories</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F3C6</span> Top 20 XRP Stories</div>
       <div class="eco-sub-h" style="padding:0"><span style="font-size:20px">\U0001F4F0</span> Top 20 Current Stories</div>
       <div class="story-list">
         {stories_current}
@@ -4320,7 +4320,7 @@ def render_page():
 
     <!-- SECTION 12: REGIONAL DISCOURSE (news-derived) -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5FA\uFE0F</span> Regional Discourse</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F5FA\uFE0F</span> Regional Discourse</div>
       <div class="rd-grid">
         {rd_html}
       </div>
@@ -4328,7 +4328,7 @@ def render_page():
 
     <!-- SECTION 13: SIGNAL SCOREBOARD -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4E1</span> Signal Scoreboard</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4E1</span> Signal Scoreboard</div>
       <div class="sb-grid">
         <div class="sb-box"><div class="sb-num" style="color:var(--bl)">{sb_total}</div><div class="sb-lbl">Stories Tracked</div><div class="sb-sub">{sb_feeds} sources</div></div>
         <div class="sb-box"><div class="sb-num" style="color:var(--gr)">{sb_bull}</div><div class="sb-lbl">Bullish</div><div class="sb-sub">{sb_bull_pct}%</div></div>
@@ -4349,7 +4349,7 @@ def render_page():
     <!-- SECTION 14: GLOBAL NEWS FEED + RIGHT RAIL -->
     <div class="feed-wrap">
       <div class="acct" style="border-color:rgba(3,177,252,.35);margin:0">
-        <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5DE\uFE0F</span> Global News Feed &amp; Search</div>
+        <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F5DE\uFE0F</span> Global News Feed &amp; Search</div>
         <input class="gn-search" id="gn-search" type="text" placeholder="\U0001F50D Search XRP news..." oninput="filterFeed()">
         <div class="gn-cats" id="gn-cats">
           <button class="gn-btn active" data-cat="ALL" style="color:var(--br);border-color:var(--br)" onclick="feedCat('ALL',this)">ALL</button>
@@ -4400,7 +4400,7 @@ def render_page():
 
     <!-- SECTION 15: ANALYTICS LAB -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F52C</span> Analytics Lab</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F52C</span> Analytics Lab</div>
       <div class="lab3">
         <div class="labp">
           <div class="labt"><span style="font-size:20px">\U0001F4C8</span> Signal Metrics</div>
@@ -4440,7 +4440,7 @@ def render_page():
 
     <!-- SECTION 16: XRPRADAR LEADERBOARD -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3C6</span> XRPRadar Leaderboard</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F3C6</span> XRPRadar Leaderboard</div>
       <div class="trk-tag">Top sources, most active regions, and live intelligence \u2014 the XRPRadar rankings.</div>
       <div class="lb-grid">
         <div class="lb-panel">
@@ -4469,7 +4469,7 @@ def render_page():
 
     <!-- SECTION 17: XRP INTELLIGENCE BRIEF (twice daily — AM 12:00 PM CST, PM 9:00 PM CST) -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr);margin-bottom:10px"><span class="sic">\U0001F52E</span> XRP Intelligence Brief</div>
+      <div class="sec-title" style="color:var(--tq);margin-bottom:10px"><span class="sic">\U0001F52E</span> XRP Intelligence Brief</div>
 
       <div class="brf-teaser">
         <div class="brf-teaser-icon">\U0001F52E</div>
@@ -4510,7 +4510,7 @@ def render_page():
 
     <!-- SECTION 18: WORLD BRIEFING CLOCKS -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F310</span> World Briefing Clocks</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F310</span> World Briefing Clocks</div>
       <div class="trk-tag" style="color:var(--tx)">Local time across major crypto hubs, with each city's 1st (12:00 PM CST) and 2nd (9:00 PM CST) briefing time \u2014 orange by day, gray by night.</div>
       <div class="wc-row">
         {wc_html}
@@ -4519,7 +4519,7 @@ def render_page():
 
     <!-- SECTION 19: UNIQUE DISPLAYS -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F3A8</span> Unique Displays</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F3A8</span> Unique Displays</div>
       <div class="ud-grid">
         <div class="ud-panel">
           <div class="fg-title"><span style="font-size:20px">\U0001F9E0</span> Smart Money Score</div>
@@ -4545,7 +4545,7 @@ def render_page():
 
     <!-- SECTION 20: LONGITUDINAL VALUE MARKERS -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F4C8</span> Longitudinal Value Markers</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F4C8</span> Longitudinal Value Markers</div>
       <div class="trk-tag" style="color:var(--tx)">XRP/USD price performance across key windows.</div>
       <div class="lvm-grid">
         {lvm_html}
@@ -4554,7 +4554,7 @@ def render_page():
 
     <!-- SECTION 21: REGIONAL NEWS ACTIVITY HEATMAP -->
     <div class="acct" style="border-color:rgba(3,177,252,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5FA\uFE0F</span> Regional News Activity Heatmap</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F5FA\uFE0F</span> Regional News Activity Heatmap</div>
       <div class="trk-tag" style="color:var(--tx)">XRP stories by region today \u2014 brighter means more coverage.</div>
       <div class="rh-grid">
         {rh_html}
@@ -4563,7 +4563,7 @@ def render_page():
 
     <!-- SECTION 22: SENTIMENT ENGINE -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--yl)"><span class="sic">\U0001F9E0</span> Sentiment Engine</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F9E0</span> Sentiment Engine</div>
 
       <div class="sent-top">
         <div class="ud-panel" style="text-align:center">
@@ -4603,7 +4603,7 @@ def render_page():
 
     <!-- SECTION 23: COMPETITIVE BRIEFING -->
     <div class="acct" style="border-color:rgba(117,188,255,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--bl)"><span class="sic">\u2694\uFE0F</span> Competitive Briefing</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\u2694\uFE0F</span> Competitive Briefing</div>
 
       <div class="trk-tag" style="color:var(--tx)">XRP vs major competitors \u2014 live performance.</div>
       <div class="tbl-scroll" style="margin-bottom:14px">
@@ -4687,7 +4687,7 @@ def render_page():
 
     <!-- SECTION 25: REGULATORY RADAR -->
     <div class="acct" style="border-color:rgba(255,153,0,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--or)"><span class="sic">\U0001F3DB\uFE0F</span> Regulatory Radar</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F3DB\uFE0F</span> Regulatory Radar</div>
 
       <div class="trk-tag" style="color:var(--tx);display:flex;justify-content:space-between">
         <span>\U0001F30D Global XRP Legal Status</span><span>Reference \u2014 verify locally before acting</span>
@@ -4724,7 +4724,7 @@ def render_page():
     <!-- SECTION 26: CLARITY ACT TRACKER -->
     <div class="acct" style="border-color:rgba(255,153,0,.35);margin:10px 0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px">
-        <div class="sec-title" style="color:var(--or);margin:0"><span class="sic">\U0001F3DB\uFE0F</span> CLARITY Act Tracker</div>
+        <div class="sec-title" style="color:var(--tq);margin:0"><span class="sic">\U0001F3DB\uFE0F</span> CLARITY Act Tracker</div>
         <div style="text-align:right"><div class="pl-counter" style="color:var(--or)">{ca_count}/10</div>
           <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">most influential stories</div></div>
       </div>
@@ -4742,7 +4742,7 @@ def render_page():
     <!-- SECTION 27: GLOBAL XRP ENTERPRISE & PARTNERSHIP LEDGER -->
     <div class="acct" style="border-color:rgba(255,204,0,.35);margin:10px 0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px">
-        <div class="sec-title" style="color:var(--yl);margin:0"><span class="sic">\U0001F310</span> Global XRP Enterprise &amp; Partnership Ledger</div>
+        <div class="sec-title" style="color:var(--tq);margin:0"><span class="sic">\U0001F310</span> Global XRP Enterprise &amp; Partnership Ledger</div>
         <div style="text-align:right"><div class="pl-counter">{pl_total}+</div><div style="font-size:11px;color:var(--tx);font-family:var(--mn)">institutions &amp; deals</div></div>
       </div>
       <div style="font-size:13px;color:var(--tx);line-height:1.7;font-family:system-ui;margin-bottom:12px;max-width:900px">
@@ -4834,7 +4834,7 @@ def render_page():
 
     <!-- SECTION 29: PRACTICAL TOOLS -->
     <div class="acct" style="border-color:rgba(0,229,204,.35);margin:10px 0">
-      <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F6E0\uFE0F</span> Practical Tools</div>
+      <div class="sec-title" style="color:var(--tq)"><span class="sic">\U0001F6E0\uFE0F</span> Practical Tools</div>
       <div class="pt-cols">
         <div class="pt-col">
           <!-- P&L Calculator -->
@@ -4965,13 +4965,12 @@ def render_page():
         </div>
       </div>
     </div>
-  </div>
 
   <!-- MAIN -->
     <!-- SECTION 30: XRPRADAR EXCLUSIVE INTELLIGENCE (flagship) -->
     <div class="acct" style="border-color:rgba(255,204,0,.4);margin:10px 0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
-        <div class="sec-title" style="color:var(--yl);margin:0"><span class="sic">\U0001F3C6</span> XRPRadar Exclusive Intelligence</div>
+        <div class="sec-title" style="color:var(--tq);margin:0"><span class="sic">\U0001F3C6</span> XRPRadar Exclusive Intelligence</div>
         <div style="font-size:11px;color:var(--tx);font-family:var(--mn);padding-top:4px">Live as of {flagship_ts}</div>
       </div>
       <div class="flagship-intro">
@@ -5111,6 +5110,8 @@ def render_page():
         </div>
       </div>
     </div>
+
+  </div>
 
   <!-- FLOATING RETURN / BACK-TO-TOP -->
   <button id="back-to-top" title="Return to XRPRadar" aria-label="Return to XRPRadar">&#8679;</button>
