@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "75"
+APP_VERSION = "76"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -4024,7 +4024,7 @@ def render_page():
         <div class="icon">\U0001F6F0\uFE0F</div>
         <div>
           <div class="title">{APP_NAME}</div>
-          <div class="sub" style="font-size:16px;color:#ffffff;letter-spacing:1.5px">The <i>NEW</i> XRP Intelligence Standard</div>
+          <div class="sub" style="font-size:16px;color:var(--hdr);letter-spacing:1.5px">The <i>NEW</i> XRP Intelligence Standard</div>
           <div class="sub" style="font-size:14px;color:var(--br);letter-spacing:1.2px">Every Signal. Every Region. Every Hour.</div>
           <div class="sub" style="font-size:13px;color:var(--tx);letter-spacing:1px">306+ sources over 8 global regions signaling 24/7</div>
         </div>
