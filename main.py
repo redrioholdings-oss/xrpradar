@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "74"
+APP_VERSION = "75"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -4024,17 +4024,19 @@ def render_page():
         <div class="icon">\U0001F6F0\uFE0F</div>
         <div>
           <div class="title">{APP_NAME}</div>
-          <div class="sub" style="font-size:13px;color:#ffffff;letter-spacing:1.5px">The <i>NEW</i> XRP Intelligence Standard</div>
-          <div class="sub" style="font-size:12px;color:var(--br);letter-spacing:1.2px">Every Signal. Every Region. Every Hour.</div>
-          <div class="sub" style="font-size:11px;color:var(--tx);letter-spacing:1px">306+ sources over 8 global regions signaling 24/7</div>
-          <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">\u25CF {hdr_feeds_active}/{hdr_feeds_total} feeds scanned</div>
+          <div class="sub" style="font-size:16px;color:#ffffff;letter-spacing:1.5px">The <i>NEW</i> XRP Intelligence Standard</div>
+          <div class="sub" style="font-size:14px;color:var(--br);letter-spacing:1.2px">Every Signal. Every Region. Every Hour.</div>
+          <div class="sub" style="font-size:13px;color:var(--tx);letter-spacing:1px">306+ sources over 8 global regions signaling 24/7</div>
         </div>
       </div>
-      <div class="hright">
-        <span class="dot"></span>
-        <span class="run-lbl">LIVE</span>
-        <span class="upd" id="uts">{boot_str}</span>
-        <span style="font-size:11px;color:var(--tx);margin-left:8px;letter-spacing:0.5px">v{APP_VERSION}</span>
+      <div class="hright" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="dot"></span>
+          <span class="run-lbl">LIVE</span>
+          <span class="upd" id="uts">{boot_str}</span>
+          <span style="font-size:11px;color:var(--tx);margin-left:8px;letter-spacing:0.5px">v{APP_VERSION}</span>
+        </div>
+        <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">\u25CF {hdr_feeds_active}/{hdr_feeds_total} feeds scanned</div>
       </div>
     </div>
 
