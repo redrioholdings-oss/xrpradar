@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "66"
+APP_VERSION = "67"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3950,15 +3950,25 @@ def render_page():
   /* Regulatory & Ledger Watch (V66) */
   .rw-wrap {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; }}
   .rw-panel {{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px; }}
-  .rw-panel-title {{ font-size:14px; font-weight:700; color:var(--tq); margin-bottom:4px; letter-spacing:0.5px; }}
-  .rw-panel-sub {{ font-size:11px; color:var(--tx); margin-bottom:12px; line-height:1.5; }}
+  .rw-panel-title {{ font-size:15px; font-weight:700; color:var(--tq); margin-bottom:4px; letter-spacing:0.5px; font-family:var(--mn); }}
+  .rw-panel-sub {{ font-size:12px; color:var(--tx); margin-bottom:12px; line-height:1.5; }}
   .rw-item {{ padding:8px 0; border-bottom:1px solid var(--b); display:flex; flex-direction:column; gap:2px; }}
   .rw-item:last-child {{ border-bottom:none; }}
   .rw-name {{ font-size:13px; color:var(--br); font-weight:600; }}
-  .rw-link {{ font-size:12px; color:var(--bl); text-decoration:none; line-height:1.4; }}
+  .rw-link {{ font-size:13px; color:var(--bl); text-decoration:none; line-height:1.4; }}
   .rw-link:hover {{ color:var(--tq); }}
-  .rw-meta {{ font-size:10px; color:var(--tx); }}
+  .rw-meta {{ font-size:11px; color:var(--tx); }}
   .rw-empty {{ font-size:12px; color:var(--tx); padding:12px 0; font-style:italic; }}
+
+  /* XRP Community Hub (V67) */
+  .cm-wrap {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }}
+  .cm-panel {{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px; }}
+  .cm-panel-title {{ font-size:15px; font-weight:700; color:var(--tq); margin-bottom:10px; letter-spacing:0.5px; font-family:var(--mn); }}
+  .cm-item {{ padding:7px 0; border-bottom:1px solid var(--b); }}
+  .cm-item:last-child {{ border-bottom:none; }}
+  .cm-link {{ font-size:13px; color:var(--bl); text-decoration:none; font-weight:600; }}
+  .cm-link:hover {{ color:var(--tq); }}
+  .cm-desc {{ font-size:11px; color:var(--tx); margin-top:2px; line-height:1.4; }}
 
   /* FOOTER */
   footer{{ border-top:2px solid var(--bl); background:var(--bg); padding:16px 28px 16px; text-align:center; color:var(--tx); font-size:13px; font-family:var(--mn); }}
@@ -5033,7 +5043,7 @@ def render_page():
   <!-- REGULATORY & LEDGER WATCH (V66) -->
     <div class="sec">
       <div class="sec-head">
-        <div class="sec-title" style="color:var(--tq);margin:0"><span class="sic">\U0001F4E1</span> Regulatory &amp; Ledger Watch</div>
+        <div class="sec-title" style="color:var(--hdr);margin:0"><span class="sic">\U0001F4E1</span> Regulatory &amp; Ledger Watch</div>
         <div class="sec-ts">Updated: {rw_updated}</div>
       </div>
       <div style="font-size:12px;color:var(--tx);margin-bottom:14px;line-height:1.6">
@@ -5054,6 +5064,50 @@ def render_page():
           <div class="rw-panel-title">\U0001F3DB\uFE0F Federal Register Rule Watch</div>
           <div class="rw-panel-sub">Proposed and final US federal rules on digital assets \u2014 the regulatory pipeline, direct from the Federal Register.</div>
           {rw_fedreg}
+        </div>
+      </div>
+    </div>
+
+  <!-- XRP COMMUNITY HUB (V67) -->
+    <div class="sec">
+      <div class="sec-head">
+        <div class="sec-title" style="color:var(--hdr);margin:0"><span class="sic">\U0001F465</span> XRP Community Hub</div>
+      </div>
+      <div style="font-size:12px;color:var(--tx);margin-bottom:14px;line-height:1.6">
+        The top 20 XRP-dedicated blogs, newsletters, social accounts, and forums \u2014 curated for signal over noise. External links open in a new tab.
+      </div>
+      <div class="cm-wrap">
+        <div class="cm-panel">
+          <div class="cm-panel-title">\U0001F4DD Blogs &amp; News Sites</div>
+          <div class="cm-item"><a class="cm-link" href="https://u.today/xrp-news" target="_blank" rel="noopener">U.Today XRP</a><div class="cm-desc">High-volume dedicated XRP news desk</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://www.thecryptobasic.com/category/xrp-news/" target="_blank" rel="noopener">The Crypto Basic \u2014 XRP</a><div class="cm-desc">XRP-heavy coverage, community favorite</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://xrpl.org/blog/" target="_blank" rel="noopener">XRPL.org Blog</a><div class="cm-desc">Official ledger development blog</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://ripple.com/insights/" target="_blank" rel="noopener">Ripple Insights</a><div class="cm-desc">Official Ripple company blog</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://coinpost.jp/?s=XRP" target="_blank" rel="noopener">CoinPost Japan (XRP)</a><div class="cm-desc">Japan\u2019s largest crypto outlet \u2014 XRP focus</div></div>
+        </div>
+        <div class="cm-panel">
+          <div class="cm-panel-title">\U0001F4E7 Newsletters &amp; Research</div>
+          <div class="cm-item"><a class="cm-link" href="https://xrplf.org/" target="_blank" rel="noopener">XRPL Foundation Updates</a><div class="cm-desc">Ledger foundation announcements</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://dev.to/t/xrpl" target="_blank" rel="noopener">XRPL Dev Community</a><div class="cm-desc">Developer tutorials and build logs</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://xrpscan.com/" target="_blank" rel="noopener">XRPScan</a><div class="cm-desc">Ledger explorer + weekly metrics</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://bithomp.com/" target="_blank" rel="noopener">Bithomp</a><div class="cm-desc">Explorer, rich lists, escrow tracking</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://xrpl.services/" target="_blank" rel="noopener">XRPL Services</a><div class="cm-desc">Community tools and ledger utilities</div></div>
+        </div>
+        <div class="cm-panel">
+          <div class="cm-panel-title">\U0001F4F1 Social Accounts</div>
+          <div class="cm-item"><a class="cm-link" href="https://x.com/Ripple" target="_blank" rel="noopener">@Ripple</a><div class="cm-desc">Official Ripple company account</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://x.com/bgarlinghouse" target="_blank" rel="noopener">@bgarlinghouse</a><div class="cm-desc">Brad Garlinghouse \u2014 Ripple CEO</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://x.com/JoelKatz" target="_blank" rel="noopener">@JoelKatz</a><div class="cm-desc">David Schwartz \u2014 Ripple CTO, XRPL architect</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://x.com/XRPLF" target="_blank" rel="noopener">@XRPLF</a><div class="cm-desc">XRP Ledger Foundation</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://x.com/WietseWind" target="_blank" rel="noopener">@WietseWind</a><div class="cm-desc">Xaman (XUMM) wallet founder, XRPL builder</div></div>
+        </div>
+        <div class="cm-panel">
+          <div class="cm-panel-title">\U0001F4AC Forums &amp; Communities</div>
+          <div class="cm-item"><a class="cm-link" href="https://www.reddit.com/r/XRP/" target="_blank" rel="noopener">r/XRP</a><div class="cm-desc">Largest XRP subreddit</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://www.reddit.com/r/Ripple/" target="_blank" rel="noopener">r/Ripple</a><div class="cm-desc">Ripple company + ecosystem discussion</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://www.xrpchat.com/" target="_blank" rel="noopener">XRPChat</a><div class="cm-desc">Longest-running dedicated XRP forum</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://discord.com/invite/xrpl" target="_blank" rel="noopener">XRPL Developers Discord</a><div class="cm-desc">Official developer community chat</div></div>
+          <div class="cm-item"><a class="cm-link" href="https://stackoverflow.com/questions/tagged/xrp" target="_blank" rel="noopener">Stack Overflow \u2014 XRP</a><div class="cm-desc">Technical Q&amp;A for XRPL builders</div></div>
         </div>
       </div>
     </div>
