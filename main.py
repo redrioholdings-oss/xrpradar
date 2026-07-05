@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "76"
+APP_VERSION = "77"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3914,8 +3914,6 @@ def render_page():
   .pt-input, .pt-select{{ width:100%; box-sizing:border-box; background:var(--s2); border:1px solid var(--b); color:var(--br);
     padding:8px 10px; border-radius:5px; font-size:14px; font-family:var(--mn); outline:none; }}
   .pt-input::placeholder{{ color:var(--tx); }}
-  #wallet-addr{{ background:#e9ecf1; border:1px solid #c3c8d1; color:#1a2a4a; }}
-  #wallet-addr::placeholder{{ color:#6b7280; }}
   .pt-use-live{{ color:var(--tq); cursor:pointer; margin-left:6px; font-size:12px; }}
   .pt-results{{ background:var(--s2); border:1px solid var(--b); border-radius:6px; padding:10px; font-family:var(--mn); font-size:13px; display:none; }}
   .pt-res-row{{ display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.05); }}
@@ -4886,17 +4884,21 @@ def render_page():
         </div>
 
         <div class="pt-col">
-          <!-- Wallet Checker -->
+          <!-- Escrow & Ripple Holdings Tracker -->
           <div class="pt-panel" style="border-color:rgba(117,188,255,.25)">
-            <div class="pt-head"><span class="pt-title" style="color:var(--bl)">\U0001F50D XRPL Wallet Checker</span></div>
+            <div class="pt-head"><span class="pt-title" style="color:var(--bl)">\U0001F512 Escrow &amp; Ripple Holdings</span></div>
             <div class="pt-body">
-              <div class="pt-lbl">Enter XRPL Address</div>
-              <div style="display:flex;gap:6px">
-                <input id="wallet-addr" class="pt-input" type="text" placeholder="r..." onkeydown="if(event.key==='Enter')checkWallet()">
-                <button class="pt-btn" onclick="checkWallet()">CHECK</button>
-              </div>
-              <div id="wallet-result" style="font-family:var(--mn);font-size:13px;margin-top:8px">
-                <div style="color:var(--tx)">Enter any XRPL address to see live balance and USD value.</div>
+              <div class="pt-lbl">Ripple's Own XRP \u2014 Publicly Verifiable</div>
+              <div style="background:var(--s2);border:1px solid rgba(117,188,255,.3);border-radius:6px;padding:10px;margin-top:6px">
+                <div style="font-size:12px;color:var(--tx);margin-bottom:8px">Next scheduled release (1B XRP, 1st of month 00:00 UTC):</div>
+                <div id="esc-countdown" data-eta="{esc_iso}" style="font-size:22px;font-weight:900;font-family:var(--mn);color:var(--bl);margin-bottom:8px">\u2014</div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx);border-top:1px solid var(--b);padding-top:8px">
+                  <span>Total in escrow</span><span style="color:var(--br);font-weight:700">~43B XRP</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx);margin-top:4px">
+                  <span>Circulating supply</span><span style="color:var(--br);font-weight:700">~62B XRP</span>
+                </div>
+                <div style="font-size:10px;color:var(--tx);margin-top:8px;font-style:italic">Escrow addresses are public and independently verifiable on-chain \u2014 this is Ripple's own locked supply, not a personal wallet lookup.</div>
               </div>
             </div>
           </div>
@@ -4965,6 +4967,34 @@ def render_page():
                 </div>
               </div>
               <div class="pt-note">\u26A0\uFE0F Traditional fees are averages. Actual rates vary by provider.</div>
+            </div>
+          </div>
+
+          <!-- Transaction Fee Calculator -->
+          <div class="pt-panel" style="border-color:rgba(255,204,0,.25)">
+            <div class="pt-head"><span class="pt-title" style="color:var(--yl)">\u26A1 Transaction Fee Calculator</span><span class="pt-note">XRPL vs Traditional</span></div>
+            <div class="pt-body">
+              <div class="pt-lbl">Transfer Amount (USD)</div>
+              <input id="fc-amount" class="pt-input" type="number" placeholder="e.g. 1000" oninput="calcFee()">
+              <div id="fc-results" style="margin-top:10px">
+                <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--b)">
+                  <span style="color:var(--tx)">XRPL network fee</span>
+                  <span style="color:var(--gr);font-weight:700;font-family:var(--mn)">$0.0002</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--b)">
+                  <span style="color:var(--tx)">Bank wire fee (avg 2-5%)</span>
+                  <span style="color:var(--rd);font-weight:700;font-family:var(--mn)" id="fc-bank-fee">\u2014</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0">
+                  <span style="color:var(--tx)">Credit card fee (avg 3%)</span>
+                  <span style="color:var(--or);font-weight:700;font-family:var(--mn)" id="fc-cc-fee">\u2014</span>
+                </div>
+                <div style="background:rgba(255,204,0,.08);border:1px solid rgba(255,204,0,.3);border-radius:6px;padding:8px;text-align:center;margin-top:8px">
+                  <div class="pt-lbl" style="color:var(--yl)">You Save With XRPL</div>
+                  <div style="font-size:22px;font-weight:900;font-family:var(--mn);color:var(--yl)" id="fc-savings">\u2014</div>
+                </div>
+              </div>
+              <div class="pt-note">\u26A0\uFE0F Traditional fees are typical industry averages; actual rates vary by provider and route.</div>
             </div>
           </div>
         </div>
@@ -5239,35 +5269,6 @@ def render_page():
       p.style.color = col;
     }}
 
-    async function checkWallet() {{
-      var addr = ((document.getElementById('wallet-addr') || {{}}).value || '').trim();
-      var res = document.getElementById('wallet-result');
-      if (!addr || addr.charAt(0) !== 'r' || addr.length < 20) {{
-        if (res) res.innerHTML = '<div style="color:var(--rd)">\u26A0\uFE0F Enter a valid XRPL address (starts with r, 25-34 chars)</div>';
-        return;
-      }}
-      if (res) res.innerHTML = '<div style="color:var(--tx)">\U0001F50D Fetching wallet data...</div>';
-      try {{
-        var resp = await fetch('https://api.xrpscan.com/api/v1/account/' + addr);
-        if (!resp.ok) throw new Error('Not found');
-        var data = await resp.json();
-        var bal = parseFloat(data.xrpBalance || data.balance || 0);
-        var usd = bal * currentXRPPrice;
-        var tag = (data.accountName && data.accountName.name) || '';
-        var txCnt = data.txCount || '--';
-        res.innerHTML =
-          '<div style="background:var(--s2);border:1px solid rgba(117,188,255,.3);border-radius:6px;padding:10px">' +
-          (tag ? '<div style="font-size:13px;color:var(--yl);font-weight:700;margin-bottom:6px;font-family:var(--mn)">\U0001F3F7\uFE0F ' + tag + '</div>' : '') +
-          '<div style="font-size:26px;font-weight:900;font-family:var(--mn);color:var(--bl);margin-bottom:4px">' +
-          bal.toLocaleString(undefined, {{minimumFractionDigits:2,maximumFractionDigits:6}}) + ' XRP</div>' +
-          '<div style="font-size:16px;font-weight:700;font-family:var(--mn);color:var(--gr);margin-bottom:6px">\u2248 $' +
-          usd.toLocaleString(undefined, {{minimumFractionDigits:2,maximumFractionDigits:2}}) + ' USD</div>' +
-          '<div style="font-size:12px;color:var(--tx);font-family:var(--mn)">Tx count: ' + txCnt + '</div></div>';
-      }} catch (e) {{
-        res.innerHTML = '<div style="color:var(--rd)">\u26A0\uFE0F Could not fetch this address. Check it and try again.</div>';
-      }}
-    }}
-
     var portfolioEntries = [];
     function addPortfolioEntry() {{
       var label = ((document.getElementById('pt-label') || {{}}).value || '').trim() || ('Entry ' + (portfolioEntries.length + 1));
@@ -5476,6 +5477,42 @@ def render_page():
       }}
       tickEsc(); setInterval(tickEsc, 1000 * 30);
     }})();
+
+    // Practical Tools escrow countdown (same target time, separate display)
+    (function () {{
+      var el = document.getElementById('esc-countdown');
+      if (!el) return;
+      var target = new Date(el.getAttribute('data-eta')).getTime();
+      function tick() {{
+        var diff = target - Date.now();
+        if (diff < 0) diff = 0;
+        var d = Math.floor(diff / 86400000);
+        var h = Math.floor((diff % 86400000) / 3600000);
+        var m = Math.floor((diff % 3600000) / 60000);
+        el.textContent = d + 'd ' + ('0'+h).slice(-2) + 'h ' + ('0'+m).slice(-2) + 'm';
+      }}
+      tick(); setInterval(tick, 1000 * 30);
+    }})();
+
+    // Transaction Fee Calculator — pure client-side math, no network calls
+    function calcFee() {{
+      var amt = parseFloat((document.getElementById('fc-amount') || {{}}).value || 0);
+      var bankFee = document.getElementById('fc-bank-fee');
+      var ccFee = document.getElementById('fc-cc-fee');
+      var savings = document.getElementById('fc-savings');
+      if (!amt || amt <= 0) {{
+        if (bankFee) bankFee.textContent = '\u2014';
+        if (ccFee) ccFee.textContent = '\u2014';
+        if (savings) savings.textContent = '\u2014';
+        return;
+      }}
+      var bank = amt * 0.035;  // 3.5% avg mid-point of 2-5%
+      var cc = amt * 0.03;     // 3% avg
+      var xrplFee = 0.0002;
+      if (bankFee) bankFee.textContent = '$' + bank.toFixed(2);
+      if (ccFee) ccFee.textContent = '$' + cc.toFixed(2);
+      if (savings) savings.textContent = '$' + (bank - xrplFee).toFixed(2);
+    }}
 
     (function () {{
       var btn = document.getElementById('back-to-top'); if (!btn) return;
