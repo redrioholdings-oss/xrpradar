@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "71"
+APP_VERSION = "72"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3398,7 +3398,7 @@ def render_page():
   .eco-wrap{{ background:linear-gradient(135deg,#06060f,#0a0a18); border:1px solid rgba(72,255,130,.35); border-radius:12px; overflow:hidden; margin:10px 0; }}
   .eco-head{{ padding:16px 18px; background:rgba(117,188,255,.06); border-bottom:1px solid rgba(117,188,255,.2); display:flex; align-items:center; gap:14px; }}
   .eco-head .gicon{{ font-size:30px; filter:drop-shadow(0 0 10px rgba(117,188,255,.6)); }}
-  .eco-title{{ font-size:18px; font-weight:900; color:var(--hdr); font-family:var(--mn); text-transform:uppercase; letter-spacing:2px; }}
+  .eco-title{{ font-size:18px; font-weight:900; color:var(--tq); font-family:var(--mn); text-transform:uppercase; letter-spacing:2px; }}
   .eco-sub{{ font-size:14px; font-family:system-ui; color:var(--bl); margin-top:3px; }}
   .eco-grid{{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:14px 18px; }}
   .eco-card{{ border-radius:8px; padding:14px; position:relative; overflow:hidden; }}
@@ -3411,7 +3411,7 @@ def render_page():
   .eco-stat .k{{ color:var(--tx); }}
 
   /* SECTION 6b — How the Layers Connect + Misconceptions (inside eco-wrap) */
-  .eco-sub-h{{ font-size:14px; font-weight:700; color:var(--hdr); font-family:var(--mn); text-transform:uppercase; letter-spacing:1.5px; margin:6px 0 10px; padding:0 18px; display:flex; align-items:center; gap:8px; }}
+  .eco-sub-h{{ font-size:14px; font-weight:700; color:var(--tq); font-family:var(--mn); text-transform:uppercase; letter-spacing:1.5px; margin:6px 0 10px; padding:0 18px; display:flex; align-items:center; gap:8px; }}
   .flow{{ display:flex; align-items:center; justify-content:center; gap:0; overflow-x:auto; padding:6px 18px 18px; }}
   .flow-node{{ display:flex; flex-direction:column; align-items:center; min-width:120px; text-align:center; padding:8px; }}
   .flow-ic{{ font-size:30px; margin-bottom:8px; }}
@@ -3538,7 +3538,7 @@ def render_page():
   .rail{{ display:flex; flex-direction:column; gap:10px; }}
   .rail-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px 18px; }}
   .rail-h{{ font-size:15px; font-weight:800; font-family:var(--mn); letter-spacing:1.5px; text-transform:uppercase;
-    color:var(--hdr); display:flex; align-items:center; gap:10px; margin-bottom:6px; }}
+    color:var(--tq); display:flex; align-items:center; gap:10px; margin-bottom:6px; }}
   .rail-h .sic{{ font-size:30px; }}
   .rail-row{{ display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:34px;
     font-family:var(--mn); font-size:14px; border-bottom:1px solid rgba(26,32,48,.35); }}
@@ -3550,7 +3550,7 @@ def render_page():
   /* Analytics Lab */
   .lab3{{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; }}
   .labp{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:14px 16px; }}
-  .labt{{ font-size:15px; font-weight:800; font-family:var(--mn); color:var(--hdr); margin-bottom:8px; display:flex; align-items:center; gap:8px; }}
+  .labt{{ font-size:15px; font-weight:800; font-family:var(--mn); color:var(--tq); margin-bottom:8px; display:flex; align-items:center; gap:8px; }}
   .bstat{{ display:flex; justify-content:space-between; align-items:center; min-height:33px; font-family:var(--mn); font-size:14px; border-bottom:1px solid rgba(26,32,48,.35); }}
   .bstat:last-child{{ border-bottom:none; }}
   .bk{{ color:var(--tx); }}
@@ -3585,7 +3585,7 @@ def render_page():
   .brf-when{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:5px; }}
   .brf-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
   .brf-block{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:13px 15px; border-left:3px solid var(--or); }}
-  .brf-t{{ font-size:13px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--hdr); text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:8px; }}
+  .brf-t{{ font-size:13px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--tq); text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:8px; }}
   .brf-x{{ font-size:14px; color:var(--br); line-height:1.6; font-family:system-ui; }}
   .brf-note{{ font-size:12px; color:var(--tx); font-family:var(--mn); opacity:.7; margin-top:12px; }}
   @media(max-width:900px){{ .brf-grid{{ grid-template-columns:1fr; }} }}
@@ -3646,7 +3646,7 @@ def render_page():
   .sm-row:last-child{{ border-bottom:none; }}
   .sm-k{{ color:var(--tx); }}
   .sm-v{{ color:var(--br); font-weight:700; }}
-  .fg-title{{ font-size:15px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--hdr); margin-bottom:12px; display:flex; align-items:center; gap:8px; }}
+  .fg-title{{ font-size:15px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--tq); margin-bottom:12px; display:flex; align-items:center; gap:8px; }}
   .fg-chart{{ display:flex; align-items:flex-end; gap:3px; height:130px; padding:6px 0; }}
   .fg-bar{{ flex:1; min-width:4px; border-radius:2px 2px 0 0; }}
   .fg-bar.fg-today{{ outline:2px solid var(--br); outline-offset:1px; }}
@@ -4182,7 +4182,7 @@ def render_page():
 
       <div class="panel" style="border-color:rgba(255,204,0,.35)">
         <div class="ph">
-          <span class="pt" style="color:var(--hdr)"><span class="sic">\U0001F433</span> Whale Alert Feed</span>
+          <span class="pt" style="color:var(--tq)"><span class="sic">\U0001F433</span> Whale Alert Feed</span>
           <span style="font-size:13px;font-family:var(--mn);color:var(--tx)" id="whale-ts">{whale_ts_val}</span>
         </div>
         <div class="whale-feed" id="whale-feed">
@@ -4297,7 +4297,7 @@ def render_page():
     <div class="intel-grid">
       <div class="intel" style="border-color:rgba(3,177,252,.35)">
         <div class="intel-h">
-          <span class="intel-t" style="color:var(--hdr)"><span class="sic">\U0001F1FA\U0001F1F8</span> US Intelligence</span>
+          <span class="intel-t" style="color:var(--tq)"><span class="sic">\U0001F1FA\U0001F1F8</span> US Intelligence</span>
           <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">{us_ts}</span>
         </div>
         <div class="intel-b">
@@ -4308,7 +4308,7 @@ def render_page():
       </div>
       <div class="intel" style="border-color:rgba(72,255,130,.35)">
         <div class="intel-h">
-          <span class="intel-t" style="color:var(--hdr)"><span class="sic">\U0001F310</span> Global Pulse</span>
+          <span class="intel-t" style="color:var(--tq)"><span class="sic">\U0001F310</span> Global Pulse</span>
           <span style="font-size:13px;font-family:var(--mn);color:var(--tx)">{gl_ts}</span>
         </div>
         <div class="intel-b">
