@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "70"
+APP_VERSION = "71"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3961,7 +3961,8 @@ def render_page():
   .rw-empty {{ font-size:12px; color:var(--tx); padding:12px 0; font-style:italic; }}
 
   /* XRP Community Hub (V67) */
-  .cm-wrap {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }}
+  .cm-wrap {{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }}
+  @media(max-width:700px){{ .cm-wrap {{ grid-template-columns:1fr; }} }}
   .cm-panel {{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px; }}
   .cm-panel-title {{ font-size:15px; font-weight:700; color:var(--tq); margin-bottom:10px; letter-spacing:0.5px; font-family:var(--mn); }}
   .cm-item {{ padding:7px 0; border-bottom:1px solid var(--b); }}
