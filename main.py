@@ -46,9 +46,9 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "73"
+APP_VERSION = "74"
 APP_NAME    = "XRPRadar"
-TAGLINE     = "Signals Over Noise 24/7"
+TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
 BOOT_TIME   = datetime.now(timezone.utc)
 
@@ -3303,7 +3303,7 @@ def render_page():
   /* HEADER */
   .hdr{{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-top:36px; padding-bottom:40px; border-bottom:2px solid var(--hdr); flex-wrap:wrap; gap:6px; }}
   .logo{{ display:flex; align-items:center; gap:12px; }}
-  .icon{{ width:64px; height:64px; border-radius:10px; background:linear-gradient(135deg,#001a3a,#0066cc,#75bcff); display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 0 16px rgba(117,188,255,.4); }}
+  .icon{{ width:110px; height:110px; border-radius:14px; background:linear-gradient(135deg,#001a3a,#0066cc,#75bcff); display:flex; align-items:center; justify-content:center; font-size:68px; box-shadow:0 0 16px rgba(117,188,255,.4); }}
   .title{{ font-size:22px; font-weight:900; color:var(--br); font-style:italic; }}
   .sub{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-top:2px; letter-spacing:1px; }}
   .hright{{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
@@ -4024,7 +4024,9 @@ def render_page():
         <div class="icon">\U0001F6F0\uFE0F</div>
         <div>
           <div class="title">{APP_NAME}</div>
-          <div class="sub" style="font-size:13px;color:#ffffff;letter-spacing:1.5px">{TAGLINE}</div>
+          <div class="sub" style="font-size:13px;color:#ffffff;letter-spacing:1.5px">The <i>NEW</i> XRP Intelligence Standard</div>
+          <div class="sub" style="font-size:12px;color:var(--br);letter-spacing:1.2px">Every Signal. Every Region. Every Hour.</div>
+          <div class="sub" style="font-size:11px;color:var(--tx);letter-spacing:1px">306+ sources over 8 global regions signaling 24/7</div>
           <div class="sub" style="font-size:13px;color:var(--gr);letter-spacing:1px">\u25CF {hdr_feeds_active}/{hdr_feeds_total} feeds scanned</div>
         </div>
       </div>
