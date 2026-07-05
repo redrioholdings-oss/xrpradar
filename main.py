@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "65"
+APP_VERSION = "66"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "Signals Over Noise 24/7"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -318,6 +318,74 @@ def fetch_exec_tracker():
 GITHUB_REPOS = [("XRPLF", "rippled"), ("XRPLF", "xrpl-dev-portal"), ("XRPLF", "xrpl.js")]
 GITHUB_DEV = {"commits": [], "stars": 0, "issues": 0, "rippled_7d": 0, "other_7d": 0, "updated": None}
 
+# ── Regulatory & Ledger Watch (V66) — XRPL amendments, SEC EDGAR, Federal Register ──
+REG_WATCH = {"amendments": [], "edgar": [], "fedreg": [], "updated": None}
+
+def fetch_reg_watch():
+    """Fetch XRPL amendment voting, SEC EDGAR filings, and Federal Register crypto rules.
+    All keyless public sources. Failures leave prior data intact."""
+    # 1. XRPL Amendments — XRPScan public API
+    try:
+        r = requests.get("https://api.xrpscan.com/api/v1/amendments",
+                         headers={"User-Agent": "Mozilla/5.0 XRPRadar/26"}, timeout=8)
+        if r.status_code == 200:
+            data = r.json()
+            amendments = []
+            for a in data:
+                if not a.get("enabled", True):  # only pending/voting amendments
+                    amendments.append({
+                        "name": a.get("name", "Unknown"),
+                        "threshold": a.get("threshold", ""),
+                        "count": a.get("count", 0),
+                        "eta": a.get("eta", ""),
+                        "introduced": a.get("introduced", ""),
+                    })
+            if amendments:
+                REG_WATCH["amendments"] = amendments[:8]
+    except Exception:
+        pass
+    # 2. SEC EDGAR full-text search — official government RSS (Ripple mentions)
+    try:
+        r = requests.get(
+            "https://efts.sec.gov/LATEST/search-index?q=%22Ripple%22%20%22XRP%22&dateRange=custom&forms=&output=atom",
+            headers={"User-Agent": "XRPRadar admin@xrpradar.com"}, timeout=8)
+        if r.status_code != 200:
+            r = requests.get(
+                "https://www.sec.gov/cgi-bin/srqsb?text=form-type%3D8-K+%22XRP%22&first=1&last=20&output=atom",
+                headers={"User-Agent": "XRPRadar admin@xrpradar.com"}, timeout=8)
+        if r.status_code == 200:
+            entries = _parse_feed(r.content)
+            edgar = []
+            for e in entries[:6]:
+                if e["title"]:
+                    edgar.append({"title": e["title"][:140], "link": e["link"] or "#",
+                                  "date": e["date_str"][:16] if e["date_str"] else ""})
+            if edgar:
+                REG_WATCH["edgar"] = edgar
+    except Exception:
+        pass
+    # 3. Federal Register — official API, documents mentioning digital assets/crypto
+    try:
+        r = requests.get(
+            "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bterm%5D=digital+asset+cryptocurrency&per_page=6&order=newest",
+            headers={"User-Agent": "Mozilla/5.0 XRPRadar/26"}, timeout=8)
+        if r.status_code == 200:
+            docs = r.json().get("results", [])
+            fedreg = []
+            for d in docs[:6]:
+                fedreg.append({
+                    "title": (d.get("title") or "")[:140],
+                    "link": d.get("html_url") or "#",
+                    "date": d.get("publication_date") or "",
+                    "type": d.get("type") or "",
+                    "agency": (d.get("agencies", [{}])[0].get("name", "") if d.get("agencies") else "")[:40],
+                })
+            if fedreg:
+                REG_WATCH["fedreg"] = fedreg
+    except Exception:
+        pass
+    REG_WATCH["updated"] = datetime.now(timezone.utc).strftime("%H:%M UTC")
+
 def fetch_github_dev():
     hdr = {"Accept": "application/vnd.github.v3+json", "User-Agent": "XRPRadar/4"}
     all_commits = []
@@ -481,6 +549,8 @@ def _bg_news():
             fetch_clarity_tracker()
             if n % 2 == 0:
                 fetch_github_dev()
+            if n % 4 == 0:
+                fetch_reg_watch()
         except Exception:
             pass
         n += 1
@@ -3143,6 +3213,34 @@ def render_page():
     nd_cards, nd_fastest = narrative_diffusion_html()
     flagship_ts = MARKET.get("updated") or NEWS.get("updated") or "\u2014"
 
+    # Regulatory & Ledger Watch (V66)
+    rw_amendments = ""
+    for a in REG_WATCH["amendments"]:
+        eta = f' \u00B7 ETA {html.escape(str(a["eta"])[:10])}' if a.get("eta") else ""
+        rw_amendments += (f'<div class="rw-item"><span class="rw-name">{html.escape(a["name"])}</span>'
+                          f'<span class="rw-meta">{a["count"]} validator votes{eta}</span></div>')
+    if not rw_amendments:
+        rw_amendments = '<div class="rw-empty">No pending amendments detected \u2014 all active amendments enabled, or data refreshing\u2026</div>'
+
+    rw_edgar = ""
+    for e in REG_WATCH["edgar"]:
+        d = f'<span class="rw-meta">{html.escape(e["date"])}</span>' if e.get("date") else ""
+        rw_edgar += (f'<div class="rw-item"><a href="{html.escape(e["link"])}" target="_blank" rel="noopener" '
+                     f'class="rw-link">{html.escape(e["title"])}</a>{d}</div>')
+    if not rw_edgar:
+        rw_edgar = '<div class="rw-empty">No recent Ripple/XRP filings detected \u2014 data refreshing\u2026</div>'
+
+    rw_fedreg = ""
+    for f in REG_WATCH["fedreg"]:
+        agency = f' \u00B7 {html.escape(f["agency"])}' if f.get("agency") else ""
+        rw_fedreg += (f'<div class="rw-item"><a href="{html.escape(f["link"])}" target="_blank" rel="noopener" '
+                      f'class="rw-link">{html.escape(f["title"])}</a>'
+                      f'<span class="rw-meta">{html.escape(f["date"])}{agency}</span></div>')
+    if not rw_fedreg:
+        rw_fedreg = '<div class="rw-empty">No recent federal rulemaking detected \u2014 data refreshing\u2026</div>'
+
+    rw_updated = REG_WATCH.get("updated") or "\u2014"
+
     # Practical Tools — multi-currency conversion (XRP price x FX rate)
     _fx = MARKET.get("fx") or {}
     _xp = MARKET.get("xrp_price") or 0
@@ -3848,6 +3946,19 @@ def render_page():
  
   .subtitle{{ color:var(--tx); font-size:13px; font-family:var(--mn); letter-spacing:1px; margin-bottom:22px; }}
   .note{{ border:1px solid var(--b); border-radius:8px; background:var(--s1); padding:16px 20px; color:var(--tx); font-size:14px; }}
+
+  /* Regulatory & Ledger Watch (V66) */
+  .rw-wrap {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; }}
+  .rw-panel {{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:16px; }}
+  .rw-panel-title {{ font-size:14px; font-weight:700; color:var(--tq); margin-bottom:4px; letter-spacing:0.5px; }}
+  .rw-panel-sub {{ font-size:11px; color:var(--tx); margin-bottom:12px; line-height:1.5; }}
+  .rw-item {{ padding:8px 0; border-bottom:1px solid var(--b); display:flex; flex-direction:column; gap:2px; }}
+  .rw-item:last-child {{ border-bottom:none; }}
+  .rw-name {{ font-size:13px; color:var(--br); font-weight:600; }}
+  .rw-link {{ font-size:12px; color:var(--bl); text-decoration:none; line-height:1.4; }}
+  .rw-link:hover {{ color:var(--tq); }}
+  .rw-meta {{ font-size:10px; color:var(--tx); }}
+  .rw-empty {{ font-size:12px; color:var(--tx); padding:12px 0; font-style:italic; }}
 
   /* FOOTER */
   footer{{ border-top:2px solid var(--bl); background:var(--bg); padding:16px 28px 16px; text-align:center; color:var(--tx); font-size:13px; font-family:var(--mn); }}
@@ -4915,6 +5026,34 @@ def render_page():
         <div class="nd-fastest">Fastest spread so far: <b>{nd_fastest}</b></div>
         <div class="nd-list">
           {nd_cards}
+        </div>
+      </div>
+    </div>
+
+  <!-- REGULATORY & LEDGER WATCH (V66) -->
+    <div class="sec">
+      <div class="sec-head">
+        <div class="sec-title" style="color:var(--tq);margin:0"><span class="sic">\U0001F4E1</span> Regulatory &amp; Ledger Watch</div>
+        <div class="sec-ts">Updated: {rw_updated}</div>
+      </div>
+      <div style="font-size:12px;color:var(--tx);margin-bottom:14px;line-height:1.6">
+        Direct-from-source monitoring: XRPL protocol amendments in validator voting, official SEC filings mentioning Ripple/XRP, and live US federal rulemaking on digital assets. Government and ledger-level sources only.
+      </div>
+      <div class="rw-wrap">
+        <div class="rw-panel">
+          <div class="rw-panel-title">\u2699\uFE0F XRPL Amendment Tracker</div>
+          <div class="rw-panel-sub">Protocol changes currently in validator voting \u2014 the earliest possible signal of XRPL evolution. Source: XRPScan.</div>
+          {rw_amendments}
+        </div>
+        <div class="rw-panel">
+          <div class="rw-panel-title">\U0001F4C4 SEC EDGAR Filing Watch</div>
+          <div class="rw-panel-sub">Official SEC filings mentioning Ripple or XRP \u2014 straight from the source, before the press writes about them.</div>
+          {rw_edgar}
+        </div>
+        <div class="rw-panel">
+          <div class="rw-panel-title">\U0001F3DB\uFE0F Federal Register Rule Watch</div>
+          <div class="rw-panel-sub">Proposed and final US federal rules on digital assets \u2014 the regulatory pipeline, direct from the Federal Register.</div>
+          {rw_fedreg}
         </div>
       </div>
     </div>
