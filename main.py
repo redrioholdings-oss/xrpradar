@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "85"
+APP_VERSION = "86"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3617,7 +3617,7 @@ def render_page():
   .brf-badge{{ display:inline-block; font-size:13px; font-weight:800; letter-spacing:1px; padding:3px 12px; border-radius:5px;
     background:rgba(255,153,0,.12); color:var(--or); border:1px solid rgba(255,153,0,.45); }}
   .brf-when{{ font-size:15px; color:var(--br); font-family:var(--mn); margin-top:6px; font-weight:600; }}
-  .brf-now-showing{{ font-size:14px; color:var(--bl); font-family:var(--mn); font-weight:700; margin-bottom:8px; }}
+  .brf-now-showing{{ font-size:16px; color:var(--hdr); font-family:var(--mn); font-weight:900; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--b); }}
   .brf-intro-line{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-bottom:10px; font-style:italic; }}
   .brf-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
   .brf-block{{ background:rgba(117,188,255,.07); border:1px solid rgba(117,188,255,.25); border-radius:8px; padding:16px 18px; border-left:3px solid var(--or); min-height:140px; }}
@@ -3648,11 +3648,10 @@ def render_page():
   .brf-slot.active-view{{ outline:2px solid var(--br); outline-offset:1px; }}
 
   /* Next Briefing countdown teaser — same footprint as Brief Home, white fill */
-  .brf-teaser{{ background:#4a90d9; border:2px solid #2a6cb8; border-radius:8px; padding:8px 14px; margin-bottom:14px; text-align:center; }}
-  .brf-teaser-icon{{ font-size:26px; line-height:1; margin-bottom:4px; }}
-  .brf-teaser-line{{ font-size:15px; font-weight:900; font-family:var(--mn); color:#ffffff; }}
+  .brf-teaser{{ background:var(--s2); border:1px solid rgba(255,153,0,.3); border-radius:8px; padding:9px 14px; margin-bottom:14px; text-align:center; }}
+  .brf-teaser-line{{ font-size:15px; font-weight:900; font-family:var(--mn); color:var(--br); }}
   .brf-teaser-line span{{ color:var(--or); font-weight:900; }}
-  .brf-teaser-sub{{ font-size:13px; font-family:var(--mn); color:#eaf2ff; margin-top:6px; font-weight:600; }}
+  .brf-teaser-sub{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-top:4px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 
   /* World briefing clocks */
   .wc-row{{ display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; margin:14px 0; padding:12px;
@@ -4512,9 +4511,8 @@ def render_page():
       <div class="sec-title" style="color:var(--hdr);margin-bottom:10px"><span class="sic">\U0001F52E</span> XRP Intelligence Brief</div>
 
       <div class="brf-teaser">
-        <div class="brf-teaser-icon">\U0001F52E</div>
-        <div class="brf-teaser-line">Next Proprietary Briefing in <span id="brf-countdown">\u2014</span></div>
-        <div class="brf-teaser-sub">Twice-daily AI analysis of the live news feed \u2014 published automatically at 12:00 PM and 9:00 PM CST. See World Clocks below for your local time.</div>
+        <div class="brf-teaser-line">\U0001F52E Next Proprietary Briefing in <span id="brf-countdown">\u2014</span></div>
+        <div class="brf-teaser-sub">Twice daily \u2014 12:00 PM &amp; 9:00 PM CST \u2014 see World Clocks below</div>
       </div>
 
       <div class="brf-home">
@@ -4536,7 +4534,7 @@ def render_page():
           <div class="brf-when" id="brf-next-line">Next edition {brf_next}</div>
         </div>
       </div>
-      <div class="brf-now-showing" id="brf-now-showing">\U0001F4CD Now showing: <span id="brf-now-edition">{brf_edition} EDITION</span> \u2014 published {brf_gen}</div>
+      <div class="brf-now-showing" id="brf-now-showing">CURRENT BRIEF \u2014 <span id="brf-now-edition">{brf_edition} EDITION</span>, {brf_gen}</div>
       <div class="brf-intro-line">This edition's analysis, broken into 6 topics below \u2014 same briefing, organized by subject:</div>
       <div class="brf-grid" id="brief-{_live_slot}">
         <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F4CA</span> Market Pulse</div><div class="brf-x" id="brf-pulse">{brf_pulse}</div></div>
@@ -5271,7 +5269,7 @@ def render_page():
       var nowEd = document.getElementById('brf-now-edition');
       if (nowEd) nowEd.textContent = d.edition + ' EDITION';
       var nowShow = document.getElementById('brf-now-showing');
-      if (nowShow) nowShow.innerHTML = '\U0001F4CD Now showing: <span id="brf-now-edition">' + d.edition + ' EDITION</span> \u2014 published ' + d.generated;
+      if (nowShow) nowShow.innerHTML = 'CURRENT BRIEF \u2014 <span id="brf-now-edition">' + d.edition + ' EDITION</span>, ' + d.generated;
       var ids = {{pulse:'brf-pulse', connections:'brf-connections', domino:'brf-domino',
                   regional:'brf-regional', watchlist:'brf-watchlist', tradfi:'brf-tradfi'}};
       for (var key in ids) {{
