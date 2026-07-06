@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "83"
+APP_VERSION = "84"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -1701,7 +1701,7 @@ def signal_stats():
 # ─────────────────────────────────────────────────────────────────────
 BRIEF = {"slot_id": None, "edition": None, "generated": None, "next_run": None, "sections": {}}
 BRIEF_ARCHIVE = {}   # slot_id -> {"edition","generated","sections"} — this week's editions live here
-BRIEF_ARCHIVE_MAX = 14   # 7 days x 2 editions/day
+BRIEF_ARCHIVE_MAX = 2   # current + previous edition only
 BRIEF_ARCHIVE_FILE = "/tmp/xrpradar_brief_archive.json"  # survives simple restarts; wiped only on full redeploy
 
 def _save_brief_archive():
@@ -1865,7 +1865,7 @@ def generate_brief():
 
 
 def brief_week_slots(now_ct, n=BRIEF_ARCHIVE_MAX):
-    """This week's 14 edition slots (7 days x AM/PM), most recent first."""
+    """Current + previous edition slots (n=BRIEF_ARCHIVE_MAX), most recent first."""
     cur_id, cur_edition = _brief_slot(now_ct)
     y, m, d, _ = cur_id.split("-")
     cur_date = datetime(int(y), int(m), int(d)).date()
@@ -4518,8 +4518,8 @@ def render_page():
       </div>
 
       <div class="brf-home">
-        <div class="brf-home-t">\U0001F4C5 Past Briefings This Week \u2014 Click Any Edition To View It</div>
-        <div class="brf-home-sub">Each box below is a past briefing (AM = 12:00 PM CST, PM = 9:00 PM CST). Click any box to load that briefing above.</div>
+        <div class="brf-home-t">\U0001F4C5 Current &amp; Previous Edition \u2014 Click To View</div>
+        <div class="brf-home-sub">Only the current and previous edition are kept (AM = 12:00 PM CST, PM = 9:00 PM CST). Click either box to load it above.</div>
         <div class="brf-strip" id="brf-strip">
           {brf_strip_html}
         </div>
