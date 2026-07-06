@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "84"
+APP_VERSION = "85"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3620,7 +3620,7 @@ def render_page():
   .brf-now-showing{{ font-size:14px; color:var(--bl); font-family:var(--mn); font-weight:700; margin-bottom:8px; }}
   .brf-intro-line{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-bottom:10px; font-style:italic; }}
   .brf-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
-  .brf-block{{ background:rgba(117,188,255,.07); border:1px solid rgba(117,188,255,.25); border-radius:8px; padding:22px 22px; border-left:3px solid var(--or); min-height:260px; }}
+  .brf-block{{ background:rgba(117,188,255,.07); border:1px solid rgba(117,188,255,.25); border-radius:8px; padding:16px 18px; border-left:3px solid var(--or); min-height:140px; }}
   .brf-t{{ font-size:13px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--hdr); text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:8px; }}
   .brf-x{{ font-size:15px; color:var(--br); line-height:1.75; font-family:system-ui; }}
   .brf-note{{ font-size:12px; color:var(--tx); font-family:var(--mn); opacity:.7; margin-top:12px; }}
@@ -3648,7 +3648,7 @@ def render_page():
   .brf-slot.active-view{{ outline:2px solid var(--br); outline-offset:1px; }}
 
   /* Next Briefing countdown teaser — same footprint as Brief Home, white fill */
-  .brf-teaser{{ background:#4a90d9; border:2px solid #2a6cb8; border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }}
+  .brf-teaser{{ background:#4a90d9; border:2px solid #2a6cb8; border-radius:8px; padding:8px 14px; margin-bottom:14px; text-align:center; }}
   .brf-teaser-icon{{ font-size:26px; line-height:1; margin-bottom:4px; }}
   .brf-teaser-line{{ font-size:15px; font-weight:900; font-family:var(--mn); color:#ffffff; }}
   .brf-teaser-line span{{ color:var(--or); font-weight:900; }}
