@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "86"
+APP_VERSION = "87"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3617,7 +3617,11 @@ def render_page():
   .brf-badge{{ display:inline-block; font-size:13px; font-weight:800; letter-spacing:1px; padding:3px 12px; border-radius:5px;
     background:rgba(255,153,0,.12); color:var(--or); border:1px solid rgba(255,153,0,.45); }}
   .brf-when{{ font-size:15px; color:var(--br); font-family:var(--mn); margin-top:6px; font-weight:600; }}
-  .brf-now-showing{{ font-size:16px; color:var(--hdr); font-family:var(--mn); font-weight:900; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--b); }}
+  .brf-now-showing{{ font-size:15px; color:var(--hdr); font-family:var(--mn); font-weight:800; letter-spacing:0.5px;
+    margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--b); display:flex; align-items:center;
+    flex-wrap:wrap; gap:10px; }}
+  .brf-now-spacer{{ color:var(--tx); font-weight:400; }}
+  #brf-next-line{{ font-size:13px; color:var(--tx); font-weight:600; text-transform:none; letter-spacing:normal; }}
   .brf-intro-line{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-bottom:10px; font-style:italic; }}
   .brf-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
   .brf-block{{ background:rgba(117,188,255,.07); border:1px solid rgba(117,188,255,.25); border-radius:8px; padding:16px 18px; border-left:3px solid var(--or); min-height:140px; }}
@@ -3649,7 +3653,7 @@ def render_page():
 
   /* Next Briefing countdown teaser — same footprint as Brief Home, white fill */
   .brf-teaser{{ background:var(--s2); border:1px solid rgba(255,153,0,.3); border-radius:8px; padding:9px 14px; margin-bottom:14px; text-align:center; }}
-  .brf-teaser-line{{ font-size:15px; font-weight:900; font-family:var(--mn); color:var(--br); }}
+  .brf-teaser-line{{ font-size:15px; font-weight:900; font-family:var(--mn); color:var(--bl); }}
   .brf-teaser-line span{{ color:var(--or); font-weight:900; }}
   .brf-teaser-sub{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-top:4px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 
@@ -4524,17 +4528,12 @@ def render_page():
         <div class="brf-pending-msg" id="brf-pending-msg" style="display:none"></div>
       </div>
 
-      <div class="brf-head">
-        <div>
-          <div class="brf-sub" id="brf-archive-note" style="display:none;color:var(--or)">\U0001F4C1 Viewing an earlier edition \u2014 <span class="pt-use-live" onclick="showBrief('{_live_slot}')">Back to Live</span></div>
-        </div>
-        <div class="brf-meta">
-          <span class="brf-badge" id="brf-edition-badge">{brf_edition} EDITION</span>
-          <div class="brf-when" id="brf-generated-line">Published {brf_gen}</div>
-          <div class="brf-when" id="brf-next-line">Next edition {brf_next}</div>
-        </div>
+      <div class="brf-sub" id="brf-archive-note" style="display:none;color:var(--or);margin-bottom:8px">\U0001F4C1 Viewing an earlier edition \u2014 <span class="pt-use-live" onclick="showBrief('{_live_slot}')">Back to Live</span></div>
+      <div class="brf-now-showing" id="brf-now-showing">
+        \U0001F52E CURRENT BRIEF \u2014 <span id="brf-now-edition">{brf_edition} EDITION</span>, {brf_gen}
+        <span class="brf-now-spacer">\u00B7</span>
+        <span id="brf-next-line">Next edition {brf_next}</span>
       </div>
-      <div class="brf-now-showing" id="brf-now-showing">CURRENT BRIEF \u2014 <span id="brf-now-edition">{brf_edition} EDITION</span>, {brf_gen}</div>
       <div class="brf-intro-line">This edition's analysis, broken into 6 topics below \u2014 same briefing, organized by subject:</div>
       <div class="brf-grid" id="brief-{_live_slot}">
         <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F4CA</span> Market Pulse</div><div class="brf-x" id="brf-pulse">{brf_pulse}</div></div>
@@ -5243,6 +5242,7 @@ def render_page():
 
     // XRP Intelligence Brief — This Week's Editions (client-side swap, never reloads)
     var briefLiveSlot = {json.dumps(_live_slot)};
+    var brfNextGlobal = {json.dumps(brf_next)};
     var briefArchive = {{}};
     try {{
       var _bd = document.getElementById('brief-archive-data');
@@ -5262,14 +5262,13 @@ def render_page():
     function showBrief(slotId) {{
       var d = briefArchive[slotId];
       if (!d) return;
-      var badge = document.getElementById('brf-edition-badge');
-      if (badge) badge.textContent = d.edition + ' EDITION';
-      var gen = document.getElementById('brf-generated-line');
-      if (gen) gen.textContent = 'Published ' + d.generated;
-      var nowEd = document.getElementById('brf-now-edition');
-      if (nowEd) nowEd.textContent = d.edition + ' EDITION';
+      var isLiveEdition = (slotId === briefLiveSlot);
       var nowShow = document.getElementById('brf-now-showing');
-      if (nowShow) nowShow.innerHTML = 'CURRENT BRIEF \u2014 <span id="brf-now-edition">' + d.edition + ' EDITION</span>, ' + d.generated;
+      var label = isLiveEdition ? 'CURRENT BRIEF' : 'PAST BRIEF';
+      var trailer = isLiveEdition
+        ? '<span class="brf-now-spacer">\u00B7</span><span id="brf-next-line">Next edition ' + brfNextGlobal + '</span>'
+        : '';
+      if (nowShow) nowShow.innerHTML = '\U0001F52E ' + label + ' \u2014 <span id="brf-now-edition">' + d.edition + ' EDITION</span>, ' + d.generated + trailer;
       var ids = {{pulse:'brf-pulse', connections:'brf-connections', domino:'brf-domino',
                   regional:'brf-regional', watchlist:'brf-watchlist', tradfi:'brf-tradfi'}};
       for (var key in ids) {{
@@ -5278,9 +5277,7 @@ def render_page():
       }}
       var isLive = (slotId === briefLiveSlot);
       var note = document.getElementById('brf-archive-note');
-      var nextLine = document.getElementById('brf-next-line');
       if (note) note.style.display = isLive ? 'none' : 'block';
-      if (nextLine) nextLine.style.display = isLive ? 'block' : 'none';
       var slots = document.querySelectorAll('.brf-slot');
       for (var i = 0; i < slots.length; i++) {{
         slots[i].classList.toggle('active-view', slots[i].getAttribute('data-slot') === slotId);
