@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "88"
+APP_VERSION = "89"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3624,7 +3624,7 @@ def render_page():
   #brf-next-line{{ font-size:13px; color:var(--tx); font-weight:600; text-transform:none; letter-spacing:normal; }}
   .brf-ribbon-wrap{{ display:inline-flex; align-items:center; gap:6px; margin-right:4px; }}
   .brf-ribbon-icon{{ font-size:18px; }}
-  .brf-ribbon{{ background:var(--or); color:var(--bl); font-family:var(--mn); font-weight:900; font-size:13px;
+  .brf-ribbon{{ background:var(--or); color:#ffffff; font-family:var(--mn); font-weight:900; font-size:13px;
     letter-spacing:0.5px; padding:5px 16px 5px 12px; position:relative;
     clip-path:polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%); }}
   .brf-intro-line{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-bottom:10px; font-style:italic; }}
