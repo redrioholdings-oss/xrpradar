@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "80"
+APP_VERSION = "81"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3594,7 +3594,7 @@ def render_page():
   .brf-meta{{ text-align:right; font-family:var(--mn); }}
   .brf-badge{{ display:inline-block; font-size:13px; font-weight:800; letter-spacing:1px; padding:3px 12px; border-radius:5px;
     background:rgba(255,153,0,.12); color:var(--or); border:1px solid rgba(255,153,0,.45); }}
-  .brf-when{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:5px; }}
+  .brf-when{{ font-size:15px; color:var(--br); font-family:var(--mn); margin-top:6px; font-weight:600; }}
   .brf-now-showing{{ font-size:14px; color:var(--bl); font-family:var(--mn); font-weight:700; margin-bottom:8px; }}
   .brf-intro-line{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-bottom:10px; font-style:italic; }}
   .brf-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
@@ -3611,11 +3611,12 @@ def render_page():
   .brf-strip{{ display:flex; flex-wrap:wrap; gap:6px; }}
   .brf-slot{{ flex:1 1 60px; min-width:58px; text-align:center; padding:7px 4px; border-radius:6px; font-family:var(--mn);
     border:1px solid var(--b); background:var(--s1); cursor:default; display:block; text-decoration:none; }}
-  .brf-slot-day{{ font-size:11px; color:var(--tx); }}
-  .brf-slot-ed{{ font-size:12px; font-weight:800; margin-top:2px; }}
-  .brf-slot.ready{{ cursor:pointer; border-color:rgba(0,229,204,.4); background:rgba(0,229,204,.06); }}
-  .brf-slot.ready:hover{{ border-color:var(--tq); background:rgba(0,229,204,.14); }}
-  .brf-slot.ready .brf-slot-ed{{ color:var(--tq); }}
+  .brf-slot-day{{ font-size:12px; color:var(--tx); }}
+  .brf-slot-ed{{ font-size:13px; font-weight:800; margin-top:2px; }}
+  .brf-slot.ready{{ cursor:pointer; border:2px solid var(--tq); background:rgba(0,229,204,.16); box-shadow:0 0 6px rgba(0,229,204,.25); }}
+  .brf-slot.ready:hover{{ border-color:var(--tq); background:rgba(0,229,204,.28); box-shadow:0 0 10px rgba(0,229,204,.4); transform:translateY(-1px); }}
+  .brf-slot.ready .brf-slot-ed{{ color:var(--tq); font-weight:900; }}
+  .brf-slot.ready .brf-slot-day{{ color:var(--br); font-weight:700; }}
   .brf-slot.live{{ border-color:var(--or); background:rgba(255,153,0,.14); box-shadow:0 0 0 1px var(--or) inset; }}
   .brf-slot.live .brf-slot-ed{{ color:var(--or); }}
   .brf-slot.pending{{ opacity:.45; cursor:pointer; }}
@@ -3625,7 +3626,7 @@ def render_page():
   .brf-slot.active-view{{ outline:2px solid var(--br); outline-offset:1px; }}
 
   /* Next Briefing countdown teaser — same footprint as Brief Home, white fill */
-  .brf-teaser{{ background:#e9ecf1; border:1px solid #c3c8d1; border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }}
+  .brf-teaser{{ background:#dceeff; border:1px solid #a8d0f5; border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }}
   .brf-teaser-icon{{ font-size:26px; line-height:1; margin-bottom:4px; }}
   .brf-teaser-line{{ font-size:14px; font-weight:800; font-family:var(--mn); color:#1a2a4a; }}
   .brf-teaser-line span{{ color:var(--or); font-weight:900; }}
@@ -4491,7 +4492,7 @@ def render_page():
       <div class="brf-teaser">
         <div class="brf-teaser-icon">\U0001F52E</div>
         <div class="brf-teaser-line">Next Proprietary Briefing in <span id="brf-countdown">\u2014</span></div>
-        <div class="brf-teaser-sub">See World Clocks Below.</div>
+        <div class="brf-teaser-sub">Twice-daily AI analysis of the live news feed \u2014 published automatically at 12:00 PM and 9:00 PM CST. See World Clocks below for your local time.</div>
       </div>
 
       <div class="brf-home">
