@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "82"
+APP_VERSION = "83"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -1702,6 +1702,27 @@ def signal_stats():
 BRIEF = {"slot_id": None, "edition": None, "generated": None, "next_run": None, "sections": {}}
 BRIEF_ARCHIVE = {}   # slot_id -> {"edition","generated","sections"} — this week's editions live here
 BRIEF_ARCHIVE_MAX = 14   # 7 days x 2 editions/day
+BRIEF_ARCHIVE_FILE = "/tmp/xrpradar_brief_archive.json"  # survives simple restarts; wiped only on full redeploy
+
+def _save_brief_archive():
+    """Persist BRIEF_ARCHIVE to disk so a simple process restart doesn't lose it. Never raises."""
+    try:
+        with open(BRIEF_ARCHIVE_FILE, "w") as f:
+            json.dump(BRIEF_ARCHIVE, f)
+    except Exception:
+        pass
+
+def _load_brief_archive():
+    """Load BRIEF_ARCHIVE from disk on startup, if present. Never raises."""
+    try:
+        with open(BRIEF_ARCHIVE_FILE, "r") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                BRIEF_ARCHIVE.update(data)
+    except Exception:
+        pass
+
+_load_brief_archive()
 
 _BRIEF_THEMES = {
     "Spot ETF": ["etf", "spot etf"],
@@ -1840,6 +1861,7 @@ def generate_brief():
     if len(BRIEF_ARCHIVE) > BRIEF_ARCHIVE_MAX:
         for old_key in sorted(BRIEF_ARCHIVE.keys())[:len(BRIEF_ARCHIVE) - BRIEF_ARCHIVE_MAX]:
             del BRIEF_ARCHIVE[old_key]
+    _save_brief_archive()
 
 
 def brief_week_slots(now_ct, n=BRIEF_ARCHIVE_MAX):
@@ -3626,11 +3648,11 @@ def render_page():
   .brf-slot.active-view{{ outline:2px solid var(--br); outline-offset:1px; }}
 
   /* Next Briefing countdown teaser — same footprint as Brief Home, white fill */
-  .brf-teaser{{ background:#dceeff; border:1px solid #a8d0f5; border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }}
+  .brf-teaser{{ background:#4a90d9; border:2px solid #2a6cb8; border-radius:8px; padding:12px 14px; margin-bottom:14px; text-align:center; }}
   .brf-teaser-icon{{ font-size:26px; line-height:1; margin-bottom:4px; }}
-  .brf-teaser-line{{ font-size:14px; font-weight:800; font-family:var(--mn); color:#1a2a4a; }}
+  .brf-teaser-line{{ font-size:15px; font-weight:900; font-family:var(--mn); color:#ffffff; }}
   .brf-teaser-line span{{ color:var(--or); font-weight:900; }}
-  .brf-teaser-sub{{ font-size:12px; font-family:var(--mn); color:#5a6a85; margin-top:4px; }}
+  .brf-teaser-sub{{ font-size:13px; font-family:var(--mn); color:#eaf2ff; margin-top:6px; font-weight:600; }}
 
   /* World briefing clocks */
   .wc-row{{ display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; margin:14px 0; padding:12px;
