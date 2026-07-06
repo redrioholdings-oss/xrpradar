@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "87"
+APP_VERSION = "88"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3622,6 +3622,11 @@ def render_page():
     flex-wrap:wrap; gap:10px; }}
   .brf-now-spacer{{ color:var(--tx); font-weight:400; }}
   #brf-next-line{{ font-size:13px; color:var(--tx); font-weight:600; text-transform:none; letter-spacing:normal; }}
+  .brf-ribbon-wrap{{ display:inline-flex; align-items:center; gap:6px; margin-right:4px; }}
+  .brf-ribbon-icon{{ font-size:18px; }}
+  .brf-ribbon{{ background:var(--or); color:var(--bl); font-family:var(--mn); font-weight:900; font-size:13px;
+    letter-spacing:0.5px; padding:5px 16px 5px 12px; position:relative;
+    clip-path:polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%); }}
   .brf-intro-line{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-bottom:10px; font-style:italic; }}
   .brf-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
   .brf-block{{ background:rgba(117,188,255,.07); border:1px solid rgba(117,188,255,.25); border-radius:8px; padding:16px 18px; border-left:3px solid var(--or); min-height:140px; }}
@@ -3652,10 +3657,10 @@ def render_page():
   .brf-slot.active-view{{ outline:2px solid var(--br); outline-offset:1px; }}
 
   /* Next Briefing countdown teaser — same footprint as Brief Home, white fill */
-  .brf-teaser{{ background:var(--s2); border:1px solid rgba(255,153,0,.3); border-radius:8px; padding:9px 14px; margin-bottom:14px; text-align:center; }}
-  .brf-teaser-line{{ font-size:15px; font-weight:900; font-family:var(--mn); color:var(--bl); }}
+  .brf-teaser{{ background:#3d7fc4; border:2px solid #2a5f96; border-radius:8px; padding:10px 14px; margin-bottom:14px; text-align:center; }}
+  .brf-teaser-line{{ font-size:15px; font-weight:900; font-family:var(--mn); color:#ffffff; }}
   .brf-teaser-line span{{ color:var(--or); font-weight:900; }}
-  .brf-teaser-sub{{ font-size:13px; font-family:var(--mn); color:var(--tx); margin-top:4px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .brf-teaser-sub{{ font-size:13px; font-family:var(--mn); color:#dcebfa; margin-top:4px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 
   /* World briefing clocks */
   .wc-row{{ display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; margin:14px 0; padding:12px;
@@ -4530,7 +4535,8 @@ def render_page():
 
       <div class="brf-sub" id="brf-archive-note" style="display:none;color:var(--or);margin-bottom:8px">\U0001F4C1 Viewing an earlier edition \u2014 <span class="pt-use-live" onclick="showBrief('{_live_slot}')">Back to Live</span></div>
       <div class="brf-now-showing" id="brf-now-showing">
-        \U0001F52E CURRENT BRIEF \u2014 <span id="brf-now-edition">{brf_edition} EDITION</span>, {brf_gen}
+        <span class="brf-ribbon-wrap"><span class="brf-ribbon-icon">\U0001F52E</span><span class="brf-ribbon" id="brf-ribbon-label">CURRENT BRIEF</span></span>
+        <span id="brf-now-edition">{brf_edition} EDITION</span>, {brf_gen}
         <span class="brf-now-spacer">\u00B7</span>
         <span id="brf-next-line">Next edition {brf_next}</span>
       </div>
@@ -5268,7 +5274,9 @@ def render_page():
       var trailer = isLiveEdition
         ? '<span class="brf-now-spacer">\u00B7</span><span id="brf-next-line">Next edition ' + brfNextGlobal + '</span>'
         : '';
-      if (nowShow) nowShow.innerHTML = '\U0001F52E ' + label + ' \u2014 <span id="brf-now-edition">' + d.edition + ' EDITION</span>, ' + d.generated + trailer;
+      if (nowShow) nowShow.innerHTML =
+        '<span class="brf-ribbon-wrap"><span class="brf-ribbon-icon">\U0001F52E</span><span class="brf-ribbon">' + label + '</span></span>' +
+        '<span id="brf-now-edition">' + d.edition + ' EDITION</span>, ' + d.generated + trailer;
       var ids = {{pulse:'brf-pulse', connections:'brf-connections', domino:'brf-domino',
                   regional:'brf-regional', watchlist:'brf-watchlist', tradfi:'brf-tradfi'}};
       for (var key in ids) {{
