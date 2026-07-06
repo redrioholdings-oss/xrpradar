@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "77"
+APP_VERSION = "80"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3055,12 +3055,20 @@ def render_page():
     lb_sources = lb_sources_html()
     lb_regions = lb_regions_html()
 
-    # XRP Intelligence Brief
+    # XRP Intelligence Brief — never show an empty box if a prior edition exists anywhere in the archive
     if not BRIEF.get("sections"):
         try:
             generate_brief()
         except Exception:
             pass
+    if not BRIEF.get("sections") and BRIEF_ARCHIVE:
+        # Fall back to the most recent archived edition instead of a placeholder
+        _latest_key = sorted(BRIEF_ARCHIVE.keys())[-1]
+        _latest = BRIEF_ARCHIVE[_latest_key]
+        BRIEF["sections"] = dict(_latest.get("sections", {}))
+        BRIEF["edition"] = _latest.get("edition")
+        BRIEF["generated"] = _latest.get("generated")
+        BRIEF["slot_id"] = _latest_key
     _bs = BRIEF.get("sections", {})
     brf_edition = BRIEF.get("edition") or "\u2014"
     brf_gen = BRIEF.get("generated") or "\u2014"
@@ -3085,17 +3093,21 @@ def render_page():
         is_live = (sid == _live_slot)
         has_data = sid in BRIEF_ARCHIVE
         cls = "live" if is_live else ("ready" if has_data else "pending")
-        if has_data:
-            click = f' onclick="showBrief(\'{sid}\')"'
-        else:
-            click = f' onclick="showPending(\'{sl["edition"]}\')"'
         day_lbl = sl["date"].strftime("%a %-d") if hasattr(sl["date"], "strftime") else str(sl["date"])
         tag = " \u25CF" if is_live else ""
+        if has_data:
+            click = f' onclick="showBrief(\'{sid}\'); return false;"'
+            href = f'#brief-{sid}'
+            title_attr = f' title="View the {sl["edition"]} briefing from {day_lbl}"'
+        else:
+            click = f' onclick="showPending(\'{sl["edition"]}\'); return false;"'
+            href = 'javascript:void(0)'
+            title_attr = f' title="{sl["edition"]} briefing from {day_lbl} \u2014 not yet published"'
         brf_strip_html += (
-            f'<div class="brf-slot {cls}" data-slot="{sid}"{click}>'
+            f'<a class="brf-slot {cls}" data-slot="{sid}" href="{href}"{click}{title_attr}>'
             f'<div class="brf-slot-day">{day_lbl}</div>'
             f'<div class="brf-slot-ed">{sl["edition"]}{tag}</div>'
-            f'</div>'
+            f'</a>'
         )
     try:
         _archive_json = json.dumps(BRIEF_ARCHIVE).replace("</", "<\\/")
@@ -3583,20 +3595,22 @@ def render_page():
   .brf-badge{{ display:inline-block; font-size:13px; font-weight:800; letter-spacing:1px; padding:3px 12px; border-radius:5px;
     background:rgba(255,153,0,.12); color:var(--or); border:1px solid rgba(255,153,0,.45); }}
   .brf-when{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-top:5px; }}
+  .brf-now-showing{{ font-size:14px; color:var(--bl); font-family:var(--mn); font-weight:700; margin-bottom:8px; }}
+  .brf-intro-line{{ font-size:13px; color:var(--tx); font-family:var(--mn); margin-bottom:10px; font-style:italic; }}
   .brf-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
-  .brf-block{{ background:var(--s2); border:1px solid var(--b); border-radius:8px; padding:13px 15px; border-left:3px solid var(--or); }}
+  .brf-block{{ background:rgba(117,188,255,.07); border:1px solid rgba(117,188,255,.25); border-radius:8px; padding:22px 22px; border-left:3px solid var(--or); min-height:260px; }}
   .brf-t{{ font-size:13px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--hdr); text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:8px; }}
-  .brf-x{{ font-size:14px; color:var(--br); line-height:1.6; font-family:system-ui; }}
+  .brf-x{{ font-size:15px; color:var(--br); line-height:1.75; font-family:system-ui; }}
   .brf-note{{ font-size:12px; color:var(--tx); font-family:var(--mn); opacity:.7; margin-top:12px; }}
   @media(max-width:900px){{ .brf-grid{{ grid-template-columns:1fr; }} }}
 
   /* Brief Home — designated schedule strip */
   .brf-home{{ background:var(--s2); border:1px solid rgba(255,153,0,.3); border-radius:8px; padding:12px 14px; margin-bottom:14px; }}
   .brf-home-t{{ font-size:13px; font-weight:800; font-family:var(--mn); letter-spacing:1px; color:var(--or); text-transform:uppercase; margin-bottom:3px; display:flex; align-items:center; gap:8px; }}
-  .brf-home-sub{{ font-size:12px; color:var(--tx); font-family:var(--mn); margin-bottom:10px; }}
+  .brf-home-sub{{ font-size:15px; color:var(--br); font-family:var(--mn); margin-bottom:10px; font-weight:600; }}
   .brf-strip{{ display:flex; flex-wrap:wrap; gap:6px; }}
   .brf-slot{{ flex:1 1 60px; min-width:58px; text-align:center; padding:7px 4px; border-radius:6px; font-family:var(--mn);
-    border:1px solid var(--b); background:var(--s1); cursor:default; }}
+    border:1px solid var(--b); background:var(--s1); cursor:default; display:block; text-decoration:none; }}
   .brf-slot-day{{ font-size:11px; color:var(--tx); }}
   .brf-slot-ed{{ font-size:12px; font-weight:800; margin-top:2px; }}
   .brf-slot.ready{{ cursor:pointer; border-color:rgba(0,229,204,.4); background:rgba(0,229,204,.06); }}
@@ -4481,8 +4495,8 @@ def render_page():
       </div>
 
       <div class="brf-home">
-        <div class="brf-home-t">\U0001F4CD This Week's Editions \u2014 New Briefs Post Here</div>
-        <div class="brf-home-sub">Two new editions every day, always in this spot: AM at 12:00 PM CST, PM at 9:00 PM CST.</div>
+        <div class="brf-home-t">\U0001F4C5 Past Briefings This Week \u2014 Click Any Edition To View It</div>
+        <div class="brf-home-sub">Each box below is a past briefing (AM = 12:00 PM CST, PM = 9:00 PM CST). Click any box to load that briefing above.</div>
         <div class="brf-strip" id="brf-strip">
           {brf_strip_html}
         </div>
@@ -4499,7 +4513,9 @@ def render_page():
           <div class="brf-when" id="brf-next-line">Next edition {brf_next}</div>
         </div>
       </div>
-      <div class="brf-grid">
+      <div class="brf-now-showing" id="brf-now-showing">\U0001F4CD Now showing: <span id="brf-now-edition">{brf_edition} EDITION</span> \u2014 published {brf_gen}</div>
+      <div class="brf-intro-line">This edition's analysis, broken into 6 topics below \u2014 same briefing, organized by subject:</div>
+      <div class="brf-grid" id="brief-{_live_slot}">
         <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F4CA</span> Market Pulse</div><div class="brf-x" id="brf-pulse">{brf_pulse}</div></div>
         <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F517</span> Story Connections</div><div class="brf-x" id="brf-connections">{brf_conn}</div></div>
         <div class="brf-block"><div class="brf-t"><span style="font-size:18px">\U0001F3B2</span> Domino Effect</div><div class="brf-x" id="brf-domino">{brf_domino}</div></div>
@@ -5229,6 +5245,10 @@ def render_page():
       if (badge) badge.textContent = d.edition + ' EDITION';
       var gen = document.getElementById('brf-generated-line');
       if (gen) gen.textContent = 'Published ' + d.generated;
+      var nowEd = document.getElementById('brf-now-edition');
+      if (nowEd) nowEd.textContent = d.edition + ' EDITION';
+      var nowShow = document.getElementById('brf-now-showing');
+      if (nowShow) nowShow.innerHTML = '\U0001F4CD Now showing: <span id="brf-now-edition">' + d.edition + ' EDITION</span> \u2014 published ' + d.generated;
       var ids = {{pulse:'brf-pulse', connections:'brf-connections', domino:'brf-domino',
                   regional:'brf-regional', watchlist:'brf-watchlist', tradfi:'brf-tradfi'}};
       for (var key in ids) {{
