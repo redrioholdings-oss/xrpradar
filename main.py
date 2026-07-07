@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "91"
+APP_VERSION = "92"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -1198,153 +1198,153 @@ def load_static_partner_directory(force=False):
     if not due and STATIC_PARTNER_DIRECTORY["entries"]:
         return
     STATIC_PARTNER_DIRECTORY["entries"] = [
-        ("AMINA Bank", "FINMA-regulated digital asset institution with live native Ripple Payments"),
-        ("Azimo", "International digital money transmitter processing enterprise payouts"),
-        ("Bitso", "Core liquidity hub routing heavy institutional USD-to-MXN lanes"),
-        ("BTC Markets", "Currency bridge managing the AUD leg of regional ODL clearing"),
-        ("ChinaBank", "Clears Gulf-region corporate payments anchored to digital liquidity"),
-        ("CIBC", "Settles institutional growth transfers via ODL infrastructure"),
-        ("Coins.ph", "Digital consumer network handling incoming XRP liquid conversions"),
-        ("Cuallix", "First fintech to pilot original xRapid/ODL settlement engines"),
-        ("FlashFX", "Automated FX software routing transfers via on-chain token paths"),
-        ("Independent Reserve", "Regional liquidity exchange partner providing settlement architecture"),
-        ("iRemit", "Non-bank remittance giant using ledger for real-time treasury management"),
-        ("Mercury FX", "Enterprise currency platform processing instant commercial payments via XRP"),
-        ("MoneyMatch", "Digital conversion firm routing commercial payments to European endpoints"),
-        ("Novatti", "Payments processor using XRP ledger routes for Southeast Asian corridors"),
-        ("Pyypl", "Blockchain fintech offering consumer digital wallets via ODL"),
-        ("Qatar National Bank", "Cross-border pipeline targeting Philippine remittance partners"),
-        ("SBI Remit / SBI Holdings", "Multi-corridor APAC retail & commercial remittance powered by XRP"),
-        ("Siam Commercial Bank", "Active live ODL corridors for inbound Japanese capital"),
-        ("Tranglo", "Regional processing giant fully integrated into ODL"),
-        ("Travelex Bank", "First operational Latin American bank using XRP liquidity corridors"),
-        ("UnionBank", "Automated processing for inbound domestic overseas worker remittances"),
-        ("X Money", "Retail cross-border digital financial platform using decentralized settlement"),
-        ("Zand Bank", "Digital corporate bank processing payments via XRP and RLUSD"),
-        ("Akbank", "Early regional banking partner conducting secure real-time automated tests"),
-        ("American Express", "Commercial B2B international payments clearing partner"),
-        ("ANZ Bank", "Historical testing partner of the underlying clearing protocol"),
-        ("Axis Bank", "Live infrastructure client managing real-time regional transaction tunnels"),
-        ("Banco Santander", "Powers international One Pay FX app via RippleNet messaging"),
-        ("Bank of America", "Infrastructure pilot participant holding patents referencing XRP settlement"),
-        ("BBVA", "Corporate banking implementing cross-border branch liquidity trials"),
-        ("BDO Unibank", "Major destination settlement point for international inbound money streams"),
-        ("BMO Financial Group", "North American commercial entity exploring cross-border clearing efficiency"),
-        ("CIMB Bank", "Deep integration node managing corridors across ASEAN borders"),
-        ("Commonwealth Bank (CBA)", "Major retail institution participating in pilot ecosystem networks"),
-        ("Deutsche Bank", "Combined Ripple blockchain architecture with legacy SWIFT mechanisms"),
-        ("Federal Bank", "Major localized retail bank utilizing automated routing systems"),
-        ("HSBC", "Multi-national banking network mapped via active system routing IDs"),
-        ("IndusInd Bank", "Captures inbound international money transfers using decentralized engines"),
-        ("ING Group", "Multi-national bank registered in regional backend messaging directories"),
-        ("Intesa Sanpaolo", "Enterprise participant tracking structural digital payment innovations"),
-        ("JPMorgan Chase", "Overlapping participant in multi-network settlement ledger groups"),
-        ("Kotak Mahindra Bank", "Fintech clearing provider handling instant retail capital inflows"),
-        ("Krungsri (Bank of Ayudhya)", "Streamlines real-time corporate pipelines between Thailand and Japan"),
-        ("Macquarie Bank", "Financial and transaction group listed on official routing logs"),
-        ("MUFG Bank", "Tier-1 retail giant optimizing transaction messaging across APAC"),
-        ("National Australia Bank (NAB)", "Incorporated into the ledger settlement network indexing systems"),
-        ("PNC Bank", "First major domestic U.S. institutional network client"),
-        ("Royal Bank of Canada (RBC)", "Explored the decentralized rail protocol for automated settlement"),
-        ("SEB", "Operates high-volume corporate lines over Ripple software rails"),
-        ("Shinhan Bank", "Top South Korean network client maintaining active system access keys"),
-        ("Standard Chartered", "Core early corporate investor and active digital clearing hub collaborator"),
-        ("UBS", "Asset and investment firm evaluating high-speed distributed ledgers"),
-        ("Westpac", "Registered network member maintaining live backend communication IDs"),
-        ("Woori Bank", "Multi-channel asset institution utilizing programmatic payment lines"),
-        ("Yes Bank", "Commercial institution conducting high-velocity payment remittance operations"),
-        ("Accenture", "Consulting giant managing global deployment strategies for payment architecture"),
-        ("Amazon Web Services (AWS)", "Hosts architecture allowing global nodes to run XRPL validation configurations"),
-        ("BDACS", "Regulated secure vault platform for native ledger token storage"),
-        ("BeeTech", "Digital financial operator executing automated Latin American clearings"),
-        ("BNY Mellon", "Primary tier-1 institutional reserve custodian for stablecoin offerings"),
-        ("CGI Group", "IT consulting firm incorporating decentralized financial frameworks"),
-        ("Cross River Bank", "Financial tech enabler providing direct underlying banking backbone"),
-        ("Currencycloud", "B2B multi-currency platform streamlining automated foreign exchange"),
-        ("DBS Bank", "Southeast Asian institution utilizing bank-grade digital asset vaults"),
-        ("Deloitte", "Integrated distributed financial systems into client business models"),
-        ("DZ Bank", "Leverages digital custody solutions for tokenized asset issuance"),
-        ("Fidor Bank", "Digital banking pioneer integrating alternative clearing protocol tools"),
-        ("Finastra", "Core banking software opening network access to 2,000+ regional banks"),
-        ("Frankenmuth Credit Union", "Local cooperative providing digital asset services to local consumers"),
-        ("GTreasury", "Corporate liquidity software suite managing modern capital balance sheets"),
-        ("Hidden Road", "Major institutional prime brokerage expanding liquidity paths for digital assets"),
-        ("InstaReM", "High-speed digital payment gateway connected via localized nodes"),
-        ("Kbank", "Digital platform implementing secure cryptographic wallet structures"),
-        ("Kyobo Life Insurance", "Utilizing token ledger blueprint for corporate structural bond settlement"),
-        ("Metaco", "Institutional crypto custody firm acquired by Ripple to secure bank assets globally"),
-        ("Modulr", "Payments provider optimizing massive local commercial transaction times"),
-        ("Nium", "Fintech provider optimizing massive outbound payment paths across global corridors"),
-        ("Sabadell", "Commercial infrastructure partner running real-time corporate data modules"),
-        ("Sentbe", "High-speed international remittance engine using the global banking network"),
-        ("Temenos", "Core banking software provider embedding automated accounting rails"),
-        ("Al Ansari Exchange", "High-volume Middle Eastern exchange network routing institutional transfers"),
-        ("Banco Rendimento", "Foreign currency commercial bank using optimized digital payment tunnels"),
-        ("Bank Alfalah", "Manages automated digital channels targeting the UAE-to-Pakistan corridor"),
-        ("bKash", "Mobile financial giant plugged in to capture worker remittances"),
-        ("Faysal Bank", "Specialized commercial banking provider processing inward retail cash flows"),
-        ("Interbank", "Traditional retail banking destination tied to alternative clearing systems"),
-        ("Intercorp", "Large conglomerate stabilizing localized payment legs for regional retail assets"),
-        ("Itau Unibanco", "Giant South American banking provider utilizing alternative communication networks"),
-        ("National Bank of Fujairah", "Trade finance group optimizing real-time B2B payment workflows"),
-        ("National Bank of Kuwait (NBK)", "Runs international corporate transfer paths targeting the Gulf"),
-        ("RAKBANK", "Integrates transaction routes to improve speed across enterprise pipelines"),
-        ("Saudi Central Bank (SAMA)", "Central entity piloting distributed frameworks for commercial branches"),
-        ("Vietcombank", "Explores modern asset frameworks under regional digital banking pilots"),
-        ("Bitwise Asset Management", "Regulated Wall Street provider offering institutional XRP exposure"),
-        ("Canary Capital Partners", "Asset management firm deploying institutional-grade XRP capital avenues"),
-        ("Franklin Templeton", "Legacy asset firm filing for exchange-traded digital investment products"),
-        ("Grayscale Investments", "Asset manager operating the regulated Grayscale XRP Trust and spot fund"),
-        ("Hashdex Asset Management", "Global investment manager offering systemic access to ledger tokens"),
-        ("Nature's Miracle Holding", "Agriculture Tech firm implementing a $20M Corporate Treasury on the XRPL"),
-        ("Worksport Ltd.", "Clean automotive developer utilizing digital assets for inventory clearings"),
-        ("Mastercard", "$9T payment network partnered with Ripple on settlement rails in 2026"),
-        ("Banco Genial", "Ripple Payments for cross-border payouts, live 2026"),
-        ("Thunes", "Brought stablecoin payouts to 11,500 SWIFT-connected banks via Ripple ODL routing"),
-        ("SendFriend", "ODL for international remittances"),
-        ("Remitr", "RippleNet for cross-border business payments"),
-        ("Ondo Finance", "$323M+ tokenized US Treasury products on XRP Ledger"),
-        ("Archax", "UK-regulated exchange bringing $1B tokenized assets onto XRPL by mid-2026"),
-        ("Guggenheim Treasury Services", "Tokenized commercial paper / treasury products on XRPL"),
-        ("OpenEden", "Tokenized US Treasury products on the XRP Ledger"),
-        ("Zoniqx", "Prepared hundreds of millions in RWA for issuance on XRPL"),
-        ("abrdn", "£3.8B liquidity fund tokenized on XRPL via Archax (first tokenized MMF)"),
-        ("Aviva Investors", "Announced tokenization partnership with Ripple in 2026"),
-        ("Justoken", "Independent RWA tokenization project building on XRPL"),
-        ("Ctrl Alt", "Partnered with Ripple + Dubai Land Department for real estate tokenization"),
-        ("Figment", "Staking infrastructure partnership for Ripple Custody (2026)"),
-        ("Securosys", "HSM support partnership for Ripple Custody (2026)"),
-        ("Palisade", "Acquired by Ripple to expand custody stack"),
-        ("Chainalysis", "Compliance tools integrated into Ripple Custody"),
-        ("Doppler Finance", "Partnered with SBI Ripple Asia for XRP-based institutional yield products"),
-        ("SBI Digital Markets", "Segregated custody for SBI Ripple Asia XRP yield products"),
-        ("Royal Monetary Authority of Bhutan", "National CBDC pilot on XRPL since 2021"),
-        ("Central Bank of Montenegro", "CBDC pilot exploring blockchain national currency on XRPL"),
-        ("Republic of Palau", "National stablecoin built with Ripple on XRPL"),
-        ("Banco de la Republica", "Central bank exploring XRPL for digital peso settlement"),
-        ("Reserve Bank of Australia", "Project Acacia deployed wholesale CBDC on XRPL in live tests with tokenized govt bonds"),
-        ("Monetary Authority of Singapore", "MAS sandbox projects using RLUSD for programmable trade finance"),
-        ("Hong Kong Monetary Authority", "e-HKD CBDC pilots involving XRPL infrastructure"),
-        ("Dubai Land Department", "Real estate tokenization on XRPL with Ripple + Ctrl Alt (2025)"),
-        ("21Shares", "Live XRP ETP issuer"),
-        ("CoinShares", "Live XRP exchange-traded product issuer"),
-        ("WisdomTree", "XRP ETF issuer"),
-        ("VanEck", "Live XRP ETF issuer"),
-        ("ProShares", "XRP futures/ETF product under review"),
-        ("Volatility Shares", "XRP futures ETF issuer"),
-        ("Teucrium", "Launched 2x leveraged XRP ETF"),
-        ("Goldman Sachs", "Reported largest institutional XRP holder in the US"),
-        ("Societe Generale (SG-FORGE)", "Launched EUR CoinVertible euro stablecoin on XRPL (Feb 2026)"),
-        ("WebBank", "Settles fiat card transactions using RLUSD on XRPL (with Gemini)"),
-        ("Gemini", "Card transaction settlement using RLUSD on the XRP Ledger"),
-        ("Mastercard (RLUSD cards)", "Fiat card settlement via RLUSD on XRPL with WebBank + Gemini"),
-        ("BlackRock (BUIDL)", "BUIDL fund supported on Ripple Treasury platform routing via XRPL DEX"),
-        ("Alloy Networks", "Runs an XRPL validator node — signal of active XRP settlement usage"),
-        ("Onafriq", "Pan-African payments network using Ripple for cross-border corridors"),
-        ("Ripple National Trust Bank", "OCC conditionally approved Dec 2025 — federally chartered trust bank"),
-        ("Absa Group", "Major African bank exploring Ripple cross-border infrastructure"),
-        ("Fenasbac", "Brazil central bank innovation arm partnered on Ripple pilots"),
-        ("DZ Bank Digital", "Digital asset custody pilots involving XRPL infrastructure"),
+        ("AMINA Bank", "FINMA-regulated digital asset institution with live native Ripple Payments", "ODL/XRP Live", "🚀", "🇨🇭"),
+        ("Azimo", "International digital money transmitter processing enterprise payouts", "ODL/XRP Live", "🚀", "🇪🇺"),
+        ("Bitso", "Core liquidity hub routing heavy institutional USD-to-MXN lanes", "ODL/XRP Live", "🚀", "🇲🇽"),
+        ("BTC Markets", "Currency bridge managing the AUD leg of regional ODL clearing", "ODL/XRP Live", "🚀", "🇦🇺"),
+        ("ChinaBank", "Clears Gulf-region corporate payments anchored to digital liquidity", "ODL/XRP Live", "🚀", "🇵🇭"),
+        ("CIBC", "Settles institutional growth transfers via ODL infrastructure", "ODL/XRP Live", "🚀", "🇨🇦"),
+        ("Coins.ph", "Digital consumer network handling incoming XRP liquid conversions", "ODL/XRP Live", "🚀", "🇵🇭"),
+        ("Cuallix", "First fintech to pilot original xRapid/ODL settlement engines", "ODL/XRP Live", "🚀", "🇺🇸"),
+        ("FlashFX", "Automated FX software routing transfers via on-chain token paths", "ODL/XRP Live", "🚀", "🇦🇺"),
+        ("Independent Reserve", "Regional liquidity exchange partner providing settlement architecture", "ODL/XRP Live", "🚀", "🇦🇺"),
+        ("iRemit", "Non-bank remittance giant using ledger for real-time treasury management", "ODL/XRP Live", "🚀", "🇵🇭"),
+        ("Mercury FX", "Enterprise currency platform processing instant commercial payments via XRP", "ODL/XRP Live", "🚀", "🇬🇧"),
+        ("MoneyMatch", "Digital conversion firm routing commercial payments to European endpoints", "ODL/XRP Live", "🚀", "🇲🇾"),
+        ("Novatti", "Payments processor using XRP ledger routes for Southeast Asian corridors", "ODL/XRP Live", "🚀", "🇦🇺"),
+        ("Pyypl", "Blockchain fintech offering consumer digital wallets via ODL", "ODL/XRP Live", "🚀", "🌍"),
+        ("Qatar National Bank", "Cross-border pipeline targeting Philippine remittance partners", "ODL/XRP Live", "🚀", "🇶🇦"),
+        ("SBI Remit / SBI Holdings", "Multi-corridor APAC retail & commercial remittance powered by XRP", "ODL/XRP Live", "🚀", "🇯🇵"),
+        ("Siam Commercial Bank", "Active live ODL corridors for inbound Japanese capital", "ODL/XRP Live", "🚀", "🇹🇭"),
+        ("Tranglo", "Regional processing giant fully integrated into ODL", "ODL/XRP Live", "🚀", "🇲🇾"),
+        ("Travelex Bank", "First operational Latin American bank using XRP liquidity corridors", "ODL/XRP Live", "🚀", "🇧🇷"),
+        ("UnionBank", "Automated processing for inbound domestic overseas worker remittances", "ODL/XRP Live", "🚀", "🇵🇭"),
+        ("X Money", "Retail cross-border digital financial platform using decentralized settlement", "ODL/XRP Live", "🚀", "🌐"),
+        ("Zand Bank", "Digital corporate bank processing payments via XRP and RLUSD", "ODL/XRP Live", "🚀", "🇦🇪"),
+        ("Akbank", "Early regional banking partner conducting secure real-time automated tests", "Global Banks", "🏛️", "🇹🇷"),
+        ("American Express", "Commercial B2B international payments clearing partner", "Global Banks", "🏛️", "🇺🇸"),
+        ("ANZ Bank", "Historical testing partner of the underlying clearing protocol", "Global Banks", "🏛️", "🇦🇺"),
+        ("Axis Bank", "Live infrastructure client managing real-time regional transaction tunnels", "Global Banks", "🏛️", "🇮🇳"),
+        ("Banco Santander", "Powers international One Pay FX app via RippleNet messaging", "Global Banks", "🏛️", "🇪🇸"),
+        ("Bank of America", "Infrastructure pilot participant holding patents referencing XRP settlement", "Global Banks", "🏛️", "🇺🇸"),
+        ("BBVA", "Corporate banking implementing cross-border branch liquidity trials", "Global Banks", "🏛️", "🇪🇸"),
+        ("BDO Unibank", "Major destination settlement point for international inbound money streams", "Global Banks", "🏛️", "🇵🇭"),
+        ("BMO Financial Group", "North American commercial entity exploring cross-border clearing efficiency", "Global Banks", "🏛️", "🇨🇦"),
+        ("CIMB Bank", "Deep integration node managing corridors across ASEAN borders", "Global Banks", "🏛️", "🇲🇾"),
+        ("Commonwealth Bank (CBA)", "Major retail institution participating in pilot ecosystem networks", "Global Banks", "🏛️", "🇦🇺"),
+        ("Deutsche Bank", "Combined Ripple blockchain architecture with legacy SWIFT mechanisms", "Global Banks", "🏛️", "🇩🇪"),
+        ("Federal Bank", "Major localized retail bank utilizing automated routing systems", "Global Banks", "🏛️", "🇮🇳"),
+        ("HSBC", "Multi-national banking network mapped via active system routing IDs", "Global Banks", "🏛️", "🇬🇧"),
+        ("IndusInd Bank", "Captures inbound international money transfers using decentralized engines", "Global Banks", "🏛️", "🇮🇳"),
+        ("ING Group", "Multi-national bank registered in regional backend messaging directories", "Global Banks", "🏛️", "🇳🇱"),
+        ("Intesa Sanpaolo", "Enterprise participant tracking structural digital payment innovations", "Global Banks", "🏛️", "🇮🇹"),
+        ("JPMorgan Chase", "Overlapping participant in multi-network settlement ledger groups", "Global Banks", "🏛️", "🌐"),
+        ("Kotak Mahindra Bank", "Fintech clearing provider handling instant retail capital inflows", "Global Banks", "🏛️", "🇮🇳"),
+        ("Krungsri (Bank of Ayudhya)", "Streamlines real-time corporate pipelines between Thailand and Japan", "Global Banks", "🏛️", "🇹🇭"),
+        ("Macquarie Bank", "Financial and transaction group listed on official routing logs", "Global Banks", "🏛️", "🇦🇺"),
+        ("MUFG Bank", "Tier-1 retail giant optimizing transaction messaging across APAC", "Global Banks", "🏛️", "🇯🇵"),
+        ("National Australia Bank (NAB)", "Incorporated into the ledger settlement network indexing systems", "Global Banks", "🏛️", "🇦🇺"),
+        ("PNC Bank", "First major domestic U.S. institutional network client", "Global Banks", "🏛️", "🇺🇸"),
+        ("Royal Bank of Canada (RBC)", "Explored the decentralized rail protocol for automated settlement", "Global Banks", "🏛️", "🇨🇦"),
+        ("SEB", "Operates high-volume corporate lines over Ripple software rails", "Global Banks", "🏛️", "🇸🇪"),
+        ("Shinhan Bank", "Top South Korean network client maintaining active system access keys", "Global Banks", "🏛️", "🇰🇷"),
+        ("Standard Chartered", "Core early corporate investor and active digital clearing hub collaborator", "Global Banks", "🏛️", "🇬🇧"),
+        ("UBS", "Asset and investment firm evaluating high-speed distributed ledgers", "Global Banks", "🏛️", "🇨🇭"),
+        ("Westpac", "Registered network member maintaining live backend communication IDs", "Global Banks", "🏛️", "🇦🇺"),
+        ("Woori Bank", "Multi-channel asset institution utilizing programmatic payment lines", "Global Banks", "🏛️", "🇰🇷"),
+        ("Yes Bank", "Commercial institution conducting high-velocity payment remittance operations", "Global Banks", "🏛️", "🇮🇳"),
+        ("Accenture", "Consulting giant managing global deployment strategies for payment architecture", "Tech/Custody", "🛠️", "🌐"),
+        ("Amazon Web Services (AWS)", "Hosts architecture allowing global nodes to run XRPL validation configurations", "Tech/Custody", "🛠️", "🌐"),
+        ("BDACS", "Regulated secure vault platform for native ledger token storage", "Tech/Custody", "🛠️", "🇰🇷"),
+        ("BeeTech", "Digital financial operator executing automated Latin American clearings", "Tech/Custody", "🛠️", "🇧🇷"),
+        ("BNY Mellon", "Primary tier-1 institutional reserve custodian for stablecoin offerings", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("CGI Group", "IT consulting firm incorporating decentralized financial frameworks", "Tech/Custody", "🛠️", "🇨🇦"),
+        ("Cross River Bank", "Financial tech enabler providing direct underlying banking backbone", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("Currencycloud", "B2B multi-currency platform streamlining automated foreign exchange", "Tech/Custody", "🛠️", "🇬🇧"),
+        ("DBS Bank", "Southeast Asian institution utilizing bank-grade digital asset vaults", "Tech/Custody", "🛠️", "🇸🇬"),
+        ("Deloitte", "Integrated distributed financial systems into client business models", "Tech/Custody", "🛠️", "🌐"),
+        ("DZ Bank", "Leverages digital custody solutions for tokenized asset issuance", "Tech/Custody", "🛠️", "🇩🇪"),
+        ("Fidor Bank", "Digital banking pioneer integrating alternative clearing protocol tools", "Tech/Custody", "🛠️", "🇩🇪"),
+        ("Finastra", "Core banking software opening network access to 2,000+ regional banks", "Tech/Custody", "🛠️", "🇬🇧"),
+        ("Frankenmuth Credit Union", "Local cooperative providing digital asset services to local consumers", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("GTreasury", "Corporate liquidity software suite managing modern capital balance sheets", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("Hidden Road", "Major institutional prime brokerage expanding liquidity paths for digital assets", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("InstaReM", "High-speed digital payment gateway connected via localized nodes", "Tech/Custody", "🛠️", "🇸🇬"),
+        ("Kbank", "Digital platform implementing secure cryptographic wallet structures", "Tech/Custody", "🛠️", "🇰🇷"),
+        ("Kyobo Life Insurance", "Utilizing token ledger blueprint for corporate structural bond settlement", "Tech/Custody", "🛠️", "🇰🇷"),
+        ("Metaco", "Institutional crypto custody firm acquired by Ripple to secure bank assets globally", "Tech/Custody", "🛠️", "🇨🇭"),
+        ("Modulr", "Payments provider optimizing massive local commercial transaction times", "Tech/Custody", "🛠️", "🇬🇧"),
+        ("Nium", "Fintech provider optimizing massive outbound payment paths across global corridors", "Tech/Custody", "🛠️", "🇸🇬"),
+        ("Sabadell", "Commercial infrastructure partner running real-time corporate data modules", "Tech/Custody", "🛠️", "🇪🇸"),
+        ("Sentbe", "High-speed international remittance engine using the global banking network", "Tech/Custody", "🛠️", "🇰🇷"),
+        ("Temenos", "Core banking software provider embedding automated accounting rails", "Tech/Custody", "🛠️", "🇨🇭"),
+        ("Al Ansari Exchange", "High-volume Middle Eastern exchange network routing institutional transfers", "Regional", "🌍", "🇦🇪"),
+        ("Banco Rendimento", "Foreign currency commercial bank using optimized digital payment tunnels", "Regional", "🌍", "🇧🇷"),
+        ("Bank Alfalah", "Manages automated digital channels targeting the UAE-to-Pakistan corridor", "Regional", "🌍", "🇵🇰"),
+        ("bKash", "Mobile financial giant plugged in to capture worker remittances", "Regional", "🌍", "🇧🇩"),
+        ("Faysal Bank", "Specialized commercial banking provider processing inward retail cash flows", "Regional", "🌍", "🇵🇰"),
+        ("Interbank", "Traditional retail banking destination tied to alternative clearing systems", "Regional", "🌍", "🇵🇪"),
+        ("Intercorp", "Large conglomerate stabilizing localized payment legs for regional retail assets", "Regional", "🌍", "🇵🇪"),
+        ("Itau Unibanco", "Giant South American banking provider utilizing alternative communication networks", "Regional", "🌍", "🇧🇷"),
+        ("National Bank of Fujairah", "Trade finance group optimizing real-time B2B payment workflows", "Regional", "🌍", "🇦🇪"),
+        ("National Bank of Kuwait (NBK)", "Runs international corporate transfer paths targeting the Gulf", "Regional", "🌍", "🇰🇼"),
+        ("RAKBANK", "Integrates transaction routes to improve speed across enterprise pipelines", "Regional", "🌍", "🇦🇪"),
+        ("Saudi Central Bank (SAMA)", "Central entity piloting distributed frameworks for commercial branches", "Regional", "🌍", "🇸🇦"),
+        ("Vietcombank", "Explores modern asset frameworks under regional digital banking pilots", "Regional", "🌍", "🇻🇳"),
+        ("Bitwise Asset Management", "Regulated Wall Street provider offering institutional XRP exposure", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Canary Capital Partners", "Asset management firm deploying institutional-grade XRP capital avenues", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Franklin Templeton", "Legacy asset firm filing for exchange-traded digital investment products", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Grayscale Investments", "Asset manager operating the regulated Grayscale XRP Trust and spot fund", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Hashdex Asset Management", "Global investment manager offering systemic access to ledger tokens", "ETF/Treasury", "🟡", "🌐"),
+        ("Nature's Miracle Holding", "Agriculture Tech firm implementing a $20M Corporate Treasury on the XRPL", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Worksport Ltd.", "Clean automotive developer utilizing digital assets for inventory clearings", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Mastercard", "$9T payment network partnered with Ripple on settlement rails in 2026", "Global Banks", "🏛️", "🌐"),
+        ("Banco Genial", "Ripple Payments for cross-border payouts, live 2026", "ODL/XRP Live", "🚀", "🇧🇷"),
+        ("Thunes", "Brought stablecoin payouts to 11,500 SWIFT-connected banks via Ripple ODL routing", "Tech/Custody", "🛠️", "🇸🇬"),
+        ("SendFriend", "ODL for international remittances", "ODL/XRP Live", "🚀", "🇺🇸"),
+        ("Remitr", "RippleNet for cross-border business payments", "ODL/XRP Live", "🚀", "🌐"),
+        ("Ondo Finance", "$323M+ tokenized US Treasury products on XRP Ledger", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("Archax", "UK-regulated exchange bringing $1B tokenized assets onto XRPL by mid-2026", "Tech/Custody", "🛠️", "🇬🇧"),
+        ("Guggenheim Treasury Services", "Tokenized commercial paper / treasury products on XRPL", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("OpenEden", "Tokenized US Treasury products on the XRP Ledger", "Tech/Custody", "🛠️", "🇸🇬"),
+        ("Zoniqx", "Prepared hundreds of millions in RWA for issuance on XRPL", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("abrdn", "£3.8B liquidity fund tokenized on XRPL via Archax (first tokenized MMF)", "ETF/Treasury", "🟡", "🇬🇧"),
+        ("Aviva Investors", "Announced tokenization partnership with Ripple in 2026", "ETF/Treasury", "🟡", "🇬🇧"),
+        ("Justoken", "Independent RWA tokenization project building on XRPL", "Tech/Custody", "🛠️", "🌐"),
+        ("Ctrl Alt", "Partnered with Ripple + Dubai Land Department for real estate tokenization", "Tech/Custody", "🛠️", "🇦🇪"),
+        ("Figment", "Staking infrastructure partnership for Ripple Custody (2026)", "Tech/Custody", "🛠️", "🌐"),
+        ("Securosys", "HSM support partnership for Ripple Custody (2026)", "Tech/Custody", "🛠️", "🇨🇭"),
+        ("Palisade", "Acquired by Ripple to expand custody stack", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("Chainalysis", "Compliance tools integrated into Ripple Custody", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("Doppler Finance", "Partnered with SBI Ripple Asia for XRP-based institutional yield products", "Tech/Custody", "🛠️", "🌏"),
+        ("SBI Digital Markets", "Segregated custody for SBI Ripple Asia XRP yield products", "Tech/Custody", "🛠️", "🇸🇬"),
+        ("Royal Monetary Authority of Bhutan", "National CBDC pilot on XRPL since 2021", "Regional", "🌍", "🇧🇹"),
+        ("Central Bank of Montenegro", "CBDC pilot exploring blockchain national currency on XRPL", "Regional", "🌍", "🇲🇪"),
+        ("Republic of Palau", "National stablecoin built with Ripple on XRPL", "Regional", "🌍", "🇵🇼"),
+        ("Banco de la Republica", "Central bank exploring XRPL for digital peso settlement", "Regional", "🌍", "🇨🇴"),
+        ("Reserve Bank of Australia", "Project Acacia deployed wholesale CBDC on XRPL in live tests with tokenized govt bonds", "Regional", "🌍", "🇦🇺"),
+        ("Monetary Authority of Singapore", "MAS sandbox projects using RLUSD for programmable trade finance", "Regional", "🌍", "🇸🇬"),
+        ("Hong Kong Monetary Authority", "e-HKD CBDC pilots involving XRPL infrastructure", "Regional", "🌍", "🇭🇰"),
+        ("Dubai Land Department", "Real estate tokenization on XRPL with Ripple + Ctrl Alt (2025)", "Regional", "🌍", "🇦🇪"),
+        ("21Shares", "Live XRP ETP issuer", "ETF/Treasury", "🟡", "🇨🇭"),
+        ("CoinShares", "Live XRP exchange-traded product issuer", "ETF/Treasury", "🟡", "🇪🇺"),
+        ("WisdomTree", "XRP ETF issuer", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("VanEck", "Live XRP ETF issuer", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("ProShares", "XRP futures/ETF product under review", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Volatility Shares", "XRP futures ETF issuer", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Teucrium", "Launched 2x leveraged XRP ETF", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Goldman Sachs", "Reported largest institutional XRP holder in the US", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Societe Generale (SG-FORGE)", "Launched EUR CoinVertible euro stablecoin on XRPL (Feb 2026)", "Global Banks", "🏛️", "🇫🇷"),
+        ("WebBank", "Settles fiat card transactions using RLUSD on XRPL (with Gemini)", "Global Banks", "🏛️", "🇺🇸"),
+        ("Gemini", "Card transaction settlement using RLUSD on the XRP Ledger", "Tech/Custody", "🛠️", "🇺🇸"),
+        ("Mastercard (RLUSD cards)", "Fiat card settlement via RLUSD on XRPL with WebBank + Gemini", "ETF/Treasury", "🟡", "🌐"),
+        ("BlackRock (BUIDL)", "BUIDL fund supported on Ripple Treasury platform routing via XRPL DEX", "ETF/Treasury", "🟡", "🇺🇸"),
+        ("Alloy Networks", "Runs an XRPL validator node — signal of active XRP settlement usage", "ODL/XRP Live", "🚀", "🌐"),
+        ("Onafriq", "Pan-African payments network using Ripple for cross-border corridors", "Regional", "🌍", "🌍"),
+        ("Ripple National Trust Bank", "OCC conditionally approved Dec 2025 — federally chartered trust bank", "Global Banks", "🏛️", "🇺🇸"),
+        ("Absa Group", "Major African bank exploring Ripple cross-border infrastructure", "Regional", "🌍", "🇿🇦"),
+        ("Fenasbac", "Brazil central bank innovation arm partnered on Ripple pilots", "Regional", "🌍", "🇧🇷"),
+        ("DZ Bank Digital", "Digital asset custody pilots involving XRPL infrastructure", "Global Banks", "🏛️", "🇩🇪"),
     ]
     STATIC_PARTNER_DIRECTORY["_last_dt"] = now
     STATIC_PARTNER_DIRECTORY["last_refreshed"] = now.strftime("%Y-%m-%d %H:%M UTC")
@@ -3376,9 +3376,12 @@ def render_page():
     sd_updated = STATIC_PARTNER_DIRECTORY.get("last_refreshed") or "\u2014"
     sd_count = len(sd_entries)
     sd_html = "".join(
-        f'<div class="sd-item"><span class="sd-name">{html.escape(name)}</span>'
+        f'<div class="sd-item">'
+        f'<div class="sd-item-top"><span class="sd-flag">{flag}</span>'
+        f'<span class="sd-name">{html.escape(name)}</span></div>'
+        f'<span class="sd-cat">{cat_emoji} {html.escape(cat_lbl)}</span>'
         f'<span class="sd-desc">{html.escape(desc)}</span></div>'
-        for name, desc in sd_entries
+        for name, desc, cat_lbl, cat_emoji, flag in sd_entries
     ) or '<div class="sd-empty">Directory loading\u2026</div>'
 
     pl_by_cat = {}
@@ -3717,6 +3720,8 @@ def render_page():
 
   /* Global News Feed + right rail */
   .feed-wrap{{ display:grid; grid-template-columns:2fr 1fr; gap:10px; margin:10px 0; align-items:start; }}
+  .ledger-wrap{{ display:grid; grid-template-columns:2fr 1fr; gap:10px; margin:10px 0; align-items:stretch; }}
+  @media(max-width:900px){{ .ledger-wrap{{ grid-template-columns:1fr; }} }}
   .gn-search{{ width:100%; box-sizing:border-box; background:#e9ecf1; border:1px solid #c3c8d1; border-radius:8px;
     color:#1a2a4a; font-family:var(--mn); font-size:15px; padding:12px 14px; margin-bottom:10px; }}
   .gn-search::placeholder{{ color:#6b7280; }}
@@ -3972,18 +3977,21 @@ def render_page():
   @media(max-width:900px){{ .cg-grid{{ grid-template-columns:repeat(2,1fr); }} }}
 
   /* Static Global Partnership Directory (right rail, V90) */
-  .sd-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:14px; }}
+  .sd-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:14px; display:flex; flex-direction:column; }}
   .sd-head{{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }}
   .sd-title{{ font-size:14px; font-weight:800; font-family:var(--mn); color:var(--hdr); letter-spacing:0.5px; }}
   .sd-count{{ font-size:13px; font-weight:900; font-family:var(--mn); color:var(--yl); }}
   .sd-sub{{ font-size:11px; color:var(--tx); font-family:var(--mn); line-height:1.5; margin-bottom:10px; }}
-  .sd-list{{ display:flex; flex-direction:column; gap:6px; max-height:600px; overflow-y:scroll; padding-right:6px;
+  .sd-list{{ display:flex; flex-direction:column; gap:6px; flex:1 1 auto; min-height:0; max-height:820px; overflow-y:scroll; padding-right:6px;
     scrollbar-width:thin; scrollbar-color:#33405e var(--s2); }}
   .sd-list::-webkit-scrollbar{{ width:8px; }}
   .sd-list::-webkit-scrollbar-track{{ background:var(--s2); border-radius:6px; }}
   .sd-list::-webkit-scrollbar-thumb{{ background:#33405e; border-radius:6px; }}
-  .sd-item{{ background:var(--s2); border:1px solid var(--b); border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:2px; }}
+  .sd-item{{ background:var(--s2); border:1px solid var(--b); border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:3px; }}
+  .sd-item-top{{ display:flex; align-items:center; gap:7px; }}
+  .sd-flag{{ font-size:15px; line-height:1; flex-shrink:0; }}
   .sd-name{{ font-size:13px; font-weight:700; color:var(--br); }}
+  .sd-cat{{ font-size:10px; font-weight:700; font-family:var(--mn); color:var(--tq); letter-spacing:0.3px; }}
   .sd-desc{{ font-size:11px; color:var(--tx); line-height:1.4; }}
   .sd-empty{{ font-size:12px; color:var(--tx); font-style:italic; padding:10px 0; }}
 
@@ -4591,7 +4599,7 @@ def render_page():
     </div>
 
     <!-- SECTION 14: GLOBAL NEWS FEED + RIGHT RAIL -->
-    <div class="feed-wrap">
+    <div class="ledger-wrap">
       <div class="acct" style="border-color:rgba(3,177,252,.35);margin:0">
         <div class="sec-title" style="color:var(--hdr)"><span class="sic">\U0001F5DE\uFE0F</span> Global News Feed &amp; Search</div>
         <input class="gn-search" id="gn-search" type="text" placeholder="\U0001F50D Search XRP news..." oninput="filterFeed()">
