@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "95"
+APP_VERSION = "96"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -5767,6 +5767,7 @@ def ping():
 # noindex meta tag (baked into the file itself) and via robots.txt below.
 # ─────────────────────────────────────────────────────────────────────
 _COPYRIGHT_ARCHIVE_FILE = "copyright_archive_2026_07_04.html"
+_COPYRIGHT_ARCHIVE_FILE_B = "copyright_archive_2026_07_07_b.html"
 
 @app.route("/copyright7_26")
 def copyright_archive_2026_07_04():
@@ -5777,11 +5778,24 @@ def copyright_archive_2026_07_04():
         return "Archive temporarily unavailable.", 503
 
 
+@app.route("/copyright7_26_b")
+def copyright_archive_2026_07_07_b():
+    # Second, independent dated snapshot (captured 2026-07-07, V95). The original
+    # /copyright7_26 snapshot (2026-07-04, V63) is untouched and remains the earliest
+    # dated proof of authorship; this route adds a second, later dated proof point.
+    try:
+        with open(_COPYRIGHT_ARCHIVE_FILE_B, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return "Archive temporarily unavailable.", 503
+
+
 @app.route("/robots.txt")
 def robots_txt():
     return (
         "User-agent: *\n"
         "Disallow: /copyright7_26\n"
+        "Disallow: /copyright7_26_b\n"
     ), 200, {"Content-Type": "text/plain"}
 
 
