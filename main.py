@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "93"
+APP_VERSION = "94"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -271,8 +271,8 @@ def fetch_clarity_tracker():
         _CLARITY_SEEN_KEYS.add(c["key"])
         CLARITY_ACT_STORIES.append(c)
 
-    # Hard cap: keep only the top 10 by influence (then recency) — everything else drops off
-    CLARITY_ACT_STORIES.sort(key=lambda s: (s["influence"], s["dt"]), reverse=True)
+    # Keep only the 10 MOST RECENT stories — oldest drop off as fresh ones arrive
+    CLARITY_ACT_STORIES.sort(key=lambda s: s["dt"], reverse=True)
     del CLARITY_ACT_STORIES[_CLARITY_MAX:]
     kept_keys = {s["key"] for s in CLARITY_ACT_STORIES}
     _CLARITY_SEEN_KEYS.intersection_update(kept_keys)
@@ -1509,11 +1509,11 @@ def liquidity_map_html():
 
 
 def clarity_tracker_html():
-    stories = sorted(CLARITY_ACT_STORIES, key=lambda s: (s["influence"], s["dt"]), reverse=True)
+    stories = sorted(CLARITY_ACT_STORIES, key=lambda s: s["dt"], reverse=True)
     if not stories:
         return ('<div class="home-base"><div class="home-base-icon">\U0001F3DB\uFE0F</div>'
                 '<div class="home-base-title">Monitoring the CLARITY Act</div>'
-                '<div class="home-base-sub">The 10 most influential stories on the bill\u2019s progress through the '
+                '<div class="home-base-sub">The 10 most recent stories on the bill\u2019s progress through the '
                 'Senate will appear here automatically as they\u2019re published.</div></div>')
     out = ""
     for i, s in enumerate(stories, 1):
@@ -4944,13 +4944,12 @@ def render_page():
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px">
         <div class="sec-title" style="color:var(--hdr);margin:0"><span class="sic">\U0001F3DB\uFE0F</span> CLARITY Act Tracker</div>
         <div style="text-align:right"><div class="pl-counter" style="color:var(--or)">{ca_count}/10</div>
-          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">most influential stories</div></div>
+          <div style="font-size:11px;color:var(--tx);font-family:var(--mn)">most recent stories</div></div>
       </div>
       <div style="font-size:13px;color:var(--tx);line-height:1.7;font-family:system-ui;margin-bottom:12px;max-width:900px">
         The Digital Asset Market Clarity Act (CLARITY Act) would split crypto oversight between the SEC and CFTC and is
-        currently on the Senate calendar awaiting a floor vote. This tracker holds the 10 most influential stories on its
-        progress at any time \u2014 ranked by influence, with the least significant dropped automatically as more important
-        news breaks. A fixed top 10, always current.
+        currently on the Senate calendar awaiting a floor vote. This tracker shows the 10 most recent stories on its
+        progress \u2014 newest first, with the oldest dropping off automatically as fresh news breaks. Always current.
       </div>
       <div class="ca-list">
         {ca_html}
