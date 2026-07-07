@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "94"
+APP_VERSION = "95"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -3208,6 +3208,20 @@ def render_page():
     sb_low = f'${MARKET["l24"]:.4f}' if MARKET.get("l24") else "\u2014"
     sb_feeds = f'{NEWS["feeds_active"]}/{NEWS["feeds_total"]}'
 
+    # On-Chain / Market Vitals — rebuilt to use reliably-populated MARKET data (V95)
+    oc_mcap = _fmt_usd(MARKET.get("mcap"))
+    oc_rank = f'Rank #{MARKET["rank"]}' if MARKET.get("rank") else "Rank \u2014"
+    oc_vol = _fmt_usd(MARKET.get("vol24"))
+    if MARKET.get("vol24") and MARKET.get("mcap"):
+        oc_volmcap = f'{MARKET["vol24"] / MARKET["mcap"] * 100:.1f}% of mcap'
+    else:
+        oc_volmcap = "\u2014"
+    oc_high = f'${MARKET["h24"]:.4f}' if MARKET.get("h24") else "\u2014"
+    oc_low = f'${MARKET["l24"]:.4f}' if MARKET.get("l24") else "\u2014"
+    oc_rsi = f'RSI {MARKET["rsi_1d"]:.0f}' if MARKET.get("rsi_1d") else "RSI \u2014"
+    oc_52h = f'${MARKET["w52_high"]:.4f}' if MARKET.get("w52_high") else "\u2014"
+    oc_52l = f'${MARKET["w52_low"]:.4f}' if MARKET.get("w52_low") else "\u2014"
+
     # Global News Feed + right rail
     gn_html = global_feed_html()
     gn_total = len(NEWS.get("pool", []))
@@ -4377,24 +4391,24 @@ def render_page():
         <div class="sec-title" style="color:var(--hdr)"><span class="sic">\u26D3\uFE0F</span> On-Chain Intelligence</div>
         <div class="ocbox-grid">
           <div class="ocbox tq">
-            <div class="oclbl">RLUSD Supply</div>
-            <div class="ocval" style="color:var(--tq)">\u2014</div>
-            <div class="ocsub">Vol: \u2014</div>
+            <div class="oclbl">Market Cap</div>
+            <div class="ocval" style="color:var(--tq)">{oc_mcap}</div>
+            <div class="ocsub">{oc_rank}</div>
           </div>
           <div class="ocbox">
-            <div class="oclbl">XRPL DEX Volume</div>
-            <div class="ocval" style="color:var(--bl)">\u2014</div>
-            <div class="ocsub">\u2014 trades 24h</div>
+            <div class="oclbl">24h Volume</div>
+            <div class="ocval" style="color:var(--bl)">{oc_vol}</div>
+            <div class="ocsub">{oc_volmcap}</div>
           </div>
           <div class="ocbox">
-            <div class="oclbl">Network Accounts</div>
-            <div class="ocval" style="color:var(--tq)">\u2014</div>
-            <div class="ocsub">New 24h: <span style="color:var(--gr)">\u2014</span></div>
+            <div class="oclbl">24h Range</div>
+            <div class="ocval" style="color:var(--tq);font-size:18px">{oc_low} \u2013 {oc_high}</div>
+            <div class="ocsub">{oc_rsi}</div>
           </div>
           <div class="ocbox">
-            <div class="oclbl">Exchange Flow</div>
-            <div class="ocval" style="font-size:16px">\u27A1\uFE0F NEUTRAL</div>
-            <div class="ocsub">No clear directional bias</div>
+            <div class="oclbl">52-Week Range</div>
+            <div class="ocval" style="color:var(--bl);font-size:18px">{oc_52l} \u2013 {oc_52h}</div>
+            <div class="ocsub">XRP / USD</div>
           </div>
           <div class="ocbox esc">
             <div class="oclbl">\u23F3 Next Ripple Escrow Release</div>
