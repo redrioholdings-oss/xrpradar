@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "92"
+APP_VERSION = "93"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -1870,7 +1870,7 @@ def signal_stats():
 # ─────────────────────────────────────────────────────────────────────
 BRIEF = {"slot_id": None, "edition": None, "generated": None, "next_run": None, "sections": {}}
 BRIEF_ARCHIVE = {}   # slot_id -> {"edition","generated","sections"} — this week's editions live here
-BRIEF_ARCHIVE_MAX = 2   # current + previous edition only
+BRIEF_ARCHIVE_MAX = 1   # current edition only — next brief replaces it
 BRIEF_ARCHIVE_FILE = "/tmp/xrpradar_brief_archive.json"  # survives simple restarts; wiped only on full redeploy
 
 def _save_brief_archive():
@@ -3274,32 +3274,11 @@ def render_page():
 
     # Brief Home — designated schedule strip (this week's 14 editions)
     _now_ct = datetime.now(CENTRAL)
-    _week_slots = brief_week_slots(_now_ct)
     _live_slot = BRIEF.get("slot_id")
     _next_run_dt = _brief_next_run_dt(_now_ct)
     brf_next_iso = _next_run_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Single-edition mode: no edition strip. Only the current brief is kept and displayed.
     brf_strip_html = ""
-    for sl in _week_slots:
-        sid = sl["slot_id"]
-        is_live = (sid == _live_slot)
-        has_data = sid in BRIEF_ARCHIVE
-        cls = "live" if is_live else ("ready" if has_data else "pending")
-        day_lbl = sl["date"].strftime("%a %-d") if hasattr(sl["date"], "strftime") else str(sl["date"])
-        tag = " \u25CF" if is_live else ""
-        if has_data:
-            click = f' onclick="showBrief(\'{sid}\'); return false;"'
-            href = f'#brief-{sid}'
-            title_attr = f' title="View the {sl["edition"]} briefing from {day_lbl}"'
-        else:
-            click = f' onclick="showPending(\'{sl["edition"]}\'); return false;"'
-            href = 'javascript:void(0)'
-            title_attr = f' title="{sl["edition"]} briefing from {day_lbl} \u2014 not yet published"'
-        brf_strip_html += (
-            f'<a class="brf-slot {cls}" data-slot="{sid}" href="{href}"{click}{title_attr}>'
-            f'<div class="brf-slot-day">{day_lbl}</div>'
-            f'<div class="brf-slot-ed">{sl["edition"]}{tag}</div>'
-            f'</a>'
-        )
     try:
         _archive_json = json.dumps(BRIEF_ARCHIVE).replace("</", "<\\/")
     except Exception:
@@ -4728,16 +4707,6 @@ def render_page():
         <div class="brf-teaser-sub">Twice daily \u2014 12:00 PM &amp; 9:00 PM CST \u2014 see World Clocks below</div>
       </div>
 
-      <div class="brf-home">
-        <div class="brf-home-t">\U0001F4C5 Current &amp; Previous Edition \u2014 Click To View</div>
-        <div class="brf-home-sub">Only the current and previous edition are kept (AM = 12:00 PM CST, PM = 9:00 PM CST). Click either box to load it above.</div>
-        <div class="brf-strip" id="brf-strip">
-          {brf_strip_html}
-        </div>
-        <div class="brf-pending-msg" id="brf-pending-msg" style="display:none"></div>
-      </div>
-
-      <div class="brf-sub" id="brf-archive-note" style="display:none;color:var(--or);margin-bottom:8px">\U0001F4C1 Viewing an earlier edition \u2014 <span class="pt-use-live" onclick="showBrief('{_live_slot}')">Back to Live</span></div>
       <div class="brf-now-showing" id="brf-now-showing">
         <span class="brf-ribbon-wrap"><span class="brf-ribbon-icon">\U0001F52E</span><span class="brf-ribbon" id="brf-ribbon-label">CURRENT BRIEF</span></span>
         <span id="brf-now-edition">{brf_edition} EDITION</span>, {brf_gen}
@@ -5473,42 +5442,8 @@ def render_page():
       briefArchive = _bd ? JSON.parse(_bd.textContent) : {{}};
     }} catch (e) {{ briefArchive = {{}}; }}
 
-    function showPending(edition) {{
-      var msg = document.getElementById('brf-pending-msg');
-      if (!msg) return;
-      msg.textContent = '\U0001F52E ' + edition + ' edition hasn\\'t published yet \\u2014 check back at ' +
-        (edition === 'AM' ? '12:00 PM CST' : '9:00 PM CST') + '.';
-      msg.style.display = 'block';
-      clearTimeout(window._brfPendingTimer);
-      window._brfPendingTimer = setTimeout(function () {{ msg.style.display = 'none'; }}, 4000);
-    }}
-
-    function showBrief(slotId) {{
-      var d = briefArchive[slotId];
-      if (!d) return;
-      var isLiveEdition = (slotId === briefLiveSlot);
-      var nowShow = document.getElementById('brf-now-showing');
-      var label = isLiveEdition ? 'CURRENT BRIEF' : 'PAST BRIEF';
-      var trailer = isLiveEdition
-        ? '<span class="brf-now-spacer">\u00B7</span><span id="brf-next-line">Next edition ' + brfNextGlobal + '</span>'
-        : '';
-      if (nowShow) nowShow.innerHTML =
-        '<span class="brf-ribbon-wrap"><span class="brf-ribbon-icon">\U0001F52E</span><span class="brf-ribbon">' + label + '</span></span>' +
-        '<span id="brf-now-edition">' + d.edition + ' EDITION</span>, ' + d.generated + trailer;
-      var ids = {{pulse:'brf-pulse', connections:'brf-connections', domino:'brf-domino',
-                  regional:'brf-regional', watchlist:'brf-watchlist', tradfi:'brf-tradfi'}};
-      for (var key in ids) {{
-        var el = document.getElementById(ids[key]);
-        if (el && d.sections && d.sections[key] !== undefined) el.innerHTML = d.sections[key];
-      }}
-      var isLive = (slotId === briefLiveSlot);
-      var note = document.getElementById('brf-archive-note');
-      if (note) note.style.display = isLive ? 'none' : 'block';
-      var slots = document.querySelectorAll('.brf-slot');
-      for (var i = 0; i < slots.length; i++) {{
-        slots[i].classList.toggle('active-view', slots[i].getAttribute('data-slot') === slotId);
-      }}
-    }}
+    // Single-edition mode: only the current brief is shown (rendered server-side).
+    // No edition switching, so no client-side brief loader is needed.
 
     // Practical Tools — client-side calculators (never block the page load)
     var currentXRPPrice = {xrp_price_js};
