@@ -46,7 +46,7 @@ from flask import Flask, Response, jsonify
 # ─────────────────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────
-APP_VERSION = "89"
+APP_VERSION = "91"
 APP_NAME    = "XRPRadar"
 TAGLINE     = "The NEW XRP Intelligence Standard"
 COPYRIGHT   = "\u00A9\uFE0F Copyright 2026 Red Rio Ventures, LLC. All rights reserved globally."
@@ -533,6 +533,8 @@ def _bg_refresh():
                 fetch_correlation()
             if n % 2 == 0:
                 fetch_orderbook()
+            if n % 60 == 0:  # check hourly whether the 3-day static directory refresh is due
+                load_static_partner_directory()
         except Exception:
             pass
         n += 1
@@ -1181,6 +1183,173 @@ def _track_catalyst_clock(pool):
 
 
 # ── Global XRP Enterprise & Partnership Ledger ──
+
+# ── Static Global Partnership Directory (right rail) — refreshed every 3 days ──
+# PLACEHOLDER data structure. Rich will supply the real 100+ entry list; this proves the mechanism.
+STATIC_PARTNER_DIRECTORY = {"entries": [], "last_refreshed": None}
+STATIC_PARTNER_REFRESH_DAYS = 3
+
+def load_static_partner_directory(force=False):
+    """(Re)loads the curated 100+ partnership list on a true 3-day elapsed-time cycle.
+    Currently placeholder pending Rich's real list. Purely static/curated data — no external API call."""
+    now = datetime.now(timezone.utc)
+    last = STATIC_PARTNER_DIRECTORY.get("_last_dt")
+    due = force or not last or (now - last).days >= STATIC_PARTNER_REFRESH_DAYS
+    if not due and STATIC_PARTNER_DIRECTORY["entries"]:
+        return
+    STATIC_PARTNER_DIRECTORY["entries"] = [
+        ("AMINA Bank", "FINMA-regulated digital asset institution with live native Ripple Payments"),
+        ("Azimo", "International digital money transmitter processing enterprise payouts"),
+        ("Bitso", "Core liquidity hub routing heavy institutional USD-to-MXN lanes"),
+        ("BTC Markets", "Currency bridge managing the AUD leg of regional ODL clearing"),
+        ("ChinaBank", "Clears Gulf-region corporate payments anchored to digital liquidity"),
+        ("CIBC", "Settles institutional growth transfers via ODL infrastructure"),
+        ("Coins.ph", "Digital consumer network handling incoming XRP liquid conversions"),
+        ("Cuallix", "First fintech to pilot original xRapid/ODL settlement engines"),
+        ("FlashFX", "Automated FX software routing transfers via on-chain token paths"),
+        ("Independent Reserve", "Regional liquidity exchange partner providing settlement architecture"),
+        ("iRemit", "Non-bank remittance giant using ledger for real-time treasury management"),
+        ("Mercury FX", "Enterprise currency platform processing instant commercial payments via XRP"),
+        ("MoneyMatch", "Digital conversion firm routing commercial payments to European endpoints"),
+        ("Novatti", "Payments processor using XRP ledger routes for Southeast Asian corridors"),
+        ("Pyypl", "Blockchain fintech offering consumer digital wallets via ODL"),
+        ("Qatar National Bank", "Cross-border pipeline targeting Philippine remittance partners"),
+        ("SBI Remit / SBI Holdings", "Multi-corridor APAC retail & commercial remittance powered by XRP"),
+        ("Siam Commercial Bank", "Active live ODL corridors for inbound Japanese capital"),
+        ("Tranglo", "Regional processing giant fully integrated into ODL"),
+        ("Travelex Bank", "First operational Latin American bank using XRP liquidity corridors"),
+        ("UnionBank", "Automated processing for inbound domestic overseas worker remittances"),
+        ("X Money", "Retail cross-border digital financial platform using decentralized settlement"),
+        ("Zand Bank", "Digital corporate bank processing payments via XRP and RLUSD"),
+        ("Akbank", "Early regional banking partner conducting secure real-time automated tests"),
+        ("American Express", "Commercial B2B international payments clearing partner"),
+        ("ANZ Bank", "Historical testing partner of the underlying clearing protocol"),
+        ("Axis Bank", "Live infrastructure client managing real-time regional transaction tunnels"),
+        ("Banco Santander", "Powers international One Pay FX app via RippleNet messaging"),
+        ("Bank of America", "Infrastructure pilot participant holding patents referencing XRP settlement"),
+        ("BBVA", "Corporate banking implementing cross-border branch liquidity trials"),
+        ("BDO Unibank", "Major destination settlement point for international inbound money streams"),
+        ("BMO Financial Group", "North American commercial entity exploring cross-border clearing efficiency"),
+        ("CIMB Bank", "Deep integration node managing corridors across ASEAN borders"),
+        ("Commonwealth Bank (CBA)", "Major retail institution participating in pilot ecosystem networks"),
+        ("Deutsche Bank", "Combined Ripple blockchain architecture with legacy SWIFT mechanisms"),
+        ("Federal Bank", "Major localized retail bank utilizing automated routing systems"),
+        ("HSBC", "Multi-national banking network mapped via active system routing IDs"),
+        ("IndusInd Bank", "Captures inbound international money transfers using decentralized engines"),
+        ("ING Group", "Multi-national bank registered in regional backend messaging directories"),
+        ("Intesa Sanpaolo", "Enterprise participant tracking structural digital payment innovations"),
+        ("JPMorgan Chase", "Overlapping participant in multi-network settlement ledger groups"),
+        ("Kotak Mahindra Bank", "Fintech clearing provider handling instant retail capital inflows"),
+        ("Krungsri (Bank of Ayudhya)", "Streamlines real-time corporate pipelines between Thailand and Japan"),
+        ("Macquarie Bank", "Financial and transaction group listed on official routing logs"),
+        ("MUFG Bank", "Tier-1 retail giant optimizing transaction messaging across APAC"),
+        ("National Australia Bank (NAB)", "Incorporated into the ledger settlement network indexing systems"),
+        ("PNC Bank", "First major domestic U.S. institutional network client"),
+        ("Royal Bank of Canada (RBC)", "Explored the decentralized rail protocol for automated settlement"),
+        ("SEB", "Operates high-volume corporate lines over Ripple software rails"),
+        ("Shinhan Bank", "Top South Korean network client maintaining active system access keys"),
+        ("Standard Chartered", "Core early corporate investor and active digital clearing hub collaborator"),
+        ("UBS", "Asset and investment firm evaluating high-speed distributed ledgers"),
+        ("Westpac", "Registered network member maintaining live backend communication IDs"),
+        ("Woori Bank", "Multi-channel asset institution utilizing programmatic payment lines"),
+        ("Yes Bank", "Commercial institution conducting high-velocity payment remittance operations"),
+        ("Accenture", "Consulting giant managing global deployment strategies for payment architecture"),
+        ("Amazon Web Services (AWS)", "Hosts architecture allowing global nodes to run XRPL validation configurations"),
+        ("BDACS", "Regulated secure vault platform for native ledger token storage"),
+        ("BeeTech", "Digital financial operator executing automated Latin American clearings"),
+        ("BNY Mellon", "Primary tier-1 institutional reserve custodian for stablecoin offerings"),
+        ("CGI Group", "IT consulting firm incorporating decentralized financial frameworks"),
+        ("Cross River Bank", "Financial tech enabler providing direct underlying banking backbone"),
+        ("Currencycloud", "B2B multi-currency platform streamlining automated foreign exchange"),
+        ("DBS Bank", "Southeast Asian institution utilizing bank-grade digital asset vaults"),
+        ("Deloitte", "Integrated distributed financial systems into client business models"),
+        ("DZ Bank", "Leverages digital custody solutions for tokenized asset issuance"),
+        ("Fidor Bank", "Digital banking pioneer integrating alternative clearing protocol tools"),
+        ("Finastra", "Core banking software opening network access to 2,000+ regional banks"),
+        ("Frankenmuth Credit Union", "Local cooperative providing digital asset services to local consumers"),
+        ("GTreasury", "Corporate liquidity software suite managing modern capital balance sheets"),
+        ("Hidden Road", "Major institutional prime brokerage expanding liquidity paths for digital assets"),
+        ("InstaReM", "High-speed digital payment gateway connected via localized nodes"),
+        ("Kbank", "Digital platform implementing secure cryptographic wallet structures"),
+        ("Kyobo Life Insurance", "Utilizing token ledger blueprint for corporate structural bond settlement"),
+        ("Metaco", "Institutional crypto custody firm acquired by Ripple to secure bank assets globally"),
+        ("Modulr", "Payments provider optimizing massive local commercial transaction times"),
+        ("Nium", "Fintech provider optimizing massive outbound payment paths across global corridors"),
+        ("Sabadell", "Commercial infrastructure partner running real-time corporate data modules"),
+        ("Sentbe", "High-speed international remittance engine using the global banking network"),
+        ("Temenos", "Core banking software provider embedding automated accounting rails"),
+        ("Al Ansari Exchange", "High-volume Middle Eastern exchange network routing institutional transfers"),
+        ("Banco Rendimento", "Foreign currency commercial bank using optimized digital payment tunnels"),
+        ("Bank Alfalah", "Manages automated digital channels targeting the UAE-to-Pakistan corridor"),
+        ("bKash", "Mobile financial giant plugged in to capture worker remittances"),
+        ("Faysal Bank", "Specialized commercial banking provider processing inward retail cash flows"),
+        ("Interbank", "Traditional retail banking destination tied to alternative clearing systems"),
+        ("Intercorp", "Large conglomerate stabilizing localized payment legs for regional retail assets"),
+        ("Itau Unibanco", "Giant South American banking provider utilizing alternative communication networks"),
+        ("National Bank of Fujairah", "Trade finance group optimizing real-time B2B payment workflows"),
+        ("National Bank of Kuwait (NBK)", "Runs international corporate transfer paths targeting the Gulf"),
+        ("RAKBANK", "Integrates transaction routes to improve speed across enterprise pipelines"),
+        ("Saudi Central Bank (SAMA)", "Central entity piloting distributed frameworks for commercial branches"),
+        ("Vietcombank", "Explores modern asset frameworks under regional digital banking pilots"),
+        ("Bitwise Asset Management", "Regulated Wall Street provider offering institutional XRP exposure"),
+        ("Canary Capital Partners", "Asset management firm deploying institutional-grade XRP capital avenues"),
+        ("Franklin Templeton", "Legacy asset firm filing for exchange-traded digital investment products"),
+        ("Grayscale Investments", "Asset manager operating the regulated Grayscale XRP Trust and spot fund"),
+        ("Hashdex Asset Management", "Global investment manager offering systemic access to ledger tokens"),
+        ("Nature's Miracle Holding", "Agriculture Tech firm implementing a $20M Corporate Treasury on the XRPL"),
+        ("Worksport Ltd.", "Clean automotive developer utilizing digital assets for inventory clearings"),
+        ("Mastercard", "$9T payment network partnered with Ripple on settlement rails in 2026"),
+        ("Banco Genial", "Ripple Payments for cross-border payouts, live 2026"),
+        ("Thunes", "Brought stablecoin payouts to 11,500 SWIFT-connected banks via Ripple ODL routing"),
+        ("SendFriend", "ODL for international remittances"),
+        ("Remitr", "RippleNet for cross-border business payments"),
+        ("Ondo Finance", "$323M+ tokenized US Treasury products on XRP Ledger"),
+        ("Archax", "UK-regulated exchange bringing $1B tokenized assets onto XRPL by mid-2026"),
+        ("Guggenheim Treasury Services", "Tokenized commercial paper / treasury products on XRPL"),
+        ("OpenEden", "Tokenized US Treasury products on the XRP Ledger"),
+        ("Zoniqx", "Prepared hundreds of millions in RWA for issuance on XRPL"),
+        ("abrdn", "£3.8B liquidity fund tokenized on XRPL via Archax (first tokenized MMF)"),
+        ("Aviva Investors", "Announced tokenization partnership with Ripple in 2026"),
+        ("Justoken", "Independent RWA tokenization project building on XRPL"),
+        ("Ctrl Alt", "Partnered with Ripple + Dubai Land Department for real estate tokenization"),
+        ("Figment", "Staking infrastructure partnership for Ripple Custody (2026)"),
+        ("Securosys", "HSM support partnership for Ripple Custody (2026)"),
+        ("Palisade", "Acquired by Ripple to expand custody stack"),
+        ("Chainalysis", "Compliance tools integrated into Ripple Custody"),
+        ("Doppler Finance", "Partnered with SBI Ripple Asia for XRP-based institutional yield products"),
+        ("SBI Digital Markets", "Segregated custody for SBI Ripple Asia XRP yield products"),
+        ("Royal Monetary Authority of Bhutan", "National CBDC pilot on XRPL since 2021"),
+        ("Central Bank of Montenegro", "CBDC pilot exploring blockchain national currency on XRPL"),
+        ("Republic of Palau", "National stablecoin built with Ripple on XRPL"),
+        ("Banco de la Republica", "Central bank exploring XRPL for digital peso settlement"),
+        ("Reserve Bank of Australia", "Project Acacia deployed wholesale CBDC on XRPL in live tests with tokenized govt bonds"),
+        ("Monetary Authority of Singapore", "MAS sandbox projects using RLUSD for programmable trade finance"),
+        ("Hong Kong Monetary Authority", "e-HKD CBDC pilots involving XRPL infrastructure"),
+        ("Dubai Land Department", "Real estate tokenization on XRPL with Ripple + Ctrl Alt (2025)"),
+        ("21Shares", "Live XRP ETP issuer"),
+        ("CoinShares", "Live XRP exchange-traded product issuer"),
+        ("WisdomTree", "XRP ETF issuer"),
+        ("VanEck", "Live XRP ETF issuer"),
+        ("ProShares", "XRP futures/ETF product under review"),
+        ("Volatility Shares", "XRP futures ETF issuer"),
+        ("Teucrium", "Launched 2x leveraged XRP ETF"),
+        ("Goldman Sachs", "Reported largest institutional XRP holder in the US"),
+        ("Societe Generale (SG-FORGE)", "Launched EUR CoinVertible euro stablecoin on XRPL (Feb 2026)"),
+        ("WebBank", "Settles fiat card transactions using RLUSD on XRPL (with Gemini)"),
+        ("Gemini", "Card transaction settlement using RLUSD on the XRP Ledger"),
+        ("Mastercard (RLUSD cards)", "Fiat card settlement via RLUSD on XRPL with WebBank + Gemini"),
+        ("BlackRock (BUIDL)", "BUIDL fund supported on Ripple Treasury platform routing via XRPL DEX"),
+        ("Alloy Networks", "Runs an XRPL validator node — signal of active XRP settlement usage"),
+        ("Onafriq", "Pan-African payments network using Ripple for cross-border corridors"),
+        ("Ripple National Trust Bank", "OCC conditionally approved Dec 2025 — federally chartered trust bank"),
+        ("Absa Group", "Major African bank exploring Ripple cross-border infrastructure"),
+        ("Fenasbac", "Brazil central bank innovation arm partnered on Ripple pilots"),
+        ("DZ Bank Digital", "Digital asset custody pilots involving XRPL infrastructure"),
+    ]
+    STATIC_PARTNER_DIRECTORY["_last_dt"] = now
+    STATIC_PARTNER_DIRECTORY["last_refreshed"] = now.strftime("%Y-%m-%d %H:%M UTC")
+
+load_static_partner_directory()
 # Ever-growing, never-trimmed. Seed = 100 known entities (undated baseline).
 # New entries detected from the live news feed get real timestamps and always sort above the baseline.
 PARTNERSHIP_LEDGER = []          # list of dicts: name, country, cat, status, detail, date(None or datetime), source, key
@@ -3201,6 +3370,17 @@ def render_page():
     pl_html = partnership_ledger_html()
     pl_total = len(PARTNERSHIP_LEDGER)
     pl_detected = sum(1 for e in PARTNERSHIP_LEDGER if e["source"] == "detected")
+
+    # Static Global Partnership Directory (right rail, refreshes every 3 days)
+    sd_entries = STATIC_PARTNER_DIRECTORY.get("entries", [])
+    sd_updated = STATIC_PARTNER_DIRECTORY.get("last_refreshed") or "\u2014"
+    sd_count = len(sd_entries)
+    sd_html = "".join(
+        f'<div class="sd-item"><span class="sd-name">{html.escape(name)}</span>'
+        f'<span class="sd-desc">{html.escape(desc)}</span></div>'
+        for name, desc in sd_entries
+    ) or '<div class="sd-empty">Directory loading\u2026</div>'
+
     pl_by_cat = {}
     for e in PARTNERSHIP_LEDGER:
         pl_by_cat[e["cat"]] = pl_by_cat.get(e["cat"], 0) + 1
@@ -3790,6 +3970,22 @@ def render_page():
   .mica-detail{{ font-size:12px; color:var(--tx); flex:1; font-family:system-ui; line-height:1.5; }}
   @media(max-width:700px){{ .mica-row{{ flex-wrap:wrap; }} .mica-event{{ flex-basis:100%; order:1; }} .mica-detail{{ flex-basis:100%; order:2; }} }}
   @media(max-width:900px){{ .cg-grid{{ grid-template-columns:repeat(2,1fr); }} }}
+
+  /* Static Global Partnership Directory (right rail, V90) */
+  .sd-panel{{ background:var(--s1); border:1px solid var(--b); border-radius:10px; padding:14px; }}
+  .sd-head{{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }}
+  .sd-title{{ font-size:14px; font-weight:800; font-family:var(--mn); color:var(--hdr); letter-spacing:0.5px; }}
+  .sd-count{{ font-size:13px; font-weight:900; font-family:var(--mn); color:var(--yl); }}
+  .sd-sub{{ font-size:11px; color:var(--tx); font-family:var(--mn); line-height:1.5; margin-bottom:10px; }}
+  .sd-list{{ display:flex; flex-direction:column; gap:6px; max-height:600px; overflow-y:scroll; padding-right:6px;
+    scrollbar-width:thin; scrollbar-color:#33405e var(--s2); }}
+  .sd-list::-webkit-scrollbar{{ width:8px; }}
+  .sd-list::-webkit-scrollbar-track{{ background:var(--s2); border-radius:6px; }}
+  .sd-list::-webkit-scrollbar-thumb{{ background:#33405e; border-radius:6px; }}
+  .sd-item{{ background:var(--s2); border:1px solid var(--b); border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:2px; }}
+  .sd-name{{ font-size:13px; font-weight:700; color:var(--br); }}
+  .sd-desc{{ font-size:11px; color:var(--tx); line-height:1.4; }}
+  .sd-empty{{ font-size:12px; color:var(--tx); font-style:italic; padding:10px 0; }}
 
   /* Global XRP Enterprise & Partnership Ledger */
   .pl-search{{ width:100%; box-sizing:border-box; background:#e9ecf1; border:1px solid #c3c8d1; border-radius:8px;
@@ -4795,7 +4991,9 @@ def render_page():
         foundational partnerships to newly announced deals. New entries are detected automatically from the live news feed
         and added here permanently; nothing is ever removed. Newest announcements shown first.
       </div>
-      <input class="pl-search" id="pl-search" type="text" placeholder="\U0001F50D Search institution, country, category..." oninput="filterPartnerships()">
+      <div class="feed-wrap">
+        <div>
+          <input class="pl-search" id="pl-search" type="text" placeholder="\U0001F50D Search institution, country, category..." oninput="filterPartnerships()">
       <div class="pl-cats" id="pl-cats">
         <button class="pl-btn active" data-cat="ALL" style="color:var(--br);border-color:var(--br)" onclick="plCat('ALL',this)">ALL</button>
         <button class="pl-btn" data-cat="A" style="color:var(--gr);border-color:var(--gr)" onclick="plCat('A',this)">\U0001F680 ODL/XRP Live</button>
@@ -4816,6 +5014,18 @@ def render_page():
         Baseline sources: Ripple.com partner listings, SEC filings, central bank announcements, verified corporate press
         releases. New entries are detected from the live news feed. Directory is for informational purposes; some
         partnerships may be pilots or historical integrations.
+      </div>
+        </div>
+        <div class="sd-panel">
+          <div class="sd-head">
+            <span class="sd-title">\U0001F4D1 Global Partnership Directory</span>
+            <span class="sd-count">{sd_count}+</span>
+          </div>
+          <div class="sd-sub">Curated master list of confirmed global partnerships &amp; contracts. Refreshes every 3 days. Updated {sd_updated}.</div>
+          <div class="sd-list">
+            {sd_html}
+          </div>
+        </div>
       </div>
     </div>
 
